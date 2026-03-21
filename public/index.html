@@ -534,7 +534,10 @@
   //  AUDIO
   // =============================================
   let audioCtx;
-  function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+  function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
   function playSound(type) {
     if (!audioCtx || muted) return;
     const t = audioCtx.currentTime;
