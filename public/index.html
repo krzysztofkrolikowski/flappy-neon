@@ -2944,8 +2944,14 @@
 
   resetGame(); requestAnimationFrame(frame);
 
-  // PWA
-  if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  // PWA — force nuke old SW, re-register fresh
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.getRegistrations().then(regs=>{
+      regs.forEach(r=>r.unregister());
+      caches.keys().then(ks=>ks.forEach(k=>caches.delete(k)));
+      navigator.serviceWorker.register("/sw.js").catch(()=>{});
+    });
+  }
 })();
 </script>
 </body>
