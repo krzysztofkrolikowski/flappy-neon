@@ -340,6 +340,7 @@
       <button class="btn btn-gold btn-small" id="btn-revive" style="display:none"></button>
       <button class="btn btn-small" id="btn-revive-ad" style="display:none"></button>
       <button class="btn btn-primary btn-small" id="btn-restart">🔄 Jeszcze raz</button>
+      <button class="btn btn-small" id="btn-shop-go" style="font-size:12px">🛒 Sklep</button>
       <button class="btn btn-small" id="btn-share" style="font-size:12px">📤 Udostępnij</button>
     </div>
   </div>
@@ -1374,6 +1375,15 @@
   document.getElementById("btn-shop").addEventListener("click", e => {
     e.stopPropagation(); renderShop(); shopOverlay.classList.add("active");
     setTimeout(()=>shopPanel.classList.add("show"), 50);
+  });
+  document.getElementById("btn-shop-go").addEventListener("click", e => {
+    e.stopPropagation();
+    goPanel.classList.remove("show");
+    setTimeout(() => {
+      goOverlay.classList.remove("active");
+      renderShop(); shopOverlay.classList.add("active");
+      setTimeout(()=>shopPanel.classList.add("show"), 50);
+    }, 200);
   });
   document.getElementById("btn-shop-close").addEventListener("click", () => {
     shopPanel.classList.remove("show"); setTimeout(()=>shopOverlay.classList.remove("active"), 300);
