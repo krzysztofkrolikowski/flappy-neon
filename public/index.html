@@ -1316,12 +1316,14 @@
       }
     }
     // Floating hologram rings
-    ctx.strokeStyle="rgba(0,240,255,0.06)"; ctx.lineWidth=1;
-    const holoOff=Date.now()*0.01;
+    ctx.strokeStyle=z.accent; ctx.lineWidth=1;
+    const holoOff=Date.now()*0.008;
     for(let i=0;i<3;i++) {
-      const hx=(holoOff*0.3+i*W/3)%W, hy=H*0.25+Math.sin(holoOff*0.02+i)*40;
-      ctx.beginPath(); ctx.ellipse(hx,hy,40+i*10,12,0.2,0,Math.PI*2); ctx.stroke();
+      const hx=(holoOff*25+i*W/3)%W, hy=H*0.25+Math.sin(holoOff*0.5+i)*40;
+      ctx.globalAlpha=0.025+Math.sin(holoOff+i*2)*0.01;
+      ctx.beginPath(); ctx.ellipse(hx,hy,30+i*8,8+i*3,0.2+Math.sin(holoOff*0.3+i)*0.3,0,Math.PI*2); ctx.stroke();
     }
+    ctx.globalAlpha=1;
     // === DATA STREAM LINES ===
     const dsOff=Date.now()*0.05;
     for(let i=0;i<6;i++) {
