@@ -254,8 +254,8 @@
       <span class="stat-value coins-earned" id="coins-earned">+0</span>
     </div>
     <div class="go-buttons">
-      <button class="btn btn-gold btn-small" id="btn-revive" style="display:none">💖 Wskrześ (50 🪙)</button>
-      <button class="btn btn-small" id="btn-revive-ad" style="display:none">📺 Wskrześ (reklama)</button>
+      <button class="btn btn-gold btn-small" id="btn-revive" style="display:none"></button>
+      <button class="btn btn-small" id="btn-revive-ad" style="display:none"></button>
       <button class="btn btn-primary btn-small" id="btn-restart">🔄 Jeszcze raz</button>
     </div>
   </div>
@@ -760,8 +760,8 @@
       let medal="";
       if(score>=50)medal="👑"; else if(score>=30)medal="💎"; else if(score>=20)medal="🏆"; else if(score>=10)medal="🥇"; else if(score>=5)medal="🥈";
       document.getElementById("medal-display").textContent=medal;
-      document.getElementById("btn-revive").style.display=(!reviveUsed&&coins>=REVIVE_COST)?"inline-block":"none";
-      document.getElementById("btn-revive-ad").style.display=(!reviveUsed)?"inline-block":"none";
+      document.getElementById("btn-revive").style.display="none";
+      document.getElementById("btn-revive-ad").style.display="none";
       setTimeout(()=>goPanel.classList.add("show"), 50);
     };
 
