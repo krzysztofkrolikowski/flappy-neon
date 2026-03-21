@@ -23,6 +23,27 @@
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   }
   canvas { display: block; width: 100%; height: 100%; }
+  #fx-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; mix-blend-mode: screen; opacity: 0; transition: opacity 0.2s; }
+  #fx-canvas.active { opacity: 1; }
+  #vignette {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 11;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+  }
+  #scanlines {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 12; opacity: 0.04;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px);
+  }
+  #bass-pulse {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 13;
+    border: 0px solid transparent; box-sizing: border-box;
+    transition: border-width 0.05s, border-color 0.05s;
+  }
+  #bass-pulse.hit { border: 8px solid rgba(255,0,100,0.4); }
+  #bass-pulse.combo { border: 6px solid rgba(255,0,230,0.3); }
+  #bass-pulse.drift { border: 5px solid rgba(0,255,170,0.3); }
 
   /* === HUD === */
   #score-display {
@@ -260,6 +281,10 @@
 <body>
 
 <canvas id="game"></canvas>
+<canvas id="fx-canvas"></canvas>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+<div id="bass-pulse"></div>
 
 <!-- HUD -->
 <div id="score-display">0</div>
@@ -409,6 +434,12 @@
   let gameSpeed = PIPE_SPEED_START, pipeGap = PIPE_GAP_START;
   let groundX = 0, shakeX = 0, shakeY = 0, shakeMag = 0, flash = 0;
   let starParticles = [], particles = [], speedLines = [];
+  // === SLOW-MO / BULLET TIME ===
+  let timeScale = 1, timeScaleTarget = 1;
+  let chromAb = 0; // chromatic aberration intensity
+  let screenPulse = 0; // bass drop pulse
+  let deathFreezeFrames = 0; // freeze before slow-mo
+  let envDebris = []; // flying debris particles
   const streakMilestones = [5,10,15,20,25,30,40,50,75,100];
   let streakTimer = 0;
 
@@ -474,12 +505,17 @@
   // =============================================
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
+  const fxCanvas = document.getElementById("fx-canvas");
+  const fxCtx = fxCanvas.getContext("2d");
+  const bassPulse = document.getElementById("bass-pulse");
   let W, H;
   function resize() {
     const dpr = Math.min(window.devicePixelRatio||1, 2);
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = W*dpr; canvas.height = H*dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
+    fxCanvas.width = W*dpr; fxCanvas.height = H*dpr;
+    fxCtx.setTransform(dpr,0,0,dpr,0,0);
   }
   resize();
   window.addEventListener("resize", resize);
@@ -803,6 +839,7 @@
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
     currentZone=ZONES[0]; lastZoneIdx=0;
+    timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
     scoreDisplay.textContent="0";
   }
@@ -850,6 +887,7 @@
       showStreak(`🔥 COMBO x${combo}!`);
       playSound('milestone');
       burst(bird.x,bird.y,'#ff00e6',15+combo);
+      chromAb=4+combo*0.5; screenPulse=0.6; triggerBassPulse('combo');
       haptic();
     }
   }
@@ -1070,7 +1108,16 @@
       bird.trail.push({x:bird.x,y:bird.y,life:1});
       if(bird.trail.length>15)bird.trail.shift();
       for(const t of bird.trail) t.life-=0.07;
-      if(isThrusting){const a=Math.PI+Math.random()*0.5-0.25;particles.push({x:bird.x-BIRD_SIZE*0.5,y:bird.y,vx:Math.cos(a)*3,vy:Math.sin(a)*1.5,life:0.5,decay:0.04,size:2+Math.random()*2,color:getSkinColors().thrust});}
+      if(isThrusting){
+        // Double exhaust particles
+        for(let i=0;i<2;i++){const a=Math.PI+Math.random()*0.6-0.3;particles.push({x:bird.x-BIRD_SIZE*0.5,y:bird.y+(Math.random()-0.5)*4,vx:Math.cos(a)*4,vy:Math.sin(a)*2,life:0.6,decay:0.04,size:2+Math.random()*3,color:getSkinColors().thrust});}
+        // Hot sparks 
+        if(Math.random()>0.6) particles.push({x:bird.x-BIRD_SIZE*0.5,y:bird.y+(Math.random()-0.5)*6,vx:-2-Math.random()*3,vy:(Math.random()-0.5)*3,life:0.4,decay:0.05,size:1+Math.random(),color:'#ffffff'});
+      }
+      // Ambient environment sparks at high speed
+      if(gameSpeed>3.5 && Math.random()>0.85) {
+        particles.push({x:W+5,y:Math.random()*(H-GROUND_HEIGHT),vx:-gameSpeed*3,vy:(Math.random()-0.5)*0.5,life:0.5,decay:0.025,size:1+Math.random(),color:currentZone.accent});
+      }
       // Power-up collection
       for(let i=powerUpOrbs.length-1;i>=0;i--) {
         const pu=powerUpOrbs[i];
@@ -1141,7 +1188,7 @@
           const distTop=Math.abs(bird.y-p.topH),distBot=Math.abs(bird.y-(p.topH+p.gap));
           const nearDist=Math.min(distTop,distBot);
           if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
-          else if(nearDist<25){driftCount++;addCoins(Math.ceil(2*comboMultiplier));showStreak(`⚡ DRIFT x${comboMultiplier.toFixed(1)}!`);burst(bird.x,bird.y,"#00ffaa",12);playSound("coin");haptic();}
+          else if(nearDist<25){driftCount++;addCoins(Math.ceil(2*comboMultiplier));showStreak(`⚡ DRIFT x${comboMultiplier.toFixed(1)}!`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
           gameSpeed=Math.min(PIPE_SPEED_MAX, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
@@ -1156,18 +1203,39 @@
           bird.vy=bird.vy>0?-3:3; // bounce away from danger
           showStreak('🛡️ TARCZA!');
         } else {
-          state=STATE.DYING; playSound("hit"); haptic(); shakeMag=12; flash=1;
-          burst(bird.x,bird.y,"#ff4466",25); burst(bird.x,bird.y,"#ffee00",10);
+          state=STATE.DYING; playSound("hit"); haptic(); shakeMag=18; flash=1;
+          chromAb=12; screenPulse=1; deathFreezeFrames=6;
+          timeScaleTarget=0.2; // BULLET TIME
+          triggerBassPulse('hit');
+          burst(bird.x,bird.y,"#ff4466",40); burst(bird.x,bird.y,"#ffee00",20);
+          burst(bird.x,bird.y,"#ffffff",15); // white sparks
+          // Explosion ring
+          for(let i=0;i<24;i++){const a=i/24*Math.PI*2;particles.push({x:bird.x,y:bird.y,vx:Math.cos(a)*6,vy:Math.sin(a)*6,life:0.8,decay:0.02,size:3,color:'#ff0066'});}
+          // Debris
+          for(let i=0;i<12;i++) envDebris.push({x:bird.x,y:bird.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8-3,rot:0,rotV:(Math.random()-0.5)*0.3,size:3+Math.random()*5,life:1,color:Math.random()>0.5?'#ff4466':'#ffee00'});
         }
       }
     }
     decayCombo();
+    // Time scale lerp
+    timeScale+=(timeScaleTarget-timeScale)*0.08;
+    if(Math.abs(timeScale-timeScaleTarget)<0.01) timeScale=timeScaleTarget;
+    chromAb*=0.92; screenPulse*=0.88;
+    // Env debris
+    for(let i=envDebris.length-1;i>=0;i--) {
+      const d=envDebris[i]; d.x+=d.vx; d.y+=d.vy; d.vy+=0.15; d.rot+=d.rotV; d.life-=0.012;
+      if(d.life<=0) envDebris.splice(i,1);
+    }
     if (state===STATE.DYING) {
+      if(deathFreezeFrames>0){deathFreezeFrames--;} else {
       isThrusting=false;
       bird.vy+=DRIFT_GRAV*2; bird.y+=bird.vy; bird.angle+=0.15;
       shakeMag*=0.9; shakeX=(Math.random()-0.5)*shakeMag; shakeY=(Math.random()-0.5)*shakeMag;
       flash*=0.85;
-      if(bird.y>H-GROUND_HEIGHT+20){ state=STATE.DEAD; showGameOver(); }
+      // Dying trail sparks
+      if(Math.random()>0.5) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.6,decay:0.03,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
+      if(bird.y>H-GROUND_HEIGHT+20){ state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
+      }
     }
     for(let i=particles.length-1;i>=0;i--) {
       const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life-=p.decay;
@@ -1407,6 +1475,46 @@
 
   function drawFlash() {
     if(flash>0.01){ ctx.fillStyle=`rgba(255,68,102,${flash*0.3})`; ctx.fillRect(0,0,W,H); }
+    // Screen pulse (bass drop glow from edges)
+    if(screenPulse>0.01) {
+      const pg=ctx.createRadialGradient(W/2,H/2,W*0.2, W/2,H/2,W*0.8);
+      pg.addColorStop(0,'transparent');
+      pg.addColorStop(1,`rgba(255,0,230,${screenPulse*0.2})`);
+      ctx.fillStyle=pg; ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  function drawEnvDebris() {
+    for(const d of envDebris) {
+      ctx.save(); ctx.translate(d.x,d.y); ctx.rotate(d.rot);
+      ctx.globalAlpha=d.life; ctx.fillStyle=d.color; ctx.shadowColor=d.color; ctx.shadowBlur=4;
+      ctx.fillRect(-d.size/2,-d.size/2,d.size,d.size*0.4);
+      ctx.restore();
+    }
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
+  }
+
+  // === POST-PROCESSING: Chromatic Aberration ===
+  function postProcess() {
+    if(chromAb<0.3 && timeScale>0.9) { fxCanvas.classList.remove('active'); return; }
+    fxCanvas.classList.add('active');
+    fxCtx.clearRect(0,0,W,H);
+    const ab=chromAb;
+    // Red channel shift left
+    fxCtx.globalCompositeOperation='source-over';
+    fxCtx.globalAlpha=0.3;
+    fxCtx.drawImage(canvas,-ab*2,0,W,H);
+    // Cyan channel shift right
+    fxCtx.globalCompositeOperation='lighter';
+    fxCtx.globalAlpha=0.15;
+    fxCtx.drawImage(canvas,ab*2,0,W,H);
+    fxCtx.globalAlpha=1; fxCtx.globalCompositeOperation='source-over';
+  }
+
+  // === BASS PULSE (border flash) ===
+  function triggerBassPulse(type) {
+    bassPulse.className=''; void bassPulse.offsetWidth; bassPulse.classList.add(type);
+    setTimeout(()=>bassPulse.className='',200);
   }
 
   // =============================================
@@ -1414,8 +1522,10 @@
   // =============================================
   function frame(now) {
     if (!lastTime) lastTime = now;
-    const dt = Math.min(now - lastTime, 100); // cap at 100ms to avoid spiral
+    const rawDt = Math.min(now - lastTime, 100);
     lastTime = now;
+    // Apply slow-mo time scale
+    const dt = rawDt * timeScale;
     accumulator += dt;
     while (accumulator >= TICK_MS) {
       update();
@@ -1427,8 +1537,10 @@
     drawSpeedLines();
     for(const p of pipes) drawPipe(p);
     drawFloatingCoins(); drawPowerUpOrbs();
-    drawGround(); drawBird(); drawShieldBubble(); drawParticles(); drawFlash();
+    drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
     ctx.restore();
+    // Post-processing pass
+    postProcess();
     requestAnimationFrame(frame);
   }
 
