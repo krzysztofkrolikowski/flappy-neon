@@ -408,21 +408,21 @@
   // =============================================
   const SKINS = [
     // === ORYGINALNE 9 ===
-    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff", fx: "none", desc: "Dron rekonesansowy" },
-    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00", fx: "plasma", desc: "Myśliwiec delta V-wing" },
-    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88", fx: "acid", desc: "Bio-pasożyt z mackami" },
-    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Słoneczny skarabeusz" },
-    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff", fx: "void", desc: "Czarna dziura + dysk" },
-    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88", fx: "aurum", desc: "Imperialny krążownik" },
-    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff", fx: "prism", desc: "Kryształowy pryzmat" },
-    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)", fx: "phantom", desc: "Widmowy wraith" },
-    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41", fx: "glitch", desc: "Wireframe sześcian 3D" },
+    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff", fx: "none", desc: "Dron rekonesansowy", perk: null, perkDesc: null },
+    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00", fx: "plasma", desc: "Myśliwiec delta V-wing", perk: "thrust_boost", perkDesc: "🔥 +15% siła thrustu" },
+    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88", fx: "acid", desc: "Bio-pasożyt z mackami", perk: "combo_slow", perkDesc: "🧪 Combo spada 30% wolniej" },
+    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Słoneczny skarabeusz", perk: "coin_magnet", perkDesc: "☀️ Zasięg magnesu +40%" },
+    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff", fx: "void", desc: "Czarna dziura + dysk", perk: "gap_widen", perkDesc: "🕳️ Rury +8% szersze" },
+    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88", fx: "aurum", desc: "Imperialny krążownik", perk: "coin_bonus", perkDesc: "👑 +25% monet" },
+    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff", fx: "prism", desc: "Kryształowy pryzmat", perk: "powerup_luck", perkDesc: "🌈 2× szansa na power-up" },
+    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)", fx: "phantom", desc: "Widmowy wraith", perk: "small_hitbox", perkDesc: "👻 Hitbox -15%" },
+    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41", fx: "glitch", desc: "Wireframe sześcian 3D", perk: "powerup_extend", perkDesc: "⚡ Power-upy +30% dłużej" },
     // === 5 NOWYCH BRUTALNYCH ===
-    { id: "cerberus", name: "CERBERUS", price: 1500, body: "#cc1100", glow: "#ff2200", ring: "#881100", thrust: "#ff6600", fx: "hellfire", desc: "Trójgłowy piekielny pies. Gryziesz — płoniesz." },
-    { id: "plague",   name: "PLAGUE",   price: 2000, body: "#aacc22", glow: "#88aa00", ring: "#667700", thrust: "#ccff44", fx: "disease", desc: "Zaraza. Trucizna. Rozkład. Bez leku." },
-    { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "Z dna oceanu. 8 macek. Miażdży kadłuby." },
-    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "Krzyk zabija. Fala uderzeniowa łamie kości." },
-    { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon z Otchłani. Rogi. Ogień piekielny. Koniec." },
+    { id: "cerberus", name: "CERBERUS", price: 1500, body: "#cc1100", glow: "#ff2200", ring: "#881100", thrust: "#ff6600", fx: "hellfire", desc: "Trójgłowy piekielny pies. Gryziesz — płoniesz.", perk: "second_chance", perkDesc: "🔥 1 darmowe zderzenie na grę" },
+    { id: "plague",   name: "PLAGUE",   price: 2000, body: "#aacc22", glow: "#88aa00", ring: "#667700", thrust: "#ccff44", fx: "disease", desc: "Zaraza. Trucizna. Rozkład. Bez leku.", perk: "combo_floor", perkDesc: "☠️ Combo nie spada poniżej 3" },
+    { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "Z dna oceanu. 8 macek. Miażdży kadłuby.", perk: "gravity_reduce", perkDesc: "🐙 -12% grawitacji" },
+    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "Krzyk zabija. Fala uderzeniowa łamie kości.", perk: "speed_cap", perkDesc: "👻 Max prędkość rur -8%" },
+    { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon z Otchłani. Rogi. Ogień piekielny. Koniec.", perk: "demon_aura", perkDesc: "😈 Hitbox -10%, combo -20% wolniej, +15% monet" },
   ];
 
   // =============================================
@@ -475,6 +475,19 @@
   ];
   let activePowerUp = null, powerUpTimer = 0, powerUpOrbs = [];
   let shieldHits = 0;
+  let secondChanceUsed = false; // for CERBERUS perk
+
+  // === SKIN PERK SYSTEM ===
+  function hasPerk(perkId) {
+    const s = SKINS.find(sk => sk.id === equippedSkin);
+    if (!s) return false;
+    if (s.perk === perkId) return true;
+    // ABYSSAL demon_aura includes partial perks
+    if (s.perk === 'demon_aura') {
+      if (perkId === 'small_hitbox' || perkId === 'combo_slow' || perkId === 'coin_bonus') return true;
+    }
+    return false;
+  }
 
   // === ZONE SYSTEM ===
   const ZONES = [
@@ -1044,7 +1057,8 @@
       cvs.width=52; cvs.height=52; cvs.className='skin-preview skin-preview-canvas'; cvs.dataset.skinId=s.id;
       const info = document.createElement("div");
       info.innerHTML = `<div class="skin-name">${s.name}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:3px">${s.desc}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:2px">${s.desc}</div>
+        ${s.perkDesc ? '<div style="font-size:9px;color:#ffee00;margin-bottom:3px;font-weight:700">'+s.perkDesc+'</div>' : '<div style="font-size:9px;color:rgba(255,255,255,0.2);margin-bottom:3px">Brak perku</div>'}
         <div class="skin-price ${s.price===0?'free':''}">
           ${equipped?'✓ Aktywny':owned?'Wybierz':s.price===0?'Darmowy':s.price+' 🪙'}
         </div>`;
@@ -1230,6 +1244,7 @@
     groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[]; speedLines=[]; isThrusting=false;
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
+    secondChanceUsed=false; // reset per game
     currentZone=ZONES[0]; lastZoneIdx=0;
     timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
@@ -1238,7 +1253,8 @@
 
   function spawnPipe() {
     const gapVariation = (Math.random() - 0.5) * 60;
-    const thisGap = Math.max(PIPE_GAP_MIN, Math.min(pipeGap + gapVariation, PIPE_GAP_START + 20));
+    const gapMod = hasPerk('gap_widen') ? 1.08 : 1;
+    const thisGap = Math.max(PIPE_GAP_MIN, Math.min((pipeGap + gapVariation) * gapMod, (PIPE_GAP_START + 20) * gapMod));
     const minY=80, maxY=H-GROUND_HEIGHT-thisGap-80;
 
     // === Reachability: limit gap center distance from previous pipe ===
@@ -1297,7 +1313,8 @@
       floatingCoins.push({ x: W + 120 + Math.random()*80, y: bonusY, collected: false, wobble: Math.random()*Math.PI*2, bonus: true });
     }
     // Power-up orb (8% chance, not during active power-up)
-    if (score > 3 && Math.random() < 0.08 && !activePowerUp) {
+    const puChance = hasPerk('powerup_luck') ? 0.16 : 0.08;
+    if (score > 3 && Math.random() < puChance && !activePowerUp) {
       const puType = POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
       const puY = topH + thisGap * (0.3 + Math.random() * 0.4);
       powerUpOrbs.push({ x: W + 80 + Math.random()*60, y: puY, type: puType, collected: false, wobble: Math.random()*Math.PI*2 });
@@ -1322,8 +1339,13 @@
     }
   }
   function decayCombo() {
-    if(comboTimer>0){ comboTimer--; comboFill.style.width=(comboTimer/COMBO_DECAY*100)+'%'; }
-    else if(combo>0){ combo=0; comboMultiplier=1; comboHud.classList.remove('visible'); }
+    const comboDecayMod = hasPerk('combo_slow') ? 0.7 : (hasPerk('demon_aura') ? 0.8 : 1);
+    if(comboTimer>0){ comboTimer-=comboDecayMod; comboFill.style.width=(comboTimer/COMBO_DECAY*100)+'%'; }
+    else if(combo>0){
+      const floor = hasPerk('combo_floor') ? 3 : 0;
+      if(combo>floor){ combo=floor; comboMultiplier=floor>0?1+Math.floor(floor/3)*0.5:1; }
+      if(combo<=0){ comboHud.classList.remove('visible'); }
+    }
   }
 
   // === ZONE CHECK ===
@@ -1389,10 +1411,15 @@
     setTimeout(()=>el.remove(), 700);
   }
 
-  function addCoins(n) { coins+=n; sessionCoins+=n; STORAGE.set("coins",coins); updateCoinHud(); }
+  function addCoins(n) {
+    const coinMod = hasPerk('coin_bonus') ? 1.25 : (hasPerk('demon_aura') ? 1.15 : 1);
+    const amt = Math.ceil(n * coinMod);
+    coins+=amt; sessionCoins+=amt; STORAGE.set("coins",coins); updateCoinHud();
+  }
 
   function checkCollision() {
-    const bx=bird.x, by=bird.y, br=BIRD_SIZE*0.4;
+    const hitboxMod = hasPerk('small_hitbox') ? 0.85 : (hasPerk('demon_aura') ? 0.90 : 1);
+    const bx=bird.x, by=bird.y, br=BIRD_SIZE*0.4*hitboxMod;
     if (by+br>H-GROUND_HEIGHT||by-br<0) return true;
     const PANEL_W=56;
     for (const p of pipes) {
@@ -1788,8 +1815,10 @@
       bird.angle=Math.sin(Date.now()/500)*0.1; bird.wingPhase+=0.15; return;
     }
     if (state===STATE.PLAYING) {
-      if(isThrusting){bird.vy-=THRUST_POWER;if(bird.vy<-MAX_VY)bird.vy=-MAX_VY;}
-      else{bird.vy+=DRIFT_GRAV;if(bird.vy>MAX_VY)bird.vy=MAX_VY;}
+      const thrustMod=hasPerk('thrust_boost')?1.15:1;
+      const gravMod=hasPerk('gravity_reduce')?0.88:1;
+      if(isThrusting){bird.vy-=THRUST_POWER*thrustMod;if(bird.vy<-MAX_VY)bird.vy=-MAX_VY;}
+      else{bird.vy+=DRIFT_GRAV*gravMod;if(bird.vy>MAX_VY)bird.vy=MAX_VY;}
       bird.vy*=0.98; bird.y+=bird.vy;
       bird.angle=Math.max(-0.5,Math.min(bird.vy*0.06,1.2));
       bird.wingPhase+=isThrusting?0.35:0.12;
@@ -1814,7 +1843,8 @@
         const dx=bird.x-pu.x, dy=bird.y-pu.y;
         if(dx*dx+dy*dy < 22*22) {
           pu.collected=true; powerUpOrbs.splice(i,1);
-          activePowerUp=pu.type; powerUpTimer=pu.type.dur;
+          const durMod = hasPerk('powerup_extend') ? 1.3 : 1;
+          activePowerUp=pu.type; powerUpTimer=Math.round(pu.type.dur * durMod);
           powerupHud.textContent=`${pu.type.icon} ${pu.type.desc}`;
           powerupHud.style.color=pu.type.color;
           powerupHud.classList.add('visible');
@@ -1833,7 +1863,8 @@
             if(c.collected) continue;
             const dx=bird.x-c.x, dy=bird.y-c.y;
             const dist=Math.sqrt(dx*dx+dy*dy);
-            if(dist < 120) { c.x+=dx/dist*4; c.y+=dy/dist*4; }
+            const magnetRange = hasPerk('coin_magnet') ? 168 : 120;
+            if(dist < magnetRange) { c.x+=dx/dist*4; c.y+=dy/dist*4; }
           }
         }
         // Slow-mo
@@ -1881,7 +1912,8 @@
           if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
           else if(nearDist<25){driftCount++;addCoins(Math.ceil(2*comboMultiplier));showStreak(`⚡ DRIFT +${pts}×${comboMultiplier.toFixed(1)}`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
           else if(pts>1){showStreak(`+${pts} ×${comboMultiplier.toFixed(1)}`);}
-          gameSpeed=Math.min(PIPE_SPEED_MAX, PIPE_SPEED_START+score*0.025);
+          const speedMax = hasPerk('speed_cap') ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
+          gameSpeed=Math.min(speedMax, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
         if(p.x+56<-10) pipes.splice(i,1);
@@ -1894,6 +1926,13 @@
           burst(bird.x,bird.y,'#00ffaa',20);
           bird.vy=bird.vy>0?-3:3; // bounce away from danger
           showStreak('🛡️ TARCZA!');
+        } else if(hasPerk('second_chance') && !secondChanceUsed) {
+          // CERBERUS perk: one free hit per game
+          secondChanceUsed=true;
+          playSound('shield'); haptic(); shakeMag=8; flash=0.6;
+          burst(bird.x,bird.y,'#ff2200',25);
+          bird.vy=bird.vy>0?-4:4;
+          showStreak('🔥 CERBERUS — DRUGA SZANSA!');
         } else {
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=14; flash=1;
           chromAb=8; screenPulse=1; deathFreezeFrames=0;
