@@ -295,6 +295,13 @@
 <div id="achievement-toast"></div>
 <div id="zone-banner"></div>
 
+<!-- PAUSE -->
+<div id="pause-overlay" class="overlay">
+  <div class="menu-title" style="font-size:2rem">⏸ PAUZA</div>
+  <div class="menu-sub">ESC lub Space — kontynuuj</div>
+  <button class="btn btn-primary" id="btn-resume">▶ KONTYNUUJ</button>
+</div>
+
 <!-- MENU -->
 <div id="menu-overlay" class="overlay active">
   <div class="menu-title">NEON DRIFT</div>
@@ -418,7 +425,7 @@
   let lastDaily = STORAGE.get("daily_ts", 0);
   let dailyStreak = STORAGE.get("daily_streak", 0);
 
-  const STATE = { MENU: 0, PLAYING: 1, DYING: 2, DEAD: 3 };
+  const STATE = { MENU: 0, PLAYING: 1, DYING: 2, DEAD: 3, PAUSED: 4 };
   let state = STATE.MENU;
   let score = 0, sessionCoins = 0, reviveUsed = false;
 
@@ -1044,9 +1051,16 @@
   canvas.addEventListener("pointerleave", () => thrustStop());
   canvas.addEventListener("pointercancel", () => thrustStop());
   document.addEventListener("keydown", e => {
+    if(e.code==="Escape") {
+      e.preventDefault();
+      if(state===STATE.PLAYING) { state=STATE.PAUSED; isThrusting=false; document.getElementById('pause-overlay').classList.add('active'); }
+      else if(state===STATE.PAUSED) { state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; }
+      return;
+    }
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") {
       e.preventDefault();
       if(state===STATE.PLAYING) thrustStart();
+      else if(state===STATE.PAUSED) { state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; }
       else if(state===STATE.MENU) startGame();
       else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); }
     }
@@ -1056,6 +1070,7 @@
   });
 
   document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGame(); });
+  document.getElementById("btn-resume").addEventListener("click", e => { e.stopPropagation(); state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; });
   document.getElementById("btn-shop").addEventListener("click", e => {
     e.stopPropagation(); renderShop(); shopOverlay.classList.add("active");
     setTimeout(()=>shopPanel.classList.add("show"), 50);
@@ -1704,6 +1719,7 @@
   //  GAME LOOP (fixed timestep — 60 ticks/s)
   // =============================================
   function frame(now) {
+    if(state===STATE.PAUSED) { lastTime=0; requestAnimationFrame(frame); return; }
     if (!lastTime) lastTime = now;
     const rawDt = Math.min(now - lastTime, 100);
     lastTime = now;
