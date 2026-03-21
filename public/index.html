@@ -1031,20 +1031,20 @@
   }
 
   // =============================================
-  //  PROCEDURAL SYNTHWAVE MUSIC
+  //  NEON RETROWAVE MUSIC
   // =============================================
   let musicPlaying = false, musicNodes = [];
-  const MUSIC_VOL = 0.045;
-  // Chord progression: Am - F - C - G (synthwave classic)
+  const MUSIC_VOL = 0.05;
+  // Darker neon progression: Cm - Ab - Eb - Bb (minor/cinematic)
   const CHORDS = [
-    [220.00, 261.63, 329.63],  // Am
-    [174.61, 220.00, 261.63],  // F
-    [261.63, 329.63, 392.00],  // C
-    [196.00, 246.94, 293.66],  // G
+    [261.63, 311.13, 392.00],  // Cm
+    [207.65, 261.63, 311.13],  // Ab
+    [311.13, 392.00, 466.16],  // Eb
+    [233.08, 293.66, 349.23],  // Bb
   ];
-  const BASS_NOTES = [110, 87.31, 130.81, 98]; // A2, F2, C3, G2
+  const BASS_NOTES = [65.41, 51.91, 77.78, 58.27]; // C2, Ab1, Eb2, Bb1
   const ARP_PATTERNS = [
-    [0,1,2,1], [0,2,1,2], [2,1,0,1], [1,0,2,0]
+    [0,2,1,2,0,1,2,1], [2,0,1,0,2,1,0,2], [0,1,2,1,0,2,1,0], [1,2,0,2,1,0,2,1]
   ];
 
   function startMusic() {
@@ -1055,125 +1055,196 @@
     master.connect(audioCtx.destination);
     musicNodes.push(master);
 
-    // === PAD (warm detuned saw) ===
+    const BPM = 128, beatLen = 60/BPM, barLen = beatLen*4;
+
+    // === PAD (deep detuned supersaw with slow filter sweep) ===
     function playPad() {
       if(!musicPlaying) return;
       const now = audioCtx.currentTime;
-      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4;
       for(let bar=0; bar<4; bar++) {
         const chord = CHORDS[bar];
         const t = now + bar*barLen;
         for(const freq of chord) {
-          for(let d=-6; d<=6; d+=6) {
+          for(let d=-1; d<=1; d++) {
             const osc = audioCtx.createOscillator();
             const g = audioCtx.createGain();
             const filt = audioCtx.createBiquadFilter();
             osc.type = 'sawtooth';
-            osc.frequency.value = freq + d*0.15;
-            filt.type = 'lowpass'; filt.frequency.value = 800; filt.Q.value = 0.7;
+            osc.frequency.value = freq + d*0.25;
+            filt.type = 'lowpass'; filt.Q.value = 2;
+            // Filter sweep up through bar
+            filt.frequency.setValueAtTime(300, t);
+            filt.frequency.linearRampToValueAtTime(1200, t+barLen*0.6);
+            filt.frequency.linearRampToValueAtTime(500, t+barLen);
             osc.connect(filt); filt.connect(g); g.connect(master);
             g.gain.setValueAtTime(0, t);
-            g.gain.linearRampToValueAtTime(0.22, t+0.3);
-            g.gain.setValueAtTime(0.22, t+barLen-0.4);
+            g.gain.linearRampToValueAtTime(0.16, t+0.15);
+            g.gain.setValueAtTime(0.16, t+barLen-0.3);
             g.gain.linearRampToValueAtTime(0, t+barLen);
             osc.start(t); osc.stop(t+barLen+0.01);
           }
         }
       }
-      setTimeout(playPad, barLen*4*1000 - 100);
+      setTimeout(playPad, barLen*4*1000 - 80);
     }
 
-    // === BASS (sub sine + square octave up) ===
+    // === BASS (gritty sub + distorted saw layer) ===
     function playBass() {
       if(!musicPlaying) return;
       const now = audioCtx.currentTime;
-      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4;
       for(let bar=0; bar<4; bar++) {
         const freq = BASS_NOTES[bar];
         const t = now + bar*barLen;
-        // 8th note pattern
+        // Pumping sidechained 8th notes
         for(let i=0; i<8; i++) {
           const nt = t + i*beatLen*0.5;
-          const isHit = (i===0||i===3||i===5||i===6);
-          if(!isHit) continue;
-          // Sub
+          const isAccent = (i===0||i===3||i===4||i===6);
+          // Deep sub sine
           const osc1 = audioCtx.createOscillator();
           const g1 = audioCtx.createGain();
           osc1.type = 'sine'; osc1.frequency.value = freq;
           osc1.connect(g1); g1.connect(master);
-          g1.gain.setValueAtTime(0.5, nt);
+          const vol = isAccent ? 0.55 : 0.2;
+          g1.gain.setValueAtTime(vol, nt);
           g1.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*0.45);
           osc1.start(nt); osc1.stop(nt+beatLen*0.5);
-          // Octave square
-          const osc2 = audioCtx.createOscillator();
-          const g2 = audioCtx.createGain();
-          const filt = audioCtx.createBiquadFilter();
-          osc2.type = 'square'; osc2.frequency.value = freq*2;
-          filt.type = 'lowpass'; filt.frequency.value = 400;
-          osc2.connect(filt); filt.connect(g2); g2.connect(master);
-          g2.gain.setValueAtTime(0.12, nt);
-          g2.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*0.4);
-          osc2.start(nt); osc2.stop(nt+beatLen*0.5);
+          // Gritty overtone (sawtooth filtered)
+          if(isAccent) {
+            const osc2 = audioCtx.createOscillator();
+            const g2 = audioCtx.createGain();
+            const filt = audioCtx.createBiquadFilter();
+            const dist = audioCtx.createWaveShaper();
+            osc2.type = 'sawtooth'; osc2.frequency.value = freq*2;
+            filt.type = 'lowpass'; filt.frequency.value = 350; filt.Q.value = 4;
+            // Subtle waveshaper distortion
+            const curve = new Float32Array(256);
+            for(let j=0;j<256;j++){const x=j/128-1; curve[j]=Math.tanh(x*2);}
+            dist.curve = curve;
+            osc2.connect(filt); filt.connect(dist); dist.connect(g2); g2.connect(master);
+            g2.gain.setValueAtTime(0.08, nt);
+            g2.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*0.35);
+            osc2.start(nt); osc2.stop(nt+beatLen*0.5);
+          }
         }
       }
-      setTimeout(playBass, barLen*4*1000 - 100);
+      setTimeout(playBass, barLen*4*1000 - 80);
     }
 
-    // === ARPEGGIO (chiptune triangle) ===
+    // === ARPEGGIO (neon pluck — triangle + quick envelope + delay feel) ===
     function playArp() {
       if(!musicPlaying) return;
       const now = audioCtx.currentTime;
-      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4, sixteenth = beatLen*0.25;
+      const sixteenth = beatLen*0.25;
       for(let bar=0; bar<4; bar++) {
         const chord = CHORDS[bar];
         const pattern = ARP_PATTERNS[bar];
         const t = now + bar*barLen;
         for(let i=0; i<16; i++) {
           const nt = t + i*sixteenth;
-          const noteIdx = pattern[i%4];
-          const freq = chord[noteIdx] * 2; // one octave up
+          const noteIdx = pattern[i%pattern.length];
+          const freq = chord[noteIdx] * 2; // two octaves up
+          // Main pluck
           const osc = audioCtx.createOscillator();
           const g = audioCtx.createGain();
           const filt = audioCtx.createBiquadFilter();
           osc.type = 'triangle'; osc.frequency.value = freq;
-          filt.type = 'lowpass'; filt.frequency.value = 2000;
+          filt.type = 'bandpass'; filt.frequency.value = freq*2; filt.Q.value = 1.5;
           osc.connect(filt); filt.connect(g); g.connect(master);
-          g.gain.setValueAtTime(0.18, nt);
-          g.gain.exponentialRampToValueAtTime(0.01, nt+sixteenth*0.8);
+          const vel = (i%4===0) ? 0.22 : 0.12;
+          g.gain.setValueAtTime(vel, nt);
+          g.gain.exponentialRampToValueAtTime(0.01, nt+sixteenth*0.7);
           osc.start(nt); osc.stop(nt+sixteenth);
+          // Ghost echo (delayed quieter copy)
+          if(i%2===0) {
+            const osc2 = audioCtx.createOscillator();
+            const g2 = audioCtx.createGain();
+            const filt2 = audioCtx.createBiquadFilter();
+            osc2.type = 'sine'; osc2.frequency.value = freq;
+            filt2.type = 'lowpass'; filt2.frequency.value = 1500;
+            osc2.connect(filt2); filt2.connect(g2); g2.connect(master);
+            const delay = sixteenth*1.5;
+            g2.gain.setValueAtTime(0, nt+delay);
+            g2.gain.linearRampToValueAtTime(vel*0.25, nt+delay+0.01);
+            g2.gain.exponentialRampToValueAtTime(0.01, nt+delay+sixteenth*0.5);
+            osc2.start(nt+delay); osc2.stop(nt+delay+sixteenth);
+          }
         }
       }
-      setTimeout(playArp, barLen*4*1000 - 100);
+      setTimeout(playArp, barLen*4*1000 - 80);
     }
 
-    // === HI-HAT (noise bursts) ===
-    function playHihat() {
+    // === KICK + HI-HAT (four-on-floor with open hats) ===
+    function playDrums() {
       if(!musicPlaying) return;
       const now = audioCtx.currentTime;
-      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4;
-      const bufLen = audioCtx.sampleRate * 0.05;
-      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
-      const data = buf.getChannelData(0);
-      for(let i=0; i<bufLen; i++) data[i] = (Math.random()*2-1)*0.5;
+      const hatBufLen = audioCtx.sampleRate * 0.06;
+      const hatBuf = audioCtx.createBuffer(1, hatBufLen, audioCtx.sampleRate);
+      const hatData = hatBuf.getChannelData(0);
+      for(let i=0; i<hatBufLen; i++) hatData[i] = (Math.random()*2-1)*0.4;
+
       for(let bar=0; bar<4; bar++) {
-        for(let i=0; i<8; i++) {
-          const nt = now + bar*barLen + i*beatLen*0.5;
-          const src = audioCtx.createBufferSource();
-          const g = audioCtx.createGain();
-          const hp = audioCtx.createBiquadFilter();
-          src.buffer = buf;
-          hp.type = 'highpass'; hp.frequency.value = 8000;
-          src.connect(hp); hp.connect(g); g.connect(master);
-          const vol = (i%2===0) ? 0.3 : 0.12;
-          g.gain.setValueAtTime(vol, nt);
-          g.gain.exponentialRampToValueAtTime(0.01, nt+0.04);
-          src.start(nt); src.stop(nt+0.05);
+        for(let beat=0; beat<4; beat++) {
+          const bt = now + bar*barLen + beat*beatLen;
+          // Kick (sine pitch drop)
+          const kickOsc = audioCtx.createOscillator();
+          const kickG = audioCtx.createGain();
+          kickOsc.type = 'sine';
+          kickOsc.frequency.setValueAtTime(150, bt);
+          kickOsc.frequency.exponentialRampToValueAtTime(40, bt+0.12);
+          kickOsc.connect(kickG); kickG.connect(master);
+          kickG.gain.setValueAtTime(0.45, bt);
+          kickG.gain.exponentialRampToValueAtTime(0.01, bt+0.2);
+          kickOsc.start(bt); kickOsc.stop(bt+0.25);
+
+          // Hi-hats: 8ths per beat
+          for(let h=0; h<2; h++) {
+            const ht = bt + h*beatLen*0.5;
+            const src = audioCtx.createBufferSource();
+            const hg = audioCtx.createGain();
+            const hp = audioCtx.createBiquadFilter();
+            src.buffer = hatBuf;
+            hp.type = 'highpass'; hp.frequency.value = 9000;
+            src.connect(hp); hp.connect(hg); hg.connect(master);
+            const isOpen = (beat===1&&h===1)||(beat===3&&h===1);
+            const hvol = (h===0) ? 0.22 : 0.10;
+            const hdecay = isOpen ? 0.08 : 0.035;
+            hg.gain.setValueAtTime(hvol, ht);
+            hg.gain.exponentialRampToValueAtTime(0.01, ht+hdecay);
+            src.start(ht); src.stop(ht+0.1);
+          }
+        }
+        // Snare/clap on 2 and 4
+        for(const snBeat of [1,3]) {
+          const st = now + bar*barLen + snBeat*beatLen;
+          // Noise burst
+          const snBufLen = audioCtx.sampleRate * 0.1;
+          const snBuf = audioCtx.createBuffer(1, snBufLen, audioCtx.sampleRate);
+          const snData = snBuf.getChannelData(0);
+          for(let i=0; i<snBufLen; i++) snData[i] = (Math.random()*2-1);
+          const snSrc = audioCtx.createBufferSource();
+          const snG = audioCtx.createGain();
+          const snFilt = audioCtx.createBiquadFilter();
+          snSrc.buffer = snBuf;
+          snFilt.type = 'bandpass'; snFilt.frequency.value = 3000; snFilt.Q.value = 0.8;
+          snSrc.connect(snFilt); snFilt.connect(snG); snG.connect(master);
+          snG.gain.setValueAtTime(0.2, st);
+          snG.gain.exponentialRampToValueAtTime(0.01, st+0.1);
+          snSrc.start(st); snSrc.stop(st+0.12);
+          // Tonal body
+          const snOsc = audioCtx.createOscillator();
+          const snOG = audioCtx.createGain();
+          snOsc.type = 'triangle'; snOsc.frequency.setValueAtTime(200, st);
+          snOsc.frequency.exponentialRampToValueAtTime(100, st+0.05);
+          snOsc.connect(snOG); snOG.connect(master);
+          snOG.gain.setValueAtTime(0.15, st);
+          snOG.gain.exponentialRampToValueAtTime(0.01, st+0.06);
+          snOsc.start(st); snOsc.stop(st+0.08);
         }
       }
-      setTimeout(playHihat, barLen*4*1000 - 100);
+      setTimeout(playDrums, barLen*4*1000 - 80);
     }
 
-    playPad(); playBass(); playArp(); playHihat();
+    playPad(); playBass(); playArp(); playDrums();
   }
 
   function stopMusic() {
@@ -1736,62 +1807,135 @@
   function drawBird() {
     const sk=getSkinColors();
     ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.angle);
+    const t=Date.now()*0.001;
     // Trail
-    for(const t of bird.trail) {
-      if(t.life<=0) continue;
-      ctx.globalAlpha=t.life*0.35; ctx.fillStyle=sk.thrust;
-      ctx.beginPath(); ctx.arc(t.x-bird.x,t.y-bird.y,3*t.life,0,Math.PI*2); ctx.fill();
+    for(const tr of bird.trail) {
+      if(tr.life<=0) continue;
+      ctx.globalAlpha=tr.life*0.35; ctx.fillStyle=sk.thrust;
+      ctx.beginPath(); ctx.arc(tr.x-bird.x,tr.y-bird.y,3*tr.life,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
-    // === THRUST ENGINE ===
-    const thrustLen=isThrusting?(14+Math.sin(bird.wingPhase*4)*6):(2+Math.sin(bird.wingPhase*2)*1.5);
-    const thrustSpread=isThrusting?9:4;
-    ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?28:8;
-    ctx.fillStyle=sk.thrust; ctx.globalAlpha=isThrusting?0.9:0.4;
-    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-6,-thrustSpread); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-6,thrustSpread); ctx.closePath(); ctx.fill();
-    if(isThrusting){ctx.fillStyle='#ffffff';ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(-BIRD_SIZE*0.5,0);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.5,-thrustSpread*0.3);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.5,thrustSpread*0.3);ctx.closePath();ctx.fill();}
-    ctx.globalAlpha=1;
-    // === ROTATING ARC SEGMENTS (3 segments, not solid ring) ===
-    const ringR=BIRD_SIZE*0.52;
-    const segAngle=Math.PI*0.5, gapAngle=Math.PI*0.17;
-    const rotSpeed=Date.now()*0.002;
-    ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
-    ctx.strokeStyle=sk.ring; ctx.lineWidth=2.5;
-    for(let i=0;i<3;i++) {
-      const sA=rotSpeed+i*(segAngle+gapAngle);
-      ctx.beginPath(); ctx.arc(0,0,ringR,sA,sA+segAngle); ctx.stroke();
+
+    // === THRUST ENGINE (multi-layer) ===
+    const thrustBase=isThrusting?1:0.25;
+    const thrustLen=isThrusting?(18+Math.sin(t*28)*7):(3+Math.sin(t*8)*1.5);
+    const thrustSpread=isThrusting?11:4;
+    // Outer exhaust glow
+    ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?35:8;
+    ctx.fillStyle=sk.thrust; ctx.globalAlpha=thrustBase*0.5;
+    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0);
+    ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*1.3,-thrustSpread*1.4);
+    ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*1.3,thrustSpread*1.4);
+    ctx.closePath(); ctx.fill();
+    // Core flame
+    ctx.fillStyle=sk.thrust; ctx.globalAlpha=thrustBase*0.9;
+    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0);
+    ctx.lineTo(-BIRD_SIZE*0.5-thrustLen,-thrustSpread);
+    ctx.lineTo(-BIRD_SIZE*0.5-thrustLen,thrustSpread);
+    ctx.closePath(); ctx.fill();
+    // White-hot core
+    if(isThrusting){
+      ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.7;
+      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0);
+      ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.45,-thrustSpread*0.25);
+      ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.45,thrustSpread*0.25);
+      ctx.closePath(); ctx.fill();
+      // Exhaust sparks (small flickering circles)
+      for(let i=0;i<3;i++){
+        const sx=-BIRD_SIZE*0.5-thrustLen*(0.5+Math.random()*0.5);
+        const sy=(Math.random()-0.5)*thrustSpread*0.8;
+        ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.4+Math.random()*0.4;
+        ctx.beginPath(); ctx.arc(sx,sy,0.8+Math.random()*1.2,0,Math.PI*2); ctx.fill();
+      }
     }
-    // === OUTER SENSOR PINS ===
-    ctx.shadowBlur=0; ctx.strokeStyle=sk.ring; ctx.lineWidth=1; ctx.globalAlpha=0.6;
-    const pinR=BIRD_SIZE*0.64;
-    for(let i=0;i<4;i++) {
-      const pa=rotSpeed*0.7+i*Math.PI*0.5+0.3;
-      const ppx=Math.cos(pa)*ringR, ppy=Math.sin(pa)*ringR;
-      const ppx2=Math.cos(pa)*pinR, ppy2=Math.sin(pa)*pinR;
-      ctx.beginPath(); ctx.moveTo(ppx,ppy); ctx.lineTo(ppx2,ppy2); ctx.stroke();
-      ctx.fillStyle=sk.glow; ctx.beginPath(); ctx.arc(ppx2,ppy2,1.5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1; ctx.shadowBlur=0;
+
+    // === OUTER SHIELD RING (hexagonal segments) ===
+    const ringR=BIRD_SIZE*0.58;
+    const rotSpeed=t*1.8;
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
+    ctx.strokeStyle=sk.ring; ctx.lineWidth=2;
+    // 6 hex segments with gaps
+    for(let i=0;i<6;i++){
+      const sA=rotSpeed+i*(Math.PI/3);
+      const gap=0.08;
+      ctx.beginPath(); ctx.arc(0,0,ringR,sA+gap,sA+Math.PI/3-gap); ctx.stroke();
     }
-    ctx.globalAlpha=1;
-    // === CORE ORB ===
-    ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
-    const orbGrad=ctx.createRadialGradient(0,-3,2,0,0,BIRD_SIZE*0.38);
-    orbGrad.addColorStop(0,"rgba(255,255,255,0.9)"); orbGrad.addColorStop(0.3,sk.body); orbGrad.addColorStop(1,sk.glow);
-    ctx.fillStyle=orbGrad;
-    ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.38,0,Math.PI*2); ctx.fill();
-    // Inner highlight
-    ctx.fillStyle="rgba(255,255,255,0.35)";
-    ctx.beginPath(); ctx.arc(-2,-4,BIRD_SIZE*0.14,0,Math.PI*2); ctx.fill();
-    // === FRONT DIRECTION CHEVRON ===
+    // Inner counter-rotating ring (3 dashed arcs)
+    const innerRingR=BIRD_SIZE*0.46;
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.35;
+    ctx.setLineDash([4,6]);
+    for(let i=0;i<3;i++){
+      const sA=-rotSpeed*0.6+i*(Math.PI*2/3);
+      ctx.beginPath(); ctx.arc(0,0,innerRingR,sA,sA+Math.PI*0.5); ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+
+    // === ORBITAL NODES (4 sensor pods) ===
     ctx.shadowBlur=0;
-    ctx.strokeStyle=sk.glow; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
-    ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.3,-4); ctx.lineTo(BIRD_SIZE*0.45,0); ctx.lineTo(BIRD_SIZE*0.3,4); ctx.stroke();
+    const podR=BIRD_SIZE*0.62;
+    for(let i=0;i<4;i++){
+      const pa=rotSpeed*0.7+i*Math.PI*0.5+0.3;
+      const px=Math.cos(pa)*podR, py=Math.sin(pa)*podR;
+      // Connector line
+      ctx.strokeStyle=sk.ring; ctx.lineWidth=0.8; ctx.globalAlpha=0.4;
+      ctx.beginPath(); ctx.moveTo(Math.cos(pa)*innerRingR,Math.sin(pa)*innerRingR);
+      ctx.lineTo(px,py); ctx.stroke();
+      // Pod
+      ctx.globalAlpha=0.9;
+      ctx.fillStyle=sk.glow;
+      ctx.beginPath(); ctx.arc(px,py,2.2,0,Math.PI*2); ctx.fill();
+      // Pod glow pulse
+      ctx.fillStyle=sk.glow; ctx.globalAlpha=0.15+Math.sin(t*6+i*1.5)*0.1;
+      ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
+    }
     ctx.globalAlpha=1;
-    // Hex scanner
-    const scanAngle=(Date.now()/180)%(Math.PI*2);
-    ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.4;
+
+    // === CORE BODY (layered orb) ===
+    const coreR=BIRD_SIZE*0.36;
+    // Outer glow aura
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=22;
+    const auraGrad=ctx.createRadialGradient(0,0,coreR*0.5,0,0,coreR*1.5);
+    auraGrad.addColorStop(0,sk.glow); auraGrad.addColorStop(1,'transparent');
+    ctx.fillStyle=auraGrad; ctx.globalAlpha=0.15+Math.sin(t*3)*0.05;
+    ctx.beginPath(); ctx.arc(0,0,coreR*1.5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // Main orb
+    const orbGrad=ctx.createRadialGradient(-2,-3,1,0,0,coreR);
+    orbGrad.addColorStop(0,"rgba(255,255,255,0.95)");
+    orbGrad.addColorStop(0.25,sk.body);
+    orbGrad.addColorStop(0.7,sk.glow);
+    orbGrad.addColorStop(1,'rgba(0,0,0,0.3)');
+    ctx.fillStyle=orbGrad;
+    ctx.beginPath(); ctx.arc(0,0,coreR,0,Math.PI*2); ctx.fill();
+    // Specular highlight
+    ctx.fillStyle="rgba(255,255,255,0.5)";
+    ctx.beginPath(); ctx.ellipse(-3,-4,BIRD_SIZE*0.12,BIRD_SIZE*0.08,0.3,0,Math.PI*2); ctx.fill();
+    // Core energy ring
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.3;
+    ctx.beginPath(); ctx.arc(0,0,coreR*0.65,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+
+    // === FRONT EMITTER (chevron + pulse dot) ===
+    ctx.shadowBlur=0;
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=2; ctx.globalAlpha=0.8;
+    // Double chevron
+    ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.32,-5); ctx.lineTo(BIRD_SIZE*0.48,0); ctx.lineTo(BIRD_SIZE*0.32,5); ctx.stroke();
+    ctx.globalAlpha=0.4;
+    ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.24,-3.5); ctx.lineTo(BIRD_SIZE*0.35,0); ctx.lineTo(BIRD_SIZE*0.24,3.5); ctx.stroke();
+    // Pulse dot at tip
+    const pulseDot=0.5+Math.sin(t*10)*0.5;
+    ctx.fillStyle=sk.glow; ctx.globalAlpha=pulseDot;
+    ctx.beginPath(); ctx.arc(BIRD_SIZE*0.52,0,1.5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+
+    // === HEX SCANNER LINE ===
+    const scanAngle=(t*0.8)%(Math.PI*2);
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=0.8; ctx.globalAlpha=0.25;
     ctx.beginPath(); ctx.moveTo(0,0);
-    ctx.lineTo(Math.cos(scanAngle)*BIRD_SIZE*0.35,Math.sin(scanAngle)*BIRD_SIZE*0.35);
+    ctx.lineTo(Math.cos(scanAngle)*coreR,Math.sin(scanAngle)*coreR);
     ctx.stroke(); ctx.globalAlpha=1;
+
     ctx.restore();
   }
 
