@@ -289,6 +289,7 @@
 <!-- HUD -->
 <div id="score-display">0</div>
 <div id="coin-hud"><span class="coin-icon"></span> <span id="coin-count">0</span></div>
+<div id="mute-btn" style="position:fixed;top:max(env(safe-area-inset-top),20px);right:16px;z-index:20;font-size:1.3rem;cursor:pointer;opacity:0.5;user-select:none" title="M = mute">🔊</div>
 <div id="streak-popup" class="streak-popup"></div>
 <div id="combo-hud"><span id="combo-text">x1</span><div id="combo-bar"><div id="combo-fill"></div></div></div>
 <div id="powerup-hud" id="powerup-hud"></div>
@@ -1030,16 +1031,182 @@
   }
 
   // =============================================
+  //  PROCEDURAL SYNTHWAVE MUSIC
+  // =============================================
+  let musicPlaying = false, musicNodes = [];
+  const MUSIC_VOL = 0.045;
+  // Chord progression: Am - F - C - G (synthwave classic)
+  const CHORDS = [
+    [220.00, 261.63, 329.63],  // Am
+    [174.61, 220.00, 261.63],  // F
+    [261.63, 329.63, 392.00],  // C
+    [196.00, 246.94, 293.66],  // G
+  ];
+  const BASS_NOTES = [110, 87.31, 130.81, 98]; // A2, F2, C3, G2
+  const ARP_PATTERNS = [
+    [0,1,2,1], [0,2,1,2], [2,1,0,1], [1,0,2,0]
+  ];
+
+  function startMusic() {
+    if(musicPlaying || !audioCtx) return;
+    musicPlaying = true;
+    const master = audioCtx.createGain();
+    master.gain.value = MUSIC_VOL;
+    master.connect(audioCtx.destination);
+    musicNodes.push(master);
+
+    // === PAD (warm detuned saw) ===
+    function playPad() {
+      if(!musicPlaying) return;
+      const now = audioCtx.currentTime;
+      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4;
+      for(let bar=0; bar<4; bar++) {
+        const chord = CHORDS[bar];
+        const t = now + bar*barLen;
+        for(const freq of chord) {
+          for(let d=-6; d<=6; d+=6) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            const filt = audioCtx.createBiquadFilter();
+            osc.type = 'sawtooth';
+            osc.frequency.value = freq + d*0.15;
+            filt.type = 'lowpass'; filt.frequency.value = 800; filt.Q.value = 0.7;
+            osc.connect(filt); filt.connect(g); g.connect(master);
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(0.22, t+0.3);
+            g.gain.setValueAtTime(0.22, t+barLen-0.4);
+            g.gain.linearRampToValueAtTime(0, t+barLen);
+            osc.start(t); osc.stop(t+barLen+0.01);
+          }
+        }
+      }
+      setTimeout(playPad, barLen*4*1000 - 100);
+    }
+
+    // === BASS (sub sine + square octave up) ===
+    function playBass() {
+      if(!musicPlaying) return;
+      const now = audioCtx.currentTime;
+      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4;
+      for(let bar=0; bar<4; bar++) {
+        const freq = BASS_NOTES[bar];
+        const t = now + bar*barLen;
+        // 8th note pattern
+        for(let i=0; i<8; i++) {
+          const nt = t + i*beatLen*0.5;
+          const isHit = (i===0||i===3||i===5||i===6);
+          if(!isHit) continue;
+          // Sub
+          const osc1 = audioCtx.createOscillator();
+          const g1 = audioCtx.createGain();
+          osc1.type = 'sine'; osc1.frequency.value = freq;
+          osc1.connect(g1); g1.connect(master);
+          g1.gain.setValueAtTime(0.5, nt);
+          g1.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*0.45);
+          osc1.start(nt); osc1.stop(nt+beatLen*0.5);
+          // Octave square
+          const osc2 = audioCtx.createOscillator();
+          const g2 = audioCtx.createGain();
+          const filt = audioCtx.createBiquadFilter();
+          osc2.type = 'square'; osc2.frequency.value = freq*2;
+          filt.type = 'lowpass'; filt.frequency.value = 400;
+          osc2.connect(filt); filt.connect(g2); g2.connect(master);
+          g2.gain.setValueAtTime(0.12, nt);
+          g2.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*0.4);
+          osc2.start(nt); osc2.stop(nt+beatLen*0.5);
+        }
+      }
+      setTimeout(playBass, barLen*4*1000 - 100);
+    }
+
+    // === ARPEGGIO (chiptune triangle) ===
+    function playArp() {
+      if(!musicPlaying) return;
+      const now = audioCtx.currentTime;
+      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4, sixteenth = beatLen*0.25;
+      for(let bar=0; bar<4; bar++) {
+        const chord = CHORDS[bar];
+        const pattern = ARP_PATTERNS[bar];
+        const t = now + bar*barLen;
+        for(let i=0; i<16; i++) {
+          const nt = t + i*sixteenth;
+          const noteIdx = pattern[i%4];
+          const freq = chord[noteIdx] * 2; // one octave up
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          const filt = audioCtx.createBiquadFilter();
+          osc.type = 'triangle'; osc.frequency.value = freq;
+          filt.type = 'lowpass'; filt.frequency.value = 2000;
+          osc.connect(filt); filt.connect(g); g.connect(master);
+          g.gain.setValueAtTime(0.18, nt);
+          g.gain.exponentialRampToValueAtTime(0.01, nt+sixteenth*0.8);
+          osc.start(nt); osc.stop(nt+sixteenth);
+        }
+      }
+      setTimeout(playArp, barLen*4*1000 - 100);
+    }
+
+    // === HI-HAT (noise bursts) ===
+    function playHihat() {
+      if(!musicPlaying) return;
+      const now = audioCtx.currentTime;
+      const BPM = 110, beatLen = 60/BPM, barLen = beatLen*4;
+      const bufLen = audioCtx.sampleRate * 0.05;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for(let i=0; i<bufLen; i++) data[i] = (Math.random()*2-1)*0.5;
+      for(let bar=0; bar<4; bar++) {
+        for(let i=0; i<8; i++) {
+          const nt = now + bar*barLen + i*beatLen*0.5;
+          const src = audioCtx.createBufferSource();
+          const g = audioCtx.createGain();
+          const hp = audioCtx.createBiquadFilter();
+          src.buffer = buf;
+          hp.type = 'highpass'; hp.frequency.value = 8000;
+          src.connect(hp); hp.connect(g); g.connect(master);
+          const vol = (i%2===0) ? 0.3 : 0.12;
+          g.gain.setValueAtTime(vol, nt);
+          g.gain.exponentialRampToValueAtTime(0.01, nt+0.04);
+          src.start(nt); src.stop(nt+0.05);
+        }
+      }
+      setTimeout(playHihat, barLen*4*1000 - 100);
+    }
+
+    playPad(); playBass(); playArp(); playHihat();
+  }
+
+  function stopMusic() {
+    musicPlaying = false;
+    for(const n of musicNodes) { try { n.disconnect(); } catch(e){} }
+    musicNodes = [];
+  }
+
+  // =============================================
   //  INPUT
   // =============================================
+  let muted = STORAGE.get('muted', false);
+  const muteBtn = document.getElementById('mute-btn');
+  function updateMuteBtn() { muteBtn.textContent = muted ? '🔇' : '🔊'; }
+  updateMuteBtn();
+  function toggleMute() {
+    muted = !muted; STORAGE.set('muted', muted); updateMuteBtn();
+    if(muted) { stopMusic(); if(audioCtx) audioCtx.suspend(); }
+    else { if(audioCtx) audioCtx.resume(); startMusic(); }
+  }
+  muteBtn.addEventListener('click', toggleMute);
+
   function thrustStart() {
     initAudio();
+    if(!muted && !musicPlaying) startMusic();
     if (state===STATE.PLAYING && !isThrusting) {
       isThrusting=true; playSound("flap");
     }
   }
   function thrustStop() { isThrusting=false; }
   function startGame() {
+    initAudio();
+    if(!muted && !musicPlaying) startMusic();
     resetGame(); state=STATE.PLAYING; isThrusting=false;
     lastTime=0; accumulator=0;
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
@@ -1057,6 +1224,7 @@
       else if(state===STATE.PAUSED) { state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; }
       return;
     }
+    if(e.code==="KeyM") { toggleMute(); return; }
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") {
       e.preventDefault();
       if(state===STATE.PLAYING) thrustStart();
