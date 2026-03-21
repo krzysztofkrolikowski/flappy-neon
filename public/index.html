@@ -1920,516 +1920,759 @@
 
     if(skinId==="fire"){
       // ═══ RAPTOR — angular delta-wing fighter ═══
-      const tB=isThrusting?1:0.25, tL=isThrusting?(16+Math.sin(t*30)*6):3;
-      ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?30:6;
+      const tB=isThrusting?1:0.25, tL=isThrusting?(20+Math.sin(t*30)*8):4;
+      // DUAL AFTERBURNER EXHAUST
+      ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?40:8;
       for(const side of[-1,1]){
-        ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.7;
+        // Outer cone
+        ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.6;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.35,side*5);
+        ctx.lineTo(-BIRD_SIZE*0.35-tL*1.3,side*9); ctx.lineTo(-BIRD_SIZE*0.35-tL*1.3,side*2); ctx.closePath(); ctx.fill();
+        // Core flame
+        ctx.fillStyle='#ffdd66'; ctx.globalAlpha=tB*0.8;
         ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.35,side*5);
         ctx.lineTo(-BIRD_SIZE*0.35-tL,side*7); ctx.lineTo(-BIRD_SIZE*0.35-tL,side*3); ctx.closePath(); ctx.fill();
-        if(isThrusting){ ctx.fillStyle='#fff'; ctx.globalAlpha=0.5;
+        if(isThrusting){
+          // White hot core
+          ctx.fillStyle='#fff'; ctx.globalAlpha=0.65;
           ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.35,side*5);
-          ctx.lineTo(-BIRD_SIZE*0.35-tL*0.35,side*6); ctx.lineTo(-BIRD_SIZE*0.35-tL*0.35,side*4.2); ctx.closePath(); ctx.fill(); }
+          ctx.lineTo(-BIRD_SIZE*0.35-tL*0.4,side*6); ctx.lineTo(-BIRD_SIZE*0.35-tL*0.4,side*4.2); ctx.closePath(); ctx.fill();
+          // Exhaust sparks
+          for(let k=0;k<3;k++){
+            ctx.fillStyle='#ffaa00'; ctx.globalAlpha=0.5+Math.random()*0.4;
+            ctx.beginPath(); ctx.arc(-BIRD_SIZE*0.35-tL*(0.4+Math.random()*0.6),side*(3+Math.random()*5),0.8+Math.random(),0,Math.PI*2); ctx.fill();
+          }
+        }
       }
       ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // Delta hull
-      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.65,0);
-      ctx.lineTo(BIRD_SIZE*0.05,-BIRD_SIZE*0.18);
-      ctx.lineTo(-BIRD_SIZE*0.48,-BIRD_SIZE*0.58);
-      ctx.lineTo(-BIRD_SIZE*0.35,-BIRD_SIZE*0.08);
-      ctx.lineTo(-BIRD_SIZE*0.35,BIRD_SIZE*0.08);
-      ctx.lineTo(-BIRD_SIZE*0.48,BIRD_SIZE*0.58);
-      ctx.lineTo(BIRD_SIZE*0.05,BIRD_SIZE*0.18);
+      // DELTA HULL with layered armor
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.7,0);
+      ctx.lineTo(BIRD_SIZE*0.08,-BIRD_SIZE*0.2);
+      ctx.lineTo(-BIRD_SIZE*0.5,-BIRD_SIZE*0.65);
+      ctx.lineTo(-BIRD_SIZE*0.38,-BIRD_SIZE*0.08);
+      ctx.lineTo(-BIRD_SIZE*0.38,BIRD_SIZE*0.08);
+      ctx.lineTo(-BIRD_SIZE*0.5,BIRD_SIZE*0.65);
+      ctx.lineTo(BIRD_SIZE*0.08,BIRD_SIZE*0.2);
       ctx.closePath(); ctx.fill();
-      // Wing edge glow
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.8; ctx.globalAlpha=0.75;
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.6,0); ctx.lineTo(-BIRD_SIZE*0.48,-BIRD_SIZE*0.58); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.6,0); ctx.lineTo(-BIRD_SIZE*0.48,BIRD_SIZE*0.58); ctx.stroke();
-      // Tail fin edge
-      ctx.strokeStyle=sk.ring; ctx.lineWidth=1; ctx.globalAlpha=0.5;
-      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.48,-BIRD_SIZE*0.58); ctx.lineTo(-BIRD_SIZE*0.35,-BIRD_SIZE*0.08); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.48,BIRD_SIZE*0.58); ctx.lineTo(-BIRD_SIZE*0.35,BIRD_SIZE*0.08); ctx.stroke();
-      // Cockpit diamond
-      ctx.fillStyle='#fff'; ctx.globalAlpha=0.85; ctx.shadowBlur=0;
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.28,0); ctx.lineTo(BIRD_SIZE*0.04,-BIRD_SIZE*0.09);
-      ctx.lineTo(-BIRD_SIZE*0.12,0); ctx.lineTo(BIRD_SIZE*0.04,BIRD_SIZE*0.09); ctx.closePath(); ctx.fill();
-      ctx.fillStyle=sk.glow; ctx.globalAlpha=0.35;
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.28,0); ctx.lineTo(BIRD_SIZE*0.04,-BIRD_SIZE*0.09);
-      ctx.lineTo(-BIRD_SIZE*0.12,0); ctx.lineTo(BIRD_SIZE*0.04,BIRD_SIZE*0.09); ctx.closePath(); ctx.fill();
-      // Wing-mounted weapon pods
+      // Top armor plate (lighter shade)
+      ctx.fillStyle='rgba(255,200,150,0.15)';
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.7,0); ctx.lineTo(BIRD_SIZE*0.08,-BIRD_SIZE*0.2);
+      ctx.lineTo(-BIRD_SIZE*0.5,-BIRD_SIZE*0.65); ctx.lineTo(-BIRD_SIZE*0.38,0); ctx.closePath(); ctx.fill();
+      // Wing edge neon trim
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=2; ctx.globalAlpha=0.85;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.65,0); ctx.lineTo(-BIRD_SIZE*0.5,-BIRD_SIZE*0.65); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.65,0); ctx.lineTo(-BIRD_SIZE*0.5,BIRD_SIZE*0.65); ctx.stroke();
+      // Tail fin edges
+      ctx.strokeStyle=sk.ring; ctx.lineWidth=1.2; ctx.globalAlpha=0.5;
+      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,-BIRD_SIZE*0.65); ctx.lineTo(-BIRD_SIZE*0.38,-BIRD_SIZE*0.08); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,BIRD_SIZE*0.65); ctx.lineTo(-BIRD_SIZE*0.38,BIRD_SIZE*0.08); ctx.stroke();
+      // Center spine line
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.35;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.6,0); ctx.lineTo(-BIRD_SIZE*0.38,0); ctx.stroke();
+      ctx.shadowBlur=0;
+      // COCKPIT — animated HUD diamond
+      ctx.fillStyle='#111'; ctx.globalAlpha=0.8;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.3,0); ctx.lineTo(BIRD_SIZE*0.06,-BIRD_SIZE*0.1);
+      ctx.lineTo(-BIRD_SIZE*0.12,0); ctx.lineTo(BIRD_SIZE*0.06,BIRD_SIZE*0.1); ctx.closePath(); ctx.fill();
+      ctx.fillStyle=sk.glow; ctx.globalAlpha=0.3+Math.sin(t*6)*0.15;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.3,0); ctx.lineTo(BIRD_SIZE*0.06,-BIRD_SIZE*0.1);
+      ctx.lineTo(-BIRD_SIZE*0.12,0); ctx.lineTo(BIRD_SIZE*0.06,BIRD_SIZE*0.1); ctx.closePath(); ctx.fill();
+      // HUD scan line inside cockpit
+      const hsx=BIRD_SIZE*0.06+Math.sin(t*12)*BIRD_SIZE*0.08;
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=0.6; ctx.globalAlpha=0.5;
+      ctx.beginPath(); ctx.moveTo(hsx,-BIRD_SIZE*0.06); ctx.lineTo(hsx,BIRD_SIZE*0.06); ctx.stroke();
+      // WEAPON PODS on wings (pulsing)
       for(const side of[-1,1]){
-        const wy=side*BIRD_SIZE*0.35, wx=-BIRD_SIZE*0.15;
-        ctx.fillStyle=sk.ring; ctx.globalAlpha=0.7;
-        ctx.beginPath(); ctx.moveTo(wx+6,wy); ctx.lineTo(wx-4,wy-side*2); ctx.lineTo(wx-4,wy+side*2); ctx.closePath(); ctx.fill();
-        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.4+Math.sin(t*8+side)*0.3;
-        ctx.beginPath(); ctx.arc(wx+7,wy,1.5,0,Math.PI*2); ctx.fill();
+        const wy=side*BIRD_SIZE*0.38, wx=-BIRD_SIZE*0.12;
+        ctx.fillStyle=sk.ring; ctx.globalAlpha=0.75;
+        ctx.beginPath(); ctx.moveTo(wx+7,wy); ctx.lineTo(wx-5,wy-side*2.5); ctx.lineTo(wx-5,wy+side*2.5); ctx.closePath(); ctx.fill();
+        // Weapon charging glow
+        const wpulse=0.4+Math.sin(t*10+side*3)*0.4;
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=wpulse;
+        ctx.shadowColor=sk.glow; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(wx+8,wy,2,0,Math.PI*2); ctx.fill();
+        // Laser sight line (while thrusting)
+        if(isThrusting){
+          ctx.strokeStyle=sk.glow; ctx.lineWidth=0.5; ctx.globalAlpha=wpulse*0.4;
+          ctx.setLineDash([2,3]);
+          ctx.beginPath(); ctx.moveTo(wx+8,wy); ctx.lineTo(wx+BIRD_SIZE*1.5,wy+side*3); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        ctx.shadowBlur=0;
       }
-      ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // Orbiting ember particles
-      for(let i=0;i<10;i++){
-        const ea=t*3+i*0.63, er=BIRD_SIZE*(0.35+Math.sin(t*5+i)*0.3);
-        ctx.fillStyle=i%2?'#ff6622':'#ffaa00'; ctx.globalAlpha=0.4+Math.sin(t*8+i)*0.3;
-        ctx.beginPath(); ctx.arc(Math.cos(ea)*er,Math.sin(ea)*er,1.2+Math.random()*0.8,0,Math.PI*2); ctx.fill();
+      // ORBITING EMBER shower — fire trails
+      for(let i=0;i<14;i++){
+        const ea=t*3.5+i*0.45, er=BIRD_SIZE*(0.25+Math.sin(t*5+i)*0.35);
+        const es=1+Math.sin(t*8+i)*0.8;
+        ctx.fillStyle=i%3===0?'#ff2200':i%3===1?'#ff6622':'#ffcc00';
+        ctx.globalAlpha=0.35+Math.sin(t*8+i)*0.3;
+        ctx.beginPath(); ctx.arc(Math.cos(ea)*er,Math.sin(ea)*er,es,0,Math.PI*2); ctx.fill();
       }
-      // Heat shimmer
-      ctx.strokeStyle='#ff4400'; ctx.lineWidth=0.7; ctx.globalAlpha=0.08;
-      for(let i=0;i<3;i++){
-        const sy2=(Math.sin(t*12+i*2)-0.5)*BIRD_SIZE;
-        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.6,sy2);
-        ctx.bezierCurveTo(-BIRD_SIZE*0.2,sy2+4,BIRD_SIZE*0.2,sy2-4,BIRD_SIZE*0.6,sy2); ctx.stroke();
+      // HEAT DISTORTION WAVES
+      ctx.strokeStyle='#ff4400'; ctx.lineWidth=0.8; ctx.globalAlpha=0.1;
+      for(let i=0;i<4;i++){
+        const sy2=(Math.sin(t*14+i*1.7)-0.5)*BIRD_SIZE*1.2;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.7,sy2);
+        ctx.bezierCurveTo(-BIRD_SIZE*0.2,sy2+5,BIRD_SIZE*0.2,sy2-5,BIRD_SIZE*0.7,sy2); ctx.stroke();
+      }
+      // WING TIP FLARES (trailing fire)
+      for(const side of[-1,1]){
+        const ftx=-BIRD_SIZE*0.5, fty=side*BIRD_SIZE*0.65;
+        for(let fi=0;fi<4;fi++){
+          const ff=fi*0.15;
+          ctx.fillStyle='#ff6600'; ctx.globalAlpha=0.3-fi*0.06;
+          ctx.beginPath(); ctx.arc(ftx-fi*5-Math.sin(t*20+fi)*2,fty+Math.sin(t*15+fi)*3,2-fi*0.3,0,Math.PI*2); ctx.fill();
+        }
       }
 
     } else if(skinId==="toxic"){
-      // ═══ LEECH — organic bio-drone with tentacles ═══
+      // ═══ LEECH — organic bio-parasite ═══
       const tB=isThrusting?1:0.3;
-      ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.5; ctx.shadowColor=sk.glow; ctx.shadowBlur=isThrusting?20:5;
-      for(let i=0;i<(isThrusting?6:2);i++){
-        const bx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?24:5), by=(Math.random()-0.5)*10;
-        ctx.beginPath(); ctx.arc(bx,by,1.5+Math.random()*3.5,0,Math.PI*2); ctx.fill();
+      // TOXIC SPORE EXHAUST
+      ctx.shadowColor=sk.glow; ctx.shadowBlur=isThrusting?25:5;
+      for(let i=0;i<(isThrusting?8:3);i++){
+        const bx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?28:6), by=(Math.random()-0.5)*12;
+        const bs=1.5+Math.random()*4;
+        ctx.fillStyle=i%2?sk.thrust:'#88ff44'; ctx.globalAlpha=tB*(0.3+Math.random()*0.3);
+        ctx.beginPath(); ctx.arc(bx,by,bs,0,Math.PI*2); ctx.fill();
       }
       ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // Pulsing organic membrane
-      const breathe=1+Math.sin(t*4)*0.1;
-      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+      // PULSING ORGANIC MEMBRANE with tumors
+      const breathe=1+Math.sin(t*4)*0.12+Math.sin(t*7)*0.04;
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=22;
       ctx.beginPath();
-      for(let a=0;a<Math.PI*2;a+=0.08){
-        const w=1+Math.sin(a*3+t*5)*0.15+Math.sin(a*5-t*3)*0.08+Math.sin(a*7+t*2)*0.04;
-        const r2=coreR*1.35*breathe*w;
-        const px=Math.cos(a)*r2, py=Math.sin(a)*r2;
-        a<0.01?ctx.moveTo(px,py):ctx.lineTo(px,py);
+      for(let a=0;a<Math.PI*2;a+=0.06){
+        const w=1+Math.sin(a*3+t*5)*0.18+Math.sin(a*5-t*3)*0.1+Math.sin(a*7+t*2)*0.06+Math.sin(a*11+t*8)*0.03;
+        const r2=coreR*1.4*breathe*w;
+        a<0.01?ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);
       }
       ctx.closePath(); ctx.fill();
-      // Inner membrane layer
-      ctx.fillStyle=sk.ring; ctx.globalAlpha=0.3;
+      // Inner cytoplasm layer
+      ctx.fillStyle=sk.ring; ctx.globalAlpha=0.25;
       ctx.beginPath();
-      for(let a=0;a<Math.PI*2;a+=0.1){
-        const w=1+Math.sin(a*4-t*4)*0.1;
+      for(let a=0;a<Math.PI*2;a+=0.08){
+        const w=1+Math.sin(a*4-t*4)*0.12;
         const r2=coreR*0.85*breathe*w;
         a<0.01?ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);
       }
       ctx.closePath(); ctx.fill();
-      // Bioluminescent vein network
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=0.9; ctx.globalAlpha=0.35;
-      for(let i=0;i<6;i++){
-        const va=i*Math.PI*2/6+t*0.5;
+      // BIOLUMINESCENT VEIN NETWORK (pulsing)
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.2; ctx.lineCap='round';
+      for(let i=0;i<8;i++){
+        const va=i*Math.PI*2/8+t*0.4;
+        ctx.globalAlpha=0.25+Math.sin(t*3+i*0.7)*0.15;
         ctx.beginPath(); ctx.moveTo(0,0);
-        ctx.quadraticCurveTo(Math.cos(va+0.4)*coreR,Math.sin(va+0.4)*coreR,
-          Math.cos(va)*coreR*1.35*breathe,Math.sin(va)*coreR*1.35*breathe); ctx.stroke();
+        const mid=coreR*0.7*breathe;
+        ctx.quadraticCurveTo(Math.cos(va+0.5)*mid,Math.sin(va+0.5)*mid,
+          Math.cos(va)*coreR*1.4*breathe,Math.sin(va)*coreR*1.4*breathe); ctx.stroke();
       }
-      // 4 waving tentacles
-      ctx.strokeStyle=sk.body; ctx.lineWidth=2.8; ctx.lineCap='round';
-      for(let i=0;i<4;i++){
-        const ta=Math.PI*0.6+i*Math.PI*0.27;
-        ctx.globalAlpha=0.75; ctx.strokeStyle=sk.body; ctx.beginPath();
-        let tx=Math.cos(ta)*coreR*1.25, ty=Math.sin(ta)*coreR*1.25;
+      // 6 WAVING TENTACLES with segments
+      for(let i=0;i<6;i++){
+        const ta=Math.PI*0.45+i*Math.PI*0.22;
+        ctx.globalAlpha=0.8; ctx.strokeStyle=sk.body; ctx.lineCap='round';
+        ctx.beginPath();
+        let tx=Math.cos(ta)*coreR*1.3, ty=Math.sin(ta)*coreR*1.3;
         ctx.moveTo(tx,ty);
-        for(let j=1;j<=5;j++){
-          tx+=Math.cos(ta+Math.sin(t*3+i+j)*0.9)*5.5;
-          ty+=Math.sin(ta+Math.sin(t*2.5+i-j)*0.7)*5.5;
-          ctx.lineWidth=2.8-j*0.4;
+        for(let j=1;j<=7;j++){
+          tx+=Math.cos(ta+Math.sin(t*3.5+i+j*0.8)*1.1)*5;
+          ty+=Math.sin(ta+Math.sin(t*2.7+i-j*0.6)*0.8)*5;
+          ctx.lineWidth=3.2-j*0.35;
           ctx.lineTo(tx,ty);
         }
         ctx.stroke();
-        // Tentacle tip glow
-        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.6;
-        ctx.beginPath(); ctx.arc(tx,ty,2.2,0,Math.PI*2); ctx.fill();
+        // Glowing sucker at tip
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.55+Math.sin(t*6+i)*0.3;
+        ctx.shadowColor=sk.glow; ctx.shadowBlur=6;
+        ctx.beginPath(); ctx.arc(tx,ty,2.5,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+        // Mini poison drops from tentacle tips
+        const dp=(t*1.5+i*0.4)%1;
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=(1-dp)*0.45;
+        ctx.beginPath(); ctx.arc(tx,ty+dp*15,1.5-dp,0,Math.PI*2); ctx.fill();
       }
       ctx.lineCap='butt';
-      // Central alien eye
-      ctx.fillStyle='#001100'; ctx.globalAlpha=0.85;
-      ctx.beginPath(); ctx.ellipse(BIRD_SIZE*0.06,0,coreR*0.38,coreR*0.28+Math.sin(t*2)*coreR*0.12,0,0,Math.PI*2); ctx.fill();
+      // CENTRAL ALIEN EYE (tracking, dilating)
+      const eyeDilate=0.14+Math.sin(t*2)*0.06;
+      ctx.fillStyle='#001100'; ctx.globalAlpha=0.9;
+      ctx.beginPath(); ctx.ellipse(BIRD_SIZE*0.06,0,coreR*0.42,coreR*0.3+Math.sin(t*1.8)*coreR*eyeDilate,0,0,Math.PI*2); ctx.fill();
+      // Iris
       ctx.fillStyle=sk.glow; ctx.globalAlpha=0.95;
-      ctx.beginPath(); ctx.arc(BIRD_SIZE*0.1+Math.sin(t*1.5)*2,Math.sin(t*1.2)*1.5,coreR*0.16,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.globalAlpha=0.6;
-      ctx.beginPath(); ctx.arc(BIRD_SIZE*0.12+Math.sin(t*1.5)*2,Math.sin(t*1.2)*1.5-1,coreR*0.06,0,Math.PI*2); ctx.fill();
-      // Acid drips with splash
-      for(let i=0;i<5;i++){
-        const dx=(i-2)*5.5, dripP=(t*2.2+i*0.6)%1;
-        ctx.fillStyle=sk.glow; ctx.globalAlpha=(1-dripP)*0.5;
-        ctx.beginPath(); ctx.arc(dx,coreR*1.35+dripP*22,2.2-dripP*1.5,0,Math.PI*2); ctx.fill();
+      const irisx=BIRD_SIZE*0.1+Math.sin(t*1.5)*2.5, irisy=Math.sin(t*1.2)*2;
+      ctx.beginPath(); ctx.arc(irisx,irisy,coreR*0.18,0,Math.PI*2); ctx.fill();
+      // Pupil slit (vertical)
+      ctx.fillStyle='#000'; ctx.globalAlpha=0.85;
+      ctx.beginPath(); ctx.ellipse(irisx,irisy,coreR*0.04,coreR*0.14,0,0,Math.PI*2); ctx.fill();
+      // Eye highlight
+      ctx.fillStyle='#fff'; ctx.globalAlpha=0.55;
+      ctx.beginPath(); ctx.arc(irisx+1.5,irisy-1.5,coreR*0.06,0,Math.PI*2); ctx.fill();
+      // Eye veins
+      ctx.strokeStyle='#ff2200'; ctx.lineWidth=0.5; ctx.globalAlpha=0.2;
+      for(let i=0;i<4;i++){
+        const va2=i*Math.PI*0.5+t*0.2;
+        ctx.beginPath(); ctx.moveTo(irisx+Math.cos(va2)*coreR*0.15,irisy+Math.sin(va2)*coreR*0.15);
+        ctx.lineTo(irisx+Math.cos(va2)*coreR*0.35,irisy+Math.sin(va2)*coreR*0.35); ctx.stroke();
+      }
+      // ACID RAIN — dripping toxic slime
+      for(let i=0;i<7;i++){
+        const dx=(i-3)*5, dripP=(t*2.5+i*0.5)%1;
+        ctx.fillStyle=i%2?sk.glow:'#88ff44'; ctx.globalAlpha=(1-dripP)*0.5;
+        ctx.beginPath(); ctx.arc(dx,coreR*1.4+dripP*25,2.5-dripP*1.8,0,Math.PI*2); ctx.fill();
+        // Splash at bottom of drip
+        if(dripP>0.85){
+          const sp=(dripP-0.85)/0.15;
+          for(let s=0;s<3;s++){
+            ctx.fillStyle=sk.glow; ctx.globalAlpha=(1-sp)*0.3;
+            ctx.beginPath(); ctx.arc(dx+(s-1)*3*sp,coreR*1.4+25-sp*4,1,0,Math.PI*2); ctx.fill();
+          }
+        }
+      }
+      // TOXIC AURA (radiating rings)
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.06;
+      for(let i=0;i<3;i++){
+        const ar=coreR*1.6+i*5+Math.sin(t*2+i)*3;
+        ctx.beginPath(); ctx.arc(0,0,ar,0,Math.PI*2); ctx.stroke();
       }
       ctx.shadowBlur=0;
 
     } else if(skinId==="sunset"){
-      // ═══ HELIOS — sun disk + scarab wings ═══
-      const tB=isThrusting?1:0.25, tL2=isThrusting?(22+Math.sin(t*25)*8):4;
-      ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?28:5;
-      ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.45;
-      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,-4); ctx.lineTo(-BIRD_SIZE*0.4-tL2,-10);
-      ctx.lineTo(-BIRD_SIZE*0.4-tL2,10); ctx.lineTo(-BIRD_SIZE*0.4,4); ctx.closePath(); ctx.fill();
-      if(isThrusting){ ctx.fillStyle='#ffe8aa'; ctx.globalAlpha=0.55;
-        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,0); ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.35,-2.5);
-        ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.35,2.5); ctx.closePath(); ctx.fill(); }
-      ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // Scarab wing plates
-      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=14;
-      for(const side of[-1,1]){
-        ctx.globalAlpha=0.85; ctx.beginPath();
-        ctx.moveTo(BIRD_SIZE*0.15,side*BIRD_SIZE*0.12);
-        ctx.quadraticCurveTo(BIRD_SIZE*0.05,side*BIRD_SIZE*0.55,-BIRD_SIZE*0.2,side*BIRD_SIZE*0.6);
-        ctx.quadraticCurveTo(-BIRD_SIZE*0.45,side*BIRD_SIZE*0.5,-BIRD_SIZE*0.42,side*BIRD_SIZE*0.12);
-        ctx.closePath(); ctx.fill();
-        // Wing panel lines
-        ctx.strokeStyle=sk.thrust; ctx.lineWidth=0.8; ctx.globalAlpha=0.3;
-        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.02,side*BIRD_SIZE*0.22);
-        ctx.lineTo(-BIRD_SIZE*0.32,side*BIRD_SIZE*0.42); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.05,side*BIRD_SIZE*0.16);
-        ctx.quadraticCurveTo(-BIRD_SIZE*0.1,side*BIRD_SIZE*0.45,-BIRD_SIZE*0.28,side*BIRD_SIZE*0.52); ctx.stroke();
-        // Wing tip glow dot
-        ctx.fillStyle=sk.thrust; ctx.globalAlpha=0.5+Math.sin(t*4+side)*0.3;
-        ctx.beginPath(); ctx.arc(-BIRD_SIZE*0.2,side*BIRD_SIZE*0.6,2,0,Math.PI*2); ctx.fill();
+      // ═══ HELIOS — solar deity ═══
+      const tB=isThrusting?1:0.25, tL2=isThrusting?(26+Math.sin(t*25)*10):5;
+      // PLASMA JET ENGINE
+      ctx.shadowColor='#ffaa00'; ctx.shadowBlur=isThrusting?35:8;
+      ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.5;
+      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,-5); ctx.lineTo(-BIRD_SIZE*0.4-tL2,-12);
+      ctx.lineTo(-BIRD_SIZE*0.4-tL2,12); ctx.lineTo(-BIRD_SIZE*0.4,5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#ffe8aa'; ctx.globalAlpha=tB*0.7;
+      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,0); ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.6,-5);
+      ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.6,5); ctx.closePath(); ctx.fill();
+      if(isThrusting){
+        ctx.fillStyle='#fff'; ctx.globalAlpha=0.5;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,0); ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.25,-2);
+        ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.25,2); ctx.closePath(); ctx.fill();
       }
-      // Central sun disk
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      // SCARAB WING PLATES (animated flap)
+      const wingFlap=Math.sin(t*6)*0.05;
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+      for(const side of[-1,1]){
+        ctx.globalAlpha=0.88; ctx.save();
+        ctx.rotate(side*wingFlap);
+        ctx.beginPath();
+        ctx.moveTo(BIRD_SIZE*0.18,side*BIRD_SIZE*0.13);
+        ctx.quadraticCurveTo(BIRD_SIZE*0.08,side*BIRD_SIZE*0.6,-BIRD_SIZE*0.22,side*BIRD_SIZE*0.65);
+        ctx.quadraticCurveTo(-BIRD_SIZE*0.48,side*BIRD_SIZE*0.55,-BIRD_SIZE*0.44,side*BIRD_SIZE*0.13);
+        ctx.closePath(); ctx.fill();
+        // Wing hieroglyph lines
+        ctx.strokeStyle=sk.thrust; ctx.lineWidth=0.8; ctx.globalAlpha=0.35;
+        ctx.beginPath(); ctx.moveTo(0,side*BIRD_SIZE*0.24);
+        ctx.lineTo(-BIRD_SIZE*0.34,side*BIRD_SIZE*0.45); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.06,side*BIRD_SIZE*0.18);
+        ctx.quadraticCurveTo(-BIRD_SIZE*0.12,side*BIRD_SIZE*0.5,-BIRD_SIZE*0.3,side*BIRD_SIZE*0.55); ctx.stroke();
+        // Extra wing vein
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.1,side*BIRD_SIZE*0.15);
+        ctx.lineTo(-BIRD_SIZE*0.38,side*BIRD_SIZE*0.35); ctx.stroke();
+        // Wing tip fire
+        ctx.fillStyle=sk.thrust; ctx.globalAlpha=0.45+Math.sin(t*5+side)*0.35;
+        ctx.shadowColor=sk.thrust; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.arc(-BIRD_SIZE*0.22,side*BIRD_SIZE*0.65,3,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+        ctx.restore();
+      }
+      // CENTRAL SUN DISK (layered gradients)
       ctx.globalAlpha=1;
-      const sunG=ctx.createRadialGradient(0,0,coreR*0.2,0,0,coreR*1.15);
-      sunG.addColorStop(0,'#fffbe8'); sunG.addColorStop(0.25,sk.body);
-      sunG.addColorStop(0.6,sk.glow); sunG.addColorStop(1,'rgba(80,30,0,0.3)');
-      ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(0,0,coreR*1.15,0,Math.PI*2); ctx.fill();
-      // Eye of Ra (inner detail)
-      ctx.strokeStyle=sk.thrust; ctx.lineWidth=1.5; ctx.globalAlpha=0.5;
+      // Outer sun haze
+      const hazeG=ctx.createRadialGradient(0,0,coreR*0.8,0,0,coreR*2);
+      hazeG.addColorStop(0,'rgba(255,150,50,0.2)'); hazeG.addColorStop(1,'transparent');
+      ctx.fillStyle=hazeG; ctx.beginPath(); ctx.arc(0,0,coreR*2,0,Math.PI*2); ctx.fill();
+      // Main sun
+      const sunG=ctx.createRadialGradient(-1,-1,coreR*0.15,0,0,coreR*1.2);
+      sunG.addColorStop(0,'#fffbe8'); sunG.addColorStop(0.2,'#ffe0a0'); sunG.addColorStop(0.5,sk.body);
+      sunG.addColorStop(0.75,sk.glow); sunG.addColorStop(1,'rgba(80,30,0,0.4)');
+      ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.fill();
+      // Sun surface texture (granulation)
+      for(let i=0;i<8;i++){
+        const ga=i*Math.PI*2/8+t*0.3;
+        const gr=coreR*(0.4+Math.sin(t*2+i)*0.3);
+        ctx.fillStyle='rgba(255,200,100,0.12)';
+        ctx.beginPath(); ctx.arc(Math.cos(ga)*gr,Math.sin(ga)*gr,coreR*0.25,0,Math.PI*2); ctx.fill();
+      }
+      // Eye of Ra
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.8; ctx.globalAlpha=0.5;
       ctx.beginPath(); ctx.arc(0,0,coreR*0.5,0,Math.PI*2); ctx.stroke();
-      ctx.fillStyle='#fff'; ctx.globalAlpha=0.7;
-      ctx.beginPath(); ctx.arc(0,0,coreR*0.2,0,Math.PI*2); ctx.fill();
-      // Corona spikes
-      ctx.shadowColor=sk.thrust; ctx.shadowBlur=18;
-      for(let i=0;i<12;i++){
-        const ra=t*0.6+i*(Math.PI/6), rLen=coreR*(1.6+Math.sin(t*4+i*0.85)*0.6);
-        ctx.strokeStyle=sk.thrust; ctx.lineWidth=2.2; ctx.globalAlpha=0.28+Math.sin(t*5+i)*0.18;
-        ctx.beginPath(); ctx.moveTo(Math.cos(ra)*coreR*0.9,Math.sin(ra)*coreR*0.9);
+      ctx.fillStyle='#fffbe8'; ctx.globalAlpha=0.8;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.22,0,Math.PI*2); ctx.fill();
+      // CORONA MEGA SPIKES (animated length)
+      ctx.shadowColor='#ff6600'; ctx.shadowBlur=20;
+      for(let i=0;i<16;i++){
+        const ra=t*0.7+i*(Math.PI/8);
+        const rLen=coreR*(1.8+Math.sin(t*4+i*0.85)*0.8+Math.sin(t*7+i*1.3)*0.3);
+        const thick=2.5-Math.abs(Math.sin(ra))*1;
+        ctx.strokeStyle=i%4===0?'#fff':sk.thrust; ctx.lineWidth=thick;
+        ctx.globalAlpha=0.3+Math.sin(t*5+i)*0.2;
+        ctx.beginPath(); ctx.moveTo(Math.cos(ra)*coreR,Math.sin(ra)*coreR);
         ctx.lineTo(Math.cos(ra)*rLen,Math.sin(ra)*rLen); ctx.stroke();
       }
-      // Solar flare arcs
-      ctx.strokeStyle='#ffcc44'; ctx.lineWidth=1.8; ctx.globalAlpha=0.2;
-      for(let i=0;i<3;i++){
-        const fa=t*0.35+i*Math.PI*0.67;
-        ctx.beginPath(); ctx.arc(0,0,coreR*1.7+i*3,fa,fa+Math.PI*0.35); ctx.stroke();
+      // SOLAR FLARE ARCS (multiple orbits)
+      ctx.strokeStyle='#ffcc44'; ctx.lineWidth=2; ctx.globalAlpha=0.22;
+      for(let i=0;i<5;i++){
+        const fa=t*0.3+i*Math.PI*0.4;
+        const fr=coreR*1.8+i*4;
+        ctx.beginPath(); ctx.arc(0,0,fr,fa,fa+Math.PI*(0.2+i*0.05)); ctx.stroke();
+      }
+      // ORBITING SOLAR PROMINENCES (flame streaks)
+      for(let i=0;i<6;i++){
+        const pa=t*1.2+i*1.05, pr=coreR*(1.5+Math.sin(t*3+i)*0.4);
+        ctx.fillStyle=i%2?'#ffdd44':'#ff8844'; ctx.globalAlpha=0.4+Math.sin(t*5+i)*0.25;
+        ctx.beginPath(); ctx.arc(Math.cos(pa)*pr,Math.sin(pa)*pr,2+Math.sin(t*8+i),0,Math.PI*2); ctx.fill();
       }
       ctx.shadowBlur=0;
 
     } else if(skinId==="purple"){
-      // ═══ EVENT HORIZON — black hole with accretion disk ═══
+      // ═══ EVENT HORIZON — black hole singularity ═══
       const tB=isThrusting?1:0.2;
-      ctx.shadowColor=sk.glow; ctx.shadowBlur=isThrusting?18:4;
-      ctx.strokeStyle=sk.thrust; ctx.lineWidth=1.5;
-      for(let i=0;i<(isThrusting?6:2);i++){
-        ctx.globalAlpha=tB*(0.3+Math.random()*0.3);
-        const vx=-BIRD_SIZE*0.4-i*4-Math.random()*12, vy=(Math.random()-0.5)*12;
-        ctx.beginPath(); ctx.moveTo(vx,vy); ctx.lineTo(vx-5-Math.random()*8,vy+(Math.random()-0.5)*8); ctx.stroke();
+      // VOID LIGHTNING EXHAUST
+      ctx.shadowColor=sk.glow; ctx.shadowBlur=isThrusting?22:5;
+      ctx.strokeStyle=sk.thrust; ctx.lineWidth=1.8;
+      for(let i=0;i<(isThrusting?8:3);i++){
+        ctx.globalAlpha=tB*(0.25+Math.random()*0.35);
+        let vx=-BIRD_SIZE*0.4, vy=(Math.random()-0.5)*10;
+        ctx.beginPath(); ctx.moveTo(vx,vy);
+        for(let j=0;j<3;j++){
+          vx-=4+Math.random()*6; vy+=(Math.random()-0.5)*8;
+          ctx.lineTo(vx,vy);
+        }
+        ctx.stroke();
       }
       ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // Accretion disk (tilted ellipse)
-      ctx.save(); ctx.scale(1,0.38);
-      const diskR=BIRD_SIZE*0.8;
-      // Outer glow ring
-      ctx.globalAlpha=0.12; ctx.shadowColor=sk.glow; ctx.shadowBlur=30;
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=4;
-      ctx.beginPath(); ctx.arc(0,0,diskR*1.25,0,Math.PI*2); ctx.stroke();
-      // Main disk with gradient
+      // ACCRETION DISK (tilted, multi-layer)
+      ctx.save(); ctx.scale(1,0.35);
+      const diskR=BIRD_SIZE*0.9;
+      // Outer gravitational lens glow
+      ctx.shadowColor=sk.glow; ctx.shadowBlur=35;
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=5; ctx.globalAlpha=0.1;
+      ctx.beginPath(); ctx.arc(0,0,diskR*1.4,0,Math.PI*2); ctx.stroke();
+      // Hot outer ring
+      ctx.strokeStyle=sk.thrust; ctx.lineWidth=3; ctx.globalAlpha=0.25;
+      ctx.beginPath(); ctx.arc(0,0,diskR*1.15,0,Math.PI*2); ctx.stroke();
+      // Main accretion disk gradient
       const dG=ctx.createLinearGradient(-diskR,0,diskR,0);
-      dG.addColorStop(0,sk.thrust); dG.addColorStop(0.3,'#ffffff'); dG.addColorStop(0.5,sk.glow); dG.addColorStop(0.7,'#ffffff'); dG.addColorStop(1,sk.body);
-      ctx.strokeStyle=dG; ctx.lineWidth=6; ctx.globalAlpha=0.55;
+      dG.addColorStop(0,sk.thrust); dG.addColorStop(0.2,'#fff'); dG.addColorStop(0.4,sk.glow);
+      dG.addColorStop(0.6,'#fff'); dG.addColorStop(0.8,sk.body); dG.addColorStop(1,sk.thrust);
+      ctx.strokeStyle=dG; ctx.lineWidth=7; ctx.globalAlpha=0.6;
       ctx.beginPath(); ctx.arc(0,0,diskR,0,Math.PI*2); ctx.stroke();
-      // Hot inner ring
-      ctx.strokeStyle='#eeddff'; ctx.lineWidth=2; ctx.globalAlpha=0.7;
-      ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.stroke();
+      // Inner white-hot ring
+      ctx.strokeStyle='#eeddff'; ctx.lineWidth=2.5; ctx.globalAlpha=0.75;
+      ctx.beginPath(); ctx.arc(0,0,coreR*1.3,0,Math.PI*2); ctx.stroke();
       ctx.restore();
-      // Swirling matter particles in disk
-      for(let i=0;i<8;i++){
-        const pa=t*1.8+i*0.79;
-        const pr=diskR*(0.6+i*0.05);
-        const px=Math.cos(pa)*pr, py=Math.sin(pa)*pr*0.38;
-        ctx.fillStyle=i%2?sk.glow:sk.thrust; ctx.globalAlpha=0.4+Math.sin(t*4+i)*0.25;
-        ctx.beginPath(); ctx.arc(px,py,1.5,0,Math.PI*2); ctx.fill();
+      // SWIRLING MATTER PARTICLES (faster, more)
+      for(let i=0;i<12;i++){
+        const pa=t*2.2+i*0.52, pr=diskR*(0.55+i*0.04);
+        const px=Math.cos(pa)*pr, py=Math.sin(pa)*pr*0.35;
+        ctx.fillStyle=i%3===0?'#fff':i%3===1?sk.glow:sk.thrust;
+        ctx.globalAlpha=0.35+Math.sin(t*5+i)*0.3;
+        ctx.beginPath(); ctx.arc(px,py,1.2+Math.sin(t*3+i)*0.6,0,Math.PI*2); ctx.fill();
       }
-      // Black core (event horizon)
-      const bhGrad=ctx.createRadialGradient(0,0,0,0,0,coreR*0.75);
-      bhGrad.addColorStop(0,'#000'); bhGrad.addColorStop(0.7,'#0a0012'); bhGrad.addColorStop(1,'#1a0030');
-      ctx.fillStyle=bhGrad; ctx.globalAlpha=0.97;
-      ctx.beginPath(); ctx.arc(0,0,coreR*0.75,0,Math.PI*2); ctx.fill();
-      // Bright photon ring
-      ctx.strokeStyle='#fff'; ctx.lineWidth=1.2; ctx.globalAlpha=0.85;
-      ctx.shadowColor=sk.glow; ctx.shadowBlur=22;
-      ctx.beginPath(); ctx.arc(0,0,coreR*0.75,0,Math.PI*2); ctx.stroke();
+      // BLACK CORE (event horizon with light bending)
+      const bhGrad=ctx.createRadialGradient(0,0,0,0,0,coreR*0.8);
+      bhGrad.addColorStop(0,'#000'); bhGrad.addColorStop(0.6,'#050010'); bhGrad.addColorStop(1,'#1a0030');
+      ctx.fillStyle=bhGrad; ctx.globalAlpha=0.98;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.8,0,Math.PI*2); ctx.fill();
+      // PHOTON RING (bright white, pulsing)
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.globalAlpha=0.85+Math.sin(t*4)*0.1;
+      ctx.shadowColor='#fff'; ctx.shadowBlur=28;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.8,0,Math.PI*2); ctx.stroke();
+      // Inner photon ring
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=0.8; ctx.globalAlpha=0.5;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.55,0,Math.PI*2); ctx.stroke();
       ctx.shadowBlur=0;
-      // Spiraling energy streams
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.25;
-      for(let i=0;i<3;i++){
+      // SPIRALING ENERGY STREAMS (gravitational lensing)
+      for(let i=0;i<4;i++){
+        ctx.strokeStyle=i%2?sk.glow:sk.thrust; ctx.lineWidth=1.2; ctx.globalAlpha=0.22;
         ctx.beginPath();
-        for(let a=0;a<Math.PI*2.5;a+=0.12){
-          const sr=BIRD_SIZE*0.85-a*coreR*0.08;
-          const sx=Math.cos(a+t*2+i*2.1)*sr, sy=Math.sin(a+t*2+i*2.1)*sr*0.38;
+        for(let a=0;a<Math.PI*3;a+=0.1){
+          const sr=BIRD_SIZE*0.95-a*coreR*0.06;
+          const sx=Math.cos(a+t*2.5+i*1.57)*sr, sy=Math.sin(a+t*2.5+i*1.57)*sr*0.35;
           a<0.01?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);
         }
         ctx.stroke();
       }
-      // Polar jets (Hawking radiation)
+      // POLAR JETS (relativistic)
       for(const pole of[-1,1]){
-        ctx.strokeStyle=sk.thrust; ctx.lineWidth=1.5; ctx.globalAlpha=0.35;
+        // Main jet beam
+        ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
+        ctx.strokeStyle=sk.thrust; ctx.lineWidth=2; ctx.globalAlpha=0.4;
         ctx.beginPath(); ctx.moveTo(0,pole*coreR*0.5);
-        let jx=0,jy=pole*coreR*0.5;
-        for(let j=0;j<5;j++){
-          jx+=(Math.random()-0.5)*4; jy+=pole*(4+Math.random()*4);
+        let jx=0, jy=pole*coreR*0.5;
+        for(let j=0;j<7;j++){
+          jx+=(Math.random()-0.5)*5; jy+=pole*(5+Math.random()*5);
           ctx.lineTo(jx,jy);
         }
         ctx.stroke();
-        // Jet glow dot at tip
-        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.3;
-        ctx.beginPath(); ctx.arc(jx,jy,2,0,Math.PI*2); ctx.fill();
+        // Jet particles
+        for(let jp=0;jp<3;jp++){
+          const jpa=t*3+jp*2.1+pole;
+          ctx.fillStyle=sk.glow; ctx.globalAlpha=0.3+Math.sin(jpa)*0.2;
+          ctx.beginPath(); ctx.arc((Math.random()-0.5)*4,pole*(coreR*(1+jp*0.5)+Math.sin(jpa)*5),1.5,0,Math.PI*2); ctx.fill();
+        }
+        ctx.shadowBlur=0;
       }
+      // GRAVITATIONAL LENS DISTORTION RING
+      ctx.strokeStyle='rgba(150,100,255,0.08)'; ctx.lineWidth=8;
+      ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.95,0,Math.PI*2); ctx.stroke();
 
     } else if(skinId==="golden"){
-      // ═══ IMPERIAL — crown battlecruiser ═══
-      const tB=isThrusting?1:0.25, tL=isThrusting?(20+Math.sin(t*28)*7):3;
-      ctx.shadowColor='#ffd700'; ctx.shadowBlur=isThrusting?38:8;
-      ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.6;
-      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.42,0);
-      ctx.lineTo(-BIRD_SIZE*0.42-tL,-10); ctx.lineTo(-BIRD_SIZE*0.42-tL,10); ctx.closePath(); ctx.fill();
-      if(isThrusting){ ctx.fillStyle='#fff'; ctx.globalAlpha=0.5;
-        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.42,0);
-        ctx.lineTo(-BIRD_SIZE*0.42-tL*0.35,-3); ctx.lineTo(-BIRD_SIZE*0.42-tL*0.35,3); ctx.closePath(); ctx.fill(); }
-      ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // Ship hull (majestic elongated shape)
-      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=20;
-      ctx.beginPath();
-      ctx.moveTo(BIRD_SIZE*0.6,0);
-      ctx.lineTo(BIRD_SIZE*0.25,-BIRD_SIZE*0.18);
-      ctx.lineTo(-BIRD_SIZE*0.1,-BIRD_SIZE*0.28);
-      ctx.lineTo(-BIRD_SIZE*0.42,-BIRD_SIZE*0.2);
-      ctx.lineTo(-BIRD_SIZE*0.42,BIRD_SIZE*0.2);
-      ctx.lineTo(-BIRD_SIZE*0.1,BIRD_SIZE*0.28);
-      ctx.lineTo(BIRD_SIZE*0.25,BIRD_SIZE*0.18);
-      ctx.closePath(); ctx.fill();
-      // Top deck (slightly lighter)
-      ctx.fillStyle='#ffdd44'; ctx.globalAlpha=0.25;
-      ctx.beginPath();
-      ctx.moveTo(BIRD_SIZE*0.6,0);
-      ctx.lineTo(BIRD_SIZE*0.25,-BIRD_SIZE*0.18);
-      ctx.lineTo(-BIRD_SIZE*0.1,-BIRD_SIZE*0.28);
-      ctx.lineTo(-BIRD_SIZE*0.42,-BIRD_SIZE*0.2);
-      ctx.lineTo(-BIRD_SIZE*0.42,0); ctx.lineTo(BIRD_SIZE*0.6,0);
-      ctx.closePath(); ctx.fill();
-      // Gold trim lines
-      ctx.strokeStyle='#ffd700'; ctx.lineWidth=1.2; ctx.globalAlpha=0.55;
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.25,-BIRD_SIZE*0.18); ctx.lineTo(-BIRD_SIZE*0.42,-BIRD_SIZE*0.2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.25,BIRD_SIZE*0.18); ctx.lineTo(-BIRD_SIZE*0.42,BIRD_SIZE*0.2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.6,0); ctx.lineTo(-BIRD_SIZE*0.42,0); ctx.stroke();
-      ctx.shadowBlur=0;
-      // Crown spikes array
-      for(let i=0;i<5;i++){
-        const cx2=-BIRD_SIZE*0.2+i*BIRD_SIZE*0.15;
-        const ch=BIRD_SIZE*(0.28+Math.sin(t*5+i)*0.06);
-        ctx.fillStyle='#ffd700'; ctx.globalAlpha=0.75;
-        ctx.beginPath();
-        ctx.moveTo(cx2-3,-BIRD_SIZE*0.22);
-        ctx.lineTo(cx2,-BIRD_SIZE*0.22-ch);
-        ctx.lineTo(cx2+3,-BIRD_SIZE*0.22);
-        ctx.closePath(); ctx.fill();
-        // Crown jewel dots
-        ctx.fillStyle='#ff4444'; ctx.globalAlpha=0.6+Math.sin(t*6+i)*0.3;
-        ctx.beginPath(); ctx.arc(cx2,-BIRD_SIZE*0.22-ch*0.6,1.5,0,Math.PI*2); ctx.fill();
+      // ═══ IMPERIAL — golden battlecruiser dreadnought ═══
+      const tB=isThrusting?1:0.25, tL=isThrusting?(24+Math.sin(t*28)*9):4;
+      // ROYAL EXHAUST (twin golden flames)
+      ctx.shadowColor='#ffd700'; ctx.shadowBlur=isThrusting?45:10;
+      for(const side of[-1,1]){
+        ctx.fillStyle='#ffcc44'; ctx.globalAlpha=tB*0.5;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.44,side*4);
+        ctx.lineTo(-BIRD_SIZE*0.44-tL,side*8); ctx.lineTo(-BIRD_SIZE*0.44-tL,side*1); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.globalAlpha=tB*0.4;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.44,side*4);
+        ctx.lineTo(-BIRD_SIZE*0.44-tL*0.3,side*5.5); ctx.lineTo(-BIRD_SIZE*0.44-tL*0.3,side*2.5); ctx.closePath(); ctx.fill();
       }
-      // Central gem (octagonal cut)
-      const gemR=coreR*0.55;
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      // SHIP HULL (majestic elongated dreadnought)
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=25;
+      ctx.beginPath();
+      ctx.moveTo(BIRD_SIZE*0.65,0);
+      ctx.lineTo(BIRD_SIZE*0.3,-BIRD_SIZE*0.2);
+      ctx.lineTo(-BIRD_SIZE*0.08,-BIRD_SIZE*0.32);
+      ctx.lineTo(-BIRD_SIZE*0.44,-BIRD_SIZE*0.22);
+      ctx.lineTo(-BIRD_SIZE*0.44,BIRD_SIZE*0.22);
+      ctx.lineTo(-BIRD_SIZE*0.08,BIRD_SIZE*0.32);
+      ctx.lineTo(BIRD_SIZE*0.3,BIRD_SIZE*0.2);
+      ctx.closePath(); ctx.fill();
+      // Bridge deck (lighter)
+      ctx.fillStyle='#ffdd44'; ctx.globalAlpha=0.2;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.65,0); ctx.lineTo(BIRD_SIZE*0.3,-BIRD_SIZE*0.2);
+      ctx.lineTo(-BIRD_SIZE*0.44,-BIRD_SIZE*0.22); ctx.lineTo(-BIRD_SIZE*0.44,0); ctx.lineTo(BIRD_SIZE*0.65,0); ctx.closePath(); ctx.fill();
+      // Gold trim lines
+      ctx.strokeStyle='#ffd700'; ctx.lineWidth=1.5; ctx.globalAlpha=0.6;
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.3,-BIRD_SIZE*0.2); ctx.lineTo(-BIRD_SIZE*0.44,-BIRD_SIZE*0.22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.3,BIRD_SIZE*0.2); ctx.lineTo(-BIRD_SIZE*0.44,BIRD_SIZE*0.22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.65,0); ctx.lineTo(-BIRD_SIZE*0.44,0); ctx.stroke();
+      // Side panel engravings
+      ctx.strokeStyle='#ffaa00'; ctx.lineWidth=0.6; ctx.globalAlpha=0.2;
+      for(const side of[-1,1]){
+        for(let i=0;i<3;i++){
+          const ex=-BIRD_SIZE*0.3+i*BIRD_SIZE*0.2;
+          ctx.beginPath(); ctx.moveTo(ex,side*BIRD_SIZE*0.08); ctx.lineTo(ex+BIRD_SIZE*0.08,side*BIRD_SIZE*0.15); ctx.stroke();
+        }
+      }
+      ctx.shadowBlur=0;
+      // CROWN OF GLORY (floating above ship)
+      for(let i=0;i<7;i++){
+        const cx2=-BIRD_SIZE*0.25+i*BIRD_SIZE*0.13;
+        const ch=BIRD_SIZE*(0.32+Math.sin(t*5+i*0.8)*0.08);
+        const hover=Math.sin(t*3+i*0.5)*1.5;
+        // Crown spike
+        ctx.fillStyle='#ffd700'; ctx.globalAlpha=0.8;
+        ctx.shadowColor='#ffd700'; ctx.shadowBlur=8;
+        ctx.beginPath();
+        ctx.moveTo(cx2-3.5,-BIRD_SIZE*0.25+hover);
+        ctx.lineTo(cx2,-BIRD_SIZE*0.25-ch+hover);
+        ctx.lineTo(cx2+3.5,-BIRD_SIZE*0.25+hover);
+        ctx.closePath(); ctx.fill();
+        // Crown jewel (alternating ruby/sapphire/emerald)
+        const jewels=['#ff2244','#2288ff','#22ff44','#ff2244','#aa44ff','#2288ff','#ff8822'];
+        ctx.fillStyle=jewels[i]; ctx.globalAlpha=0.7+Math.sin(t*6+i)*0.25;
+        ctx.beginPath(); ctx.arc(cx2,-BIRD_SIZE*0.25-ch*0.55+hover,2,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // Crown base band
+      ctx.strokeStyle='#ffd700'; ctx.lineWidth=2; ctx.globalAlpha=0.6;
+      ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.28,-BIRD_SIZE*0.24+Math.sin(t*3)*1.5);
+      ctx.lineTo(BIRD_SIZE*0.35,-BIRD_SIZE*0.24+Math.sin(t*3+Math.PI)*1.5); ctx.stroke();
+      // CENTRAL IMPERIAL GEM (octagonal brilliant cut)
+      const gemR=coreR*0.6;
       const gemG=ctx.createRadialGradient(-1,-1,1,0,0,gemR);
-      gemG.addColorStop(0,'#fff'); gemG.addColorStop(0.2,'#ffee88'); gemG.addColorStop(0.6,sk.body); gemG.addColorStop(1,sk.glow);
-      ctx.fillStyle=gemG; ctx.globalAlpha=0.92;
+      gemG.addColorStop(0,'#fff'); gemG.addColorStop(0.15,'#ffee88'); gemG.addColorStop(0.5,sk.body); gemG.addColorStop(1,sk.glow);
+      ctx.fillStyle=gemG; ctx.globalAlpha=0.95;
       ctx.beginPath();
       for(let i=0;i<8;i++){
-        const ga=i*(Math.PI/4)+Math.PI/8;
-        const gx=Math.cos(ga)*gemR, gy=Math.sin(ga)*gemR;
-        i===0?ctx.moveTo(gx,gy):ctx.lineTo(gx,gy);
+        const ga=i*(Math.PI/4)+Math.PI/8+t*0.3;
+        ctx.lineTo(Math.cos(ga)*gemR,Math.sin(ga)*gemR);
       }
       ctx.closePath(); ctx.fill();
-      // Gem sparkle cross
-      ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.globalAlpha=0.4+Math.sin(t*10)*0.3;
-      ctx.beginPath(); ctx.moveTo(-gemR*0.8,0); ctx.lineTo(gemR*0.8,0); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0,-gemR*0.8); ctx.lineTo(0,gemR*0.8); ctx.stroke();
-      // Diamond sparkle particles
-      for(let i=0;i<7;i++){
-        const sa=t*1.5+i*0.9, sr=ringR*(0.55+Math.sin(t*3+i)*0.4);
+      // Gem internal refraction
+      ctx.strokeStyle='#fff'; ctx.lineWidth=0.5; ctx.globalAlpha=0.3;
+      for(let i=0;i<4;i++){
+        const ra=i*(Math.PI/2)+t*0.3;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(ra)*gemR*0.8,Math.sin(ra)*gemR*0.8); ctx.stroke();
+      }
+      // Gem sparkle cross (animated rotation)
+      ctx.save(); ctx.rotate(t*2);
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.2; ctx.globalAlpha=0.45+Math.sin(t*12)*0.35;
+      ctx.beginPath(); ctx.moveTo(-gemR,0); ctx.lineTo(gemR,0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,-gemR); ctx.lineTo(0,gemR); ctx.stroke();
+      ctx.restore();
+      // DIAMOND SPARKLE PARTICLES (orbiting constellation)
+      for(let i=0;i<10;i++){
+        const sa=t*1.3+i*0.63, sr=ringR*(0.5+Math.sin(t*2.5+i)*0.45);
         const sx=Math.cos(sa)*sr, sy=Math.sin(sa)*sr;
-        const sz=1.5+Math.sin(t*8+i)*1.2;
-        ctx.fillStyle='#fffce0'; ctx.globalAlpha=0.5+Math.sin(t*6+i)*0.35;
-        ctx.beginPath(); ctx.moveTo(sx,sy-sz*2.5); ctx.lineTo(sx+sz*0.6,sy);
-        ctx.lineTo(sx,sy+sz*2.5); ctx.lineTo(sx-sz*0.6,sy); ctx.closePath(); ctx.fill();
+        const sz=1.5+Math.sin(t*8+i)*1.5;
+        ctx.fillStyle=i%3===0?'#fffce0':i%3===1?'#ffd700':'#fff';
+        ctx.globalAlpha=0.5+Math.sin(t*6+i)*0.4;
+        ctx.beginPath(); ctx.moveTo(sx,sy-sz*3); ctx.lineTo(sx+sz*0.7,sy);
+        ctx.lineTo(sx,sy+sz*3); ctx.lineTo(sx-sz*0.7,sy); ctx.closePath(); ctx.fill();
       }
-      // Ornate filigree wing lines
-      ctx.strokeStyle='#ffd700'; ctx.lineWidth=0.7; ctx.globalAlpha=0.3;
-      for(const side of[-1,1]){
-        ctx.beginPath();
-        ctx.moveTo(BIRD_SIZE*0.1,side*BIRD_SIZE*0.22);
-        ctx.quadraticCurveTo(-BIRD_SIZE*0.15,side*BIRD_SIZE*0.35,-BIRD_SIZE*0.35,side*BIRD_SIZE*0.18);
-        ctx.stroke();
-      }
+      // ROYAL AURA (golden mist)
+      ctx.fillStyle='rgba(255,215,0,0.03)';
+      ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*1.2,0,Math.PI*2); ctx.fill();
 
     } else if(skinId==="rainbow"){
-      // ═══ PRISM — rotating crystalline prism ═══
-      const tB=isThrusting?1:0.25, tL=isThrusting?(16+Math.sin(t*30)*5):3;
-      for(let i=0;i<3;i++){
-        const hue2=(i*120+Date.now()*0.25)%360;
-        ctx.fillStyle='hsl('+hue2+',100%,60%)'; ctx.globalAlpha=tB*0.4;
-        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,i*2.5-2.5);
-        ctx.lineTo(-BIRD_SIZE*0.4-tL,i*4-6); ctx.lineTo(-BIRD_SIZE*0.4-tL,i*4-3); ctx.closePath(); ctx.fill();
+      // ═══ PRISM — reality-bending crystalline entity ═══
+      const tB=isThrusting?1:0.25, tL=isThrusting?(18+Math.sin(t*30)*7):3;
+      // RAINBOW EXHAUST (spectral split)
+      for(let i=0;i<6;i++){
+        const hue2=(i*60+Date.now()*0.3)%360;
+        ctx.fillStyle='hsl('+hue2+',100%,60%)'; ctx.globalAlpha=tB*0.35;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,i*1.8-4.5);
+        ctx.lineTo(-BIRD_SIZE*0.4-tL*(0.7+i*0.06),i*3-7.5);
+        ctx.lineTo(-BIRD_SIZE*0.4-tL*(0.7+i*0.06),i*3-5); ctx.closePath(); ctx.fill();
+      }
+      if(isThrusting){
+        ctx.fillStyle='#fff'; ctx.globalAlpha=0.35;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,0); ctx.lineTo(-BIRD_SIZE*0.4-tL*0.3,-2);
+        ctx.lineTo(-BIRD_SIZE*0.4-tL*0.3,2); ctx.closePath(); ctx.fill();
       }
       ctx.globalAlpha=1;
-      // Rotating hexagonal crystal body
-      const hue=(Date.now()*0.1)%360;
-      ctx.save(); ctx.rotate(t*0.8);
-      const crystR=coreR*1.35;
-      // Crystal facets
+      // ROTATING HEXAGONAL CRYSTAL (layered, refracting light)
+      const hue=(Date.now()*0.12)%360;
+      ctx.save(); ctx.rotate(t*0.9);
+      const crystR=coreR*1.4;
+      // Crystal facets with depth illusion
       for(let i=0;i<6;i++){
         const a1=i*(Math.PI*2/6), a2=(i+1)*(Math.PI*2/6);
         const fhue=(hue+i*60)%360;
-        ctx.fillStyle='hsl('+fhue+',100%,55%)'; ctx.globalAlpha=0.72;
-        ctx.shadowColor='hsl('+fhue+',100%,70%)'; ctx.shadowBlur=12;
+        // Facet fill
+        ctx.fillStyle='hsl('+fhue+',100%,55%)'; ctx.globalAlpha=0.75;
+        ctx.shadowColor='hsl('+fhue+',100%,70%)'; ctx.shadowBlur=15;
         ctx.beginPath(); ctx.moveTo(0,0);
         ctx.lineTo(Math.cos(a1)*crystR,Math.sin(a1)*crystR);
         ctx.lineTo(Math.cos(a2)*crystR,Math.sin(a2)*crystR);
         ctx.closePath(); ctx.fill();
         // Edge highlight
-        ctx.strokeStyle='rgba(255,255,255,0.55)'; ctx.lineWidth=1.2;
+        ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=1.5;
         ctx.beginPath(); ctx.moveTo(Math.cos(a1)*crystR,Math.sin(a1)*crystR);
         ctx.lineTo(Math.cos(a2)*crystR,Math.sin(a2)*crystR); ctx.stroke();
+        // Internal edge (depth)
+        ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=0.7;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a1)*crystR,Math.sin(a1)*crystR); ctx.stroke();
       }
-      // Inner core facets (smaller, brighter)
+      // Inner counter-rotating crystal
+      ctx.save(); ctx.rotate(-t*1.4);
       for(let i=0;i<6;i++){
         const a1=i*(Math.PI*2/6)+Math.PI/6, a2=(i+1)*(Math.PI*2/6)+Math.PI/6;
         const fhue=(hue+i*60+30)%360;
-        ctx.fillStyle='hsl('+fhue+',100%,75%)'; ctx.globalAlpha=0.4;
+        ctx.fillStyle='hsl('+fhue+',100%,75%)'; ctx.globalAlpha=0.35;
         ctx.beginPath(); ctx.moveTo(0,0);
         ctx.lineTo(Math.cos(a1)*crystR*0.5,Math.sin(a1)*crystR*0.5);
         ctx.lineTo(Math.cos(a2)*crystR*0.5,Math.sin(a2)*crystR*0.5);
         ctx.closePath(); ctx.fill();
       }
+      ctx.restore();
       ctx.restore(); ctx.shadowBlur=0;
-      // Light refraction beams from vertices
-      for(let i=0;i<6;i++){
-        const ba=t*0.8+i*(Math.PI/3);
-        const bhue=(hue+i*60+Date.now()*0.2)%360;
-        const bLen=BIRD_SIZE*(0.95+Math.sin(t*3+i)*0.35);
-        ctx.strokeStyle='hsl('+bhue+',100%,65%)'; ctx.lineWidth=2.2; ctx.globalAlpha=0.32;
-        ctx.beginPath(); ctx.moveTo(Math.cos(ba)*coreR*0.7,Math.sin(ba)*coreR*0.7);
+      // LIGHT REFRACTION BEAMS (longer, more dramatic)
+      for(let i=0;i<8;i++){
+        const ba=t*0.9+i*(Math.PI/4);
+        const bhue=(hue+i*45+Date.now()*0.25)%360;
+        const bLen=BIRD_SIZE*(1.1+Math.sin(t*3+i)*0.45);
+        ctx.strokeStyle='hsl('+bhue+',100%,65%)'; ctx.lineWidth=2.5; ctx.globalAlpha=0.35;
+        ctx.shadowColor='hsl('+bhue+',100%,70%)'; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.moveTo(Math.cos(ba)*coreR*0.6,Math.sin(ba)*coreR*0.6);
         ctx.lineTo(Math.cos(ba)*bLen,Math.sin(ba)*bLen); ctx.stroke();
+        ctx.shadowBlur=0;
       }
-      // Orbiting crystal shards
-      for(let i=0;i<6;i++){
-        const oa=t*2+i*1.05, od=ringR*(0.65+Math.sin(t*3+i)*0.35);
+      // ORBITING CRYSTAL SHARD CONSTELLATION
+      for(let i=0;i<8;i++){
+        const oa=t*2.2+i*0.79, od=ringR*(0.6+Math.sin(t*3+i)*0.4);
         const ox=Math.cos(oa)*od, oy=Math.sin(oa)*od;
-        const ohue=(hue+i*60)%360;
-        ctx.fillStyle='hsl('+ohue+',100%,70%)'; ctx.globalAlpha=0.6;
-        ctx.save(); ctx.translate(ox,oy); ctx.rotate(t*3+i);
-        ctx.beginPath(); ctx.moveTo(0,-3); ctx.lineTo(2,0); ctx.lineTo(0,3); ctx.lineTo(-2,0); ctx.closePath(); ctx.fill();
+        const ohue=(hue+i*45)%360;
+        ctx.fillStyle='hsl('+ohue+',100%,70%)'; ctx.globalAlpha=0.65;
+        ctx.save(); ctx.translate(ox,oy); ctx.rotate(t*4+i);
+        ctx.beginPath(); ctx.moveTo(0,-4); ctx.lineTo(2.5,0); ctx.lineTo(0,4); ctx.lineTo(-2.5,0); ctx.closePath(); ctx.fill();
+        // Shard glow
+        ctx.fillStyle='hsl('+ohue+',100%,85%)'; ctx.globalAlpha=0.2;
+        ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
         ctx.restore();
       }
-      // RGB chromatic split circles
+      // RGB CHROMATIC SPLIT (3 offset circles)
       var chromColors=['#ff0044','#00ff44','#4488ff'];
       for(var ci=0;ci<3;ci++){
-        ctx.strokeStyle=chromColors[ci]; ctx.lineWidth=1.5; ctx.globalAlpha=0.14;
-        ctx.beginPath(); ctx.arc(ci*1.8-1.8,ci*0.6-0.6,coreR*1.35+ci*2.5,0,Math.PI*2); ctx.stroke();
+        ctx.strokeStyle=chromColors[ci]; ctx.lineWidth=1.8; ctx.globalAlpha=0.16;
+        ctx.beginPath(); ctx.arc(ci*2-2,ci*0.8-0.8,coreR*1.4+ci*3,0,Math.PI*2); ctx.stroke();
       }
-      // Central white core
-      ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.globalAlpha=0.6+Math.sin(t*6)*0.2;
-      ctx.beginPath(); ctx.arc(0,0,coreR*0.3,0,Math.PI*2); ctx.fill();
+      // RAINBOW TRAIL PARTICLES
+      for(let i=0;i<6;i++){
+        const rta=t*1.8+i*1.05;
+        const rtd=BIRD_SIZE*(0.3+i*0.08);
+        const rthue=(Date.now()*0.3+i*60)%360;
+        ctx.fillStyle='hsl('+rthue+',100%,65%)'; ctx.globalAlpha=0.3;
+        ctx.beginPath(); ctx.arc(-rtd-Math.sin(rta)*3,Math.sin(rta+i)*rtd*0.3,1.5,0,Math.PI*2); ctx.fill();
+      }
+      // Central white core (pulsing bright)
+      ctx.fillStyle='#fff'; ctx.globalAlpha=0.7+Math.sin(t*6)*0.25;
+      ctx.shadowColor='#fff'; ctx.shadowBlur=15;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.32,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
 
     } else if(skinId==="ghost"){
-      // ═══ SPECTER — phase-shifting wraith ═══
+      // ═══ SPECTER — dimensional phase wraith ═══
       const tB=isThrusting?0.6:0.1;
-      ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.3;
-      for(let i=0;i<(isThrusting?4:1);i++){
-        const gx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?18:4), gy=(Math.random()-0.5)*10;
-        ctx.beginPath(); ctx.arc(gx,gy,3+Math.random()*4,0,Math.PI*2); ctx.fill();
+      // SPECTRAL EXHAUST (fading wisps)
+      for(let i=0;i<(isThrusting?6:2);i++){
+        const gx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?22:5), gy=(Math.random()-0.5)*12;
+        ctx.fillStyle='rgba(200,200,255,'+String(tB*(0.15+Math.random()*0.2))+')';
+        ctx.beginPath(); ctx.arc(gx,gy,3+Math.random()*5,0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1;
-      // Phase-shifting transparency
-      const phase=0.18+Math.sin(t*2)*0.1+Math.sin(t*5.3)*0.06;
-      // Trailing afterimage ghost copies
-      for(let i=3;i>=1;i--){
-        ctx.strokeStyle='rgba(200,200,255,0.3)'; ctx.lineWidth=1.8;
-        ctx.globalAlpha=phase*(0.45-i*0.12);
+      // Phase shift oscillation
+      const phase=0.2+Math.sin(t*2)*0.12+Math.sin(t*5.3)*0.06;
+      // TRAILING AFTERIMAGE GHOSTS (more copies, fading)
+      for(let i=5;i>=1;i--){
+        const gof=i*7;
+        ctx.globalAlpha=phase*(0.35-i*0.055);
+        // Ghost body
+        ctx.fillStyle='rgba(180,180,240,0.06)';
+        ctx.beginPath(); ctx.arc(-gof,i*2,coreR*(1.2-i*0.06),0,Math.PI*2); ctx.fill();
+        // Ghost outline
+        ctx.strokeStyle='rgba(200,200,255,0.25)'; ctx.lineWidth=1.5;
         ctx.setLineDash([3,4]);
-        ctx.beginPath(); ctx.arc(-i*9,i*2.5,coreR*(1.15-i*0.08),0,Math.PI*2); ctx.stroke();
-        // Ghost body fill (very faint)
-        ctx.fillStyle='rgba(200,200,255,0.08)';
-        ctx.beginPath(); ctx.arc(-i*9,i*2.5,coreR*(1.15-i*0.08),0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(-gof,i*2,coreR*(1.2-i*0.06),0,Math.PI*2); ctx.stroke();
         ctx.setLineDash([]);
       }
-      // Main body — hollow pulsing outline
-      ctx.shadowColor='rgba(200,200,255,0.5)'; ctx.shadowBlur=18;
-      ctx.strokeStyle='rgba(200,200,255,0.65)'; ctx.lineWidth=2.2;
-      ctx.globalAlpha=phase*2.2;
+      // MAIN BODY — flickering semi-transparent shell
+      ctx.shadowColor='rgba(200,200,255,0.6)'; ctx.shadowBlur=22;
+      // Flicker effect
+      const flick=Math.random()>0.92?0.1:1;
+      ctx.strokeStyle='rgba(200,200,255,0.7)'; ctx.lineWidth=2.5;
+      ctx.globalAlpha=phase*2.5*flick;
       ctx.setLineDash([5,3]);
-      ctx.beginPath(); ctx.arc(0,0,coreR*1.15,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
-      // Inner ghost body fill (barely there)
-      ctx.fillStyle='rgba(180,180,240,0.06)'; ctx.globalAlpha=phase*1.5;
-      ctx.beginPath(); ctx.arc(0,0,coreR*1.15,0,Math.PI*2); ctx.fill();
+      // Inner ectoplasm fill
+      const ectoG=ctx.createRadialGradient(0,0,0,0,0,coreR*1.2);
+      ectoG.addColorStop(0,'rgba(200,200,255,0.08)'); ectoG.addColorStop(0.5,'rgba(180,180,240,0.04)'); ectoG.addColorStop(1,'transparent');
+      ctx.fillStyle=ectoG; ctx.globalAlpha=phase*2*flick;
+      ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.fill();
       ctx.shadowBlur=0;
-      // Spectral face
-      ctx.fillStyle='rgba(200,200,255,0.75)'; ctx.globalAlpha=phase*2.8;
-      // Eyes (hollow)
-      ctx.beginPath(); ctx.arc(-3,-3.5,2.8,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(5,-3.5,2.8,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='rgba(20,10,40,0.7)'; ctx.globalAlpha=phase*2.5;
-      ctx.beginPath(); ctx.arc(-3,-3.5,1.5,0,Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.arc(5,-3.5,1.5,0,Math.PI*2); ctx.fill();
-      // Wavy mouth
-      ctx.strokeStyle='rgba(200,200,255,0.5)'; ctx.lineWidth=1.5; ctx.globalAlpha=phase*2;
-      ctx.beginPath(); ctx.moveTo(-4,4);
-      ctx.bezierCurveTo(-1,4+Math.sin(t*4)*3,3,4-Math.sin(t*3.5)*2,7,4); ctx.stroke();
-      // Wispy ethereal tendrils
+      // HAUNTED FACE (glowing eyes, eerie mouth)
+      ctx.globalAlpha=phase*3*flick;
+      // Eye sockets (dark)
+      ctx.fillStyle='rgba(20,10,50,0.5)';
+      ctx.beginPath(); ctx.arc(-3.5,-3.5,3.5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5.5,-3.5,3.5,0,Math.PI*2); ctx.fill();
+      // Glowing eye cores
+      ctx.fillStyle='rgba(200,200,255,0.85)';
+      ctx.shadowColor='rgba(200,200,255,0.5)'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(-3.5+Math.sin(t*1.3),-3.5+Math.sin(t*1.7)*0.5,2,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5.5+Math.sin(t*1.3),- 3.5+Math.sin(t*1.7)*0.5,2,0,Math.PI*2); ctx.fill();
+      // Eye pupils
+      ctx.fillStyle='rgba(100,50,200,0.7)'; ctx.shadowBlur=0;
+      ctx.beginPath(); ctx.arc(-3.5+Math.sin(t*1.3),-3.5+Math.sin(t*1.7)*0.5,0.8,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5.5+Math.sin(t*1.3),-3.5+Math.sin(t*1.7)*0.5,0.8,0,Math.PI*2); ctx.fill();
+      // Eerie wavy mouth
+      ctx.strokeStyle='rgba(200,200,255,0.55)'; ctx.lineWidth=1.8; ctx.globalAlpha=phase*2.5*flick;
+      ctx.beginPath(); ctx.moveTo(-5,4);
+      ctx.bezierCurveTo(-2,4+Math.sin(t*4)*3.5,4,4-Math.sin(t*3.5)*3,8,4+Math.sin(t*5)*2); ctx.stroke();
+      // WISPY ETHEREAL TENDRILS (longer, more dramatic)
       ctx.lineCap='round';
-      for(let i=0;i<5;i++){
-        const wa=t*1.5+i*1.26, wr=ringR*(0.55+Math.sin(t*2+i)*0.45);
-        ctx.strokeStyle='rgba(200,200,255,0.22)'; ctx.lineWidth=1.8; ctx.globalAlpha=phase*(0.8+Math.sin(t*3+i)*0.5);
+      for(let i=0;i<7;i++){
+        const wa=t*1.3+i*0.9, wr=ringR*(0.5+Math.sin(t*2+i)*0.5);
+        ctx.strokeStyle='rgba(200,200,255,0.2)'; ctx.lineWidth=2; ctx.globalAlpha=phase*(0.7+Math.sin(t*3+i)*0.5)*flick;
         ctx.beginPath();
         const wx=Math.cos(wa)*wr, wy=Math.sin(wa)*wr;
         ctx.moveTo(wx,wy);
-        ctx.quadraticCurveTo(wx+Math.sin(t*5+i)*12,wy+Math.cos(t*4+i)*12,wx+Math.sin(t*3)*20,wy+Math.cos(t*2)*20);
+        ctx.bezierCurveTo(wx+Math.sin(t*5+i)*15,wy+Math.cos(t*4+i)*15,
+          wx+Math.sin(t*3)*20,wy+Math.cos(t*2)*20,
+          wx+Math.sin(t*2+i)*28,wy+Math.cos(t*3+i)*28);
         ctx.stroke();
       }
       ctx.lineCap='butt';
-      // Outer phasing ring
-      ctx.strokeStyle='rgba(200,200,255,0.18)'; ctx.lineWidth=1; ctx.globalAlpha=phase;
-      ctx.setLineDash([2,6]);
-      ctx.beginPath(); ctx.arc(0,0,ringR*1.35,0,Math.PI*2); ctx.stroke();
-      ctx.setLineDash([]);
+      // DIMENSIONAL RIFT RINGS (phasing in/out)
+      for(let i=0;i<3;i++){
+        const rr=ringR*(1.1+i*0.25)+Math.sin(t*2.5+i)*4;
+        ctx.strokeStyle='rgba(200,200,255,0.12)'; ctx.lineWidth=1;
+        ctx.globalAlpha=phase*(0.5+Math.sin(t*3+i*2)*0.3)*flick;
+        ctx.setLineDash([2+i,5+i*2]);
+        ctx.beginPath(); ctx.arc(0,0,rr,0,Math.PI*2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      // SOUL ORBS (floating around wraith)
+      for(let i=0;i<4;i++){
+        const soa=t*0.8+i*Math.PI*0.5;
+        const sor=BIRD_SIZE*(0.6+Math.sin(t*1.5+i)*0.3);
+        ctx.fillStyle='rgba(200,200,255,0.25)'; ctx.globalAlpha=phase*(0.8+Math.sin(t*4+i)*0.5)*flick;
+        ctx.beginPath(); ctx.arc(Math.cos(soa)*sor,Math.sin(soa)*sor,2.5,0,Math.PI*2); ctx.fill();
+        // Soul trail
+        for(let st=1;st<=3;st++){
+          ctx.fillStyle='rgba(200,200,255,0.08)';
+          ctx.beginPath(); ctx.arc(Math.cos(soa-st*0.2)*sor,Math.sin(soa-st*0.2)*sor,2.5-st*0.5,0,Math.PI*2); ctx.fill();
+        }
+      }
 
     } else if(skinId==="matrix"){
-      // ═══ PROCESS — glitching wireframe cube ═══
+      // ═══ PROCESS — sentient glitching data construct ═══
       const tB=isThrusting?1:0.2;
+      // BINARY EXHAUST
       ctx.fillStyle=sk.thrust; ctx.font='bold 6px monospace'; ctx.textAlign='center';
-      for(let i=0;i<(isThrusting?7:2);i++){
-        const dx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?24:5), dy=(Math.random()-0.5)*12;
-        ctx.globalAlpha=tB*(0.3+Math.random()*0.4);
+      for(let i=0;i<(isThrusting?10:3);i++){
+        const dx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?28:6), dy=(Math.random()-0.5)*14;
+        ctx.globalAlpha=tB*(0.25+Math.random()*0.45);
         ctx.fillText(Math.random()>0.5?'1':'0',dx,dy);
       }
       ctx.globalAlpha=1;
-      // Rotating 3D wireframe cube
-      const S=BIRD_SIZE*0.34;
+      // ROTATING 3D WIREFRAME CUBE (dual nested)
+      const S=BIRD_SIZE*0.38;
       const cA=Math.cos(t*1.5),sA=Math.sin(t*1.5),cB=Math.cos(t*1.1),sB=Math.sin(t*1.1);
       const verts=[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]];
-      const proj=verts.map(function(v){
-        var x=v[0]*S,y=v[1]*S,z=v[2]*S;
+      function proj3d(v,s){
+        var x=v[0]*s,y=v[1]*s,z=v[2]*s;
         var x2=x*cA-z*sA, z2=x*sA+z*cA;
         var y2=y*cB-z2*sB;
         return [x2*0.6,y2*0.6];
-      });
+      }
+      var proj=verts.map(function(v){return proj3d(v,S);});
       var edges=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.5; ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
-      ctx.globalAlpha=0.75;
+      // Outer cube
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.8; ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
+      ctx.globalAlpha=0.8;
       for(var ei=0;ei<edges.length;ei++){
         var e=edges[ei];
         ctx.beginPath(); ctx.moveTo(proj[e[0]][0],proj[e[0]][1]); ctx.lineTo(proj[e[1]][0],proj[e[1]][1]); ctx.stroke();
       }
-      // Vertex dots
+      // Inner cube (counter-rotating)
+      var cA2=Math.cos(-t*2),sA2=Math.sin(-t*2),cB2=Math.cos(-t*1.4),sB2=Math.sin(-t*1.4);
+      var proj2=verts.map(function(v){
+        var x=v[0]*S*0.45,y=v[1]*S*0.45,z=v[2]*S*0.45;
+        var x2=x*cA2-z*sA2, z2=x*sA2+z*cA2;
+        var y2=y*cB2-z2*sB2;
+        return [x2*0.6,y2*0.6];
+      });
+      ctx.strokeStyle='#88ffaa'; ctx.lineWidth=1; ctx.globalAlpha=0.45;
+      for(var ei2=0;ei2<edges.length;ei2++){
+        var e2=edges[ei2];
+        ctx.beginPath(); ctx.moveTo(proj2[e2[0]][0],proj2[e2[0]][1]); ctx.lineTo(proj2[e2[1]][0],proj2[e2[1]][1]); ctx.stroke();
+      }
+      // Connection lines between cubes
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=0.5; ctx.globalAlpha=0.2;
+      for(var ci2=0;ci2<8;ci2++){
+        ctx.beginPath(); ctx.moveTo(proj[ci2][0],proj[ci2][1]); ctx.lineTo(proj2[ci2][0],proj2[ci2][1]); ctx.stroke();
+      }
+      // Vertex dots (pulsing)
       ctx.fillStyle=sk.glow;
       for(var vi=0;vi<proj.length;vi++){
-        ctx.globalAlpha=0.85;
-        ctx.beginPath(); ctx.arc(proj[vi][0],proj[vi][1],1.8,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha=0.7+Math.sin(t*6+vi)*0.25;
+        ctx.beginPath(); ctx.arc(proj[vi][0],proj[vi][1],2.2,0,Math.PI*2); ctx.fill();
       }
       ctx.shadowBlur=0;
-      // Face fill (semi-transparent green panels on front faces)
-      ctx.fillStyle=sk.glow; ctx.globalAlpha=0.06;
+      // Face fill (semi-transparent panels)
+      ctx.fillStyle=sk.glow; ctx.globalAlpha=0.05;
       var faces=[[0,1,2,3],[4,5,6,7],[0,1,5,4],[2,3,7,6]];
       for(var fi=0;fi<faces.length;fi++){
         var f=faces[fi];
@@ -2437,29 +2680,49 @@
         for(var fj=1;fj<4;fj++) ctx.lineTo(proj[f[fj]][0],proj[f[fj]][1]);
         ctx.closePath(); ctx.fill();
       }
-      // Matrix rain characters inside cube
+      // MATRIX RAIN (falling code columns)
       ctx.font='bold 7px monospace';
-      for(var mi=0;mi<6;mi++){
-        var mx=(mi-2.5)*5;
-        ctx.fillStyle='#00ff41'; ctx.globalAlpha=0.35+Math.random()*0.3;
-        var cc=0x30A0+Math.floor(((t*8+mi*3)%1)*96);
-        var ch=String.fromCharCode(cc);
-        var my=((t*30+mi*13)%44)-22;
-        ctx.fillText(ch,mx,my);
+      for(var mi=0;mi<8;mi++){
+        var mx=(mi-3.5)*5;
+        // Column of 3 characters
+        for(var mc=0;mc<3;mc++){
+          var cc=0x30A0+Math.floor(((t*8+mi*3+mc*7)%1)*96);
+          var ch=String.fromCharCode(cc);
+          var my=((t*35+mi*13+mc*15)%55)-27;
+          ctx.fillStyle=mc===0?'#fff':'#00ff41';
+          ctx.globalAlpha=mc===0?(0.6+Math.random()*0.3):(0.25+Math.random()*0.25);
+          ctx.fillText(ch,mx,my);
+        }
       }
-      // Random glitch corruption bar
-      if(Math.random()>0.78){
-        var gy=(Math.random()-0.5)*BIRD_SIZE*1.2;
-        ctx.fillStyle='#00ff41'; ctx.globalAlpha=0.2;
-        ctx.fillRect(-BIRD_SIZE*0.8,gy,BIRD_SIZE*1.6,2+Math.random()*2);
+      // GLITCH CORRUPTION BARS (more frequent, varied)
+      for(var gb=0;gb<2;gb++){
+        if(Math.random()>0.7){
+          var gy=(Math.random()-0.5)*BIRD_SIZE*1.4;
+          var gw=BIRD_SIZE*(0.4+Math.random()*1.2);
+          ctx.fillStyle=Math.random()>0.5?'#00ff41':'#88ffaa';
+          ctx.globalAlpha=0.15+Math.random()*0.1;
+          ctx.fillRect(-gw/2,gy,gw,1.5+Math.random()*2.5);
+        }
       }
-      // Blinking cursor
-      ctx.fillStyle=sk.glow; ctx.globalAlpha=Math.sin(t*8)>0?0.7:0;
-      ctx.fillRect(BIRD_SIZE*0.35,-1,3,8);
-      // Scan line sweep
-      var scanY=((t*20)%2-1)*ringR;
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.3;
-      ctx.beginPath(); ctx.moveTo(-ringR,scanY); ctx.lineTo(ringR,scanY); ctx.stroke();
+      // HORIZONTAL SCAN LINE (sweeping)
+      var scanY=((t*22)%2-1)*ringR*1.2;
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.2; ctx.globalAlpha=0.35;
+      ctx.beginPath(); ctx.moveTo(-ringR*1.2,scanY); ctx.lineTo(ringR*1.2,scanY); ctx.stroke();
+      // BLINKING CURSOR (terminal style)
+      ctx.fillStyle=sk.glow; ctx.globalAlpha=Math.sin(t*8)>0?0.8:0;
+      ctx.fillRect(BIRD_SIZE*0.4,-1,3,9);
+      // DATA STREAM PARTICLES (flowing along cube edges)
+      for(var dpi=0;dpi<6;dpi++){
+        var de=edges[dpi%edges.length];
+        var dprog=(t*2+dpi*0.5)%1;
+        var dpx=proj[de[0]][0]+(proj[de[1]][0]-proj[de[0]][0])*dprog;
+        var dpy=proj[de[0]][1]+(proj[de[1]][1]-proj[de[0]][1])*dprog;
+        ctx.fillStyle='#fff'; ctx.globalAlpha=0.6;
+        ctx.beginPath(); ctx.arc(dpx,dpy,1.5,0,Math.PI*2); ctx.fill();
+      }
+      // PROCESS ID TEXT
+      ctx.font='5px monospace'; ctx.fillStyle=sk.glow; ctx.globalAlpha=0.2;
+      ctx.fillText('PID:'+Math.floor(t*10%999),BIRD_SIZE*0.3,-BIRD_SIZE*0.45);
 
     } else {
       // ═══ NEON RECON DRONE — default classic design ═══
@@ -2497,15 +2760,15 @@
       ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
       ctx.strokeStyle=sk.ring; ctx.lineWidth=2;
       for(let i=0;i<6;i++){
-        const sA=rotSpeed+i*(Math.PI/3), gap=0.08;
-        ctx.beginPath(); ctx.arc(0,0,ringR,sA+gap,sA+Math.PI/3-gap); ctx.stroke();
+        const sA2=rotSpeed+i*(Math.PI/3), gap=0.08;
+        ctx.beginPath(); ctx.arc(0,0,ringR,sA2+gap,sA2+Math.PI/3-gap); ctx.stroke();
       }
       const innerRingR=BIRD_SIZE*0.46;
       ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.35;
       ctx.setLineDash([4,6]);
       for(let i=0;i<3;i++){
-        const sA=-rotSpeed*0.6+i*(Math.PI*2/3);
-        ctx.beginPath(); ctx.arc(0,0,innerRingR,sA,sA+Math.PI*0.5); ctx.stroke();
+        const sA3=-rotSpeed*0.6+i*(Math.PI*2/3);
+        ctx.beginPath(); ctx.arc(0,0,innerRingR,sA3,sA3+Math.PI*0.5); ctx.stroke();
       }
       ctx.setLineDash([]); ctx.globalAlpha=1;
       // Orbital sensor pods
