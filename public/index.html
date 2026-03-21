@@ -1370,7 +1370,7 @@
     }, { once: true });
   });
 
-  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   canvas.addEventListener("pointerup", () => thrustStop());
   canvas.addEventListener("pointerleave", () => thrustStop());
   canvas.addEventListener("pointercancel", () => thrustStop());
@@ -1388,6 +1388,7 @@
       if(state===STATE.PLAYING) thrustStart();
       else if(state===STATE.PAUSED) { state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; }
       else if(state===STATE.MENU) startGame();
+      else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
       else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); }
     }
   });
@@ -1571,6 +1572,7 @@
         } else {
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=18; flash=1;
           chromAb=12; screenPulse=1; deathFreezeFrames=6;
+          dyingTimer=0; // safety counter
           timeScaleTarget=0.2; // BULLET TIME
           triggerBassPulse('hit');
           burst(bird.x,bird.y,"#ff4466",40); burst(bird.x,bird.y,"#ffee00",20);
@@ -1598,9 +1600,10 @@
       bird.vy+=DRIFT_GRAV*2; bird.y+=bird.vy; bird.angle+=0.15;
       shakeMag*=0.9; shakeX=(Math.random()-0.5)*shakeMag; shakeY=(Math.random()-0.5)*shakeMag;
       flash*=0.85;
+      dyingTimer=(dyingTimer||0)+1;
       // Dying trail sparks
       if(Math.random()>0.5) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.6,decay:0.03,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
-      if(bird.y>H-GROUND_HEIGHT+20){ state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
+      if(bird.y>H-GROUND_HEIGHT+20 || dyingTimer>180){ state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
       }
     }
     for(let i=particles.length-1;i>=0;i--) {
