@@ -1345,6 +1345,18 @@
     scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
   }
 
+  // Start music on first user interaction (menu, game, anywhere)
+  function ensureMusic() {
+    initAudio();
+    if (!muted && !musicPlaying) startMusic();
+  }
+  ['pointerdown','keydown','touchstart'].forEach(evt => {
+    document.addEventListener(evt, function onFirst() {
+      ensureMusic();
+      document.removeEventListener(evt, onFirst);
+    }, { once: true });
+  });
+
   canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   canvas.addEventListener("pointerup", () => thrustStop());
   canvas.addEventListener("pointerleave", () => thrustStop());
