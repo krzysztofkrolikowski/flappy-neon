@@ -1810,6 +1810,7 @@
   }
 
   function drawBird() {
+    if(state===STATE.DEAD) return; // don't draw after explosion
     const sk=getSkinColors();
     ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.angle);
     const t=Date.now()*0.001;
@@ -1934,12 +1935,14 @@
     ctx.beginPath(); ctx.arc(BIRD_SIZE*0.52,0,1.5,0,Math.PI*2); ctx.fill();
     ctx.globalAlpha=1;
 
-    // === HEX SCANNER LINE ===
-    const scanAngle=(t*0.8)%(Math.PI*2);
-    ctx.strokeStyle=sk.glow; ctx.lineWidth=0.8; ctx.globalAlpha=0.25;
-    ctx.beginPath(); ctx.moveTo(0,0);
-    ctx.lineTo(Math.cos(scanAngle)*coreR,Math.sin(scanAngle)*coreR);
-    ctx.stroke(); ctx.globalAlpha=1;
+    // === HEX SCANNER LINE (only while alive) ===
+    if(state===STATE.PLAYING||state===STATE.MENU||state===STATE.PAUSED) {
+      const scanAngle=(t*0.8)%(Math.PI*2);
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=0.8; ctx.globalAlpha=0.25;
+      ctx.beginPath(); ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(scanAngle)*coreR,Math.sin(scanAngle)*coreR);
+      ctx.stroke(); ctx.globalAlpha=1;
+    }
 
     ctx.restore();
   }
