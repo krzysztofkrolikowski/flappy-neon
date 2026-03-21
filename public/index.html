@@ -424,7 +424,7 @@
 
   const BIRD_SIZE = 22, THRUST_POWER = 0.55, DRIFT_GRAV = 0.30, MAX_VY = 7;
   const PIPE_WIDTH = 16, PIPE_GAP_START = 240, PIPE_GAP_MIN = 175;
-  const PIPE_SPEED_START = 3.0, PIPE_SPEED_MAX = 5.5, PIPE_SPACING = 260;
+  const PIPE_SPEED_START = 3.0, PIPE_SPEED_MAX = 5.5, PIPE_SPACING = 300;
   const GROUND_HEIGHT = 70, AD_EVERY_N_DEATHS = 3, REVIVE_COST = 50;
   const TICK_MS = 1000 / 60; // fixed 60 ticks/s
   let lastTime = 0, accumulator = 0;
@@ -964,9 +964,12 @@
   function checkCollision() {
     const bx=bird.x, by=bird.y, br=BIRD_SIZE*0.4;
     if (by+br>H-GROUND_HEIGHT||by-br<0) return true;
-    for (const p of pipes)
-      if (bx+br>p.x && bx-br<p.x+PIPE_WIDTH)
+    const PANEL_W=56;
+    for (const p of pipes) {
+      const px=p.x-(PANEL_W-PIPE_WIDTH)/2; // visual panel left edge
+      if (bx+br>px && bx-br<px+PANEL_W)
         if (by-br<p.topH || by+br>p.topH+p.gap) return true;
+    }
     return false;
   }
 
@@ -1188,7 +1191,8 @@
         p.x-=gameSpeed;
         if(p.moving){p.topH+=p.moveDir*p.moveSpeed;if(p.topH<=p.moveMin||p.topH>=p.moveMax)p.moveDir*=-1;}
         if(p.glow>0) p.glow-=0.03;
-        if(!p.scored && p.x+PIPE_WIDTH<bird.x) {
+        const pRight=p.x-(56-PIPE_WIDTH)/2+56; // right edge of visual panel
+        if(!p.scored && pRight<bird.x) {
           p.scored=true; p.glow=1; score++;
           scoreDisplay.textContent=score;
           playSound("score"); addCombo(); checkZone(); spawnSpeedLines();
@@ -1199,7 +1203,7 @@
           gameSpeed=Math.min(PIPE_SPEED_MAX, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
-        if(p.x+PIPE_WIDTH<-10) pipes.splice(i,1);
+        if(p.x+56<-10) pipes.splice(i,1);
       }
       if(checkCollision()) {
         // Shield power-up save
