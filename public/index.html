@@ -355,7 +355,7 @@
   let lastTime = 0, accumulator = 0;
 
   let bird = { x:0, y:0, vy:0, angle:0, wingPhase:0, trail:[] };
-  let pipes = [], pipeTimer = 0;
+  let pipes = [], pipeTimer = 0, floatingCoins = [];
   let gameSpeed = PIPE_SPEED_START, pipeGap = PIPE_GAP_START;
   let groundX = 0, shakeX = 0, shakeY = 0, shakeMag = 0, flash = 0;
   let starParticles = [], particles = [];
@@ -671,15 +671,29 @@
   // =============================================
   function resetGame() {
     bird.x=W*0.22; bird.y=H*0.42; bird.vy=0; bird.angle=0; bird.wingPhase=0; bird.trail=[];
-    pipes=[]; pipeTimer=PIPE_SPACING; score=0; sessionCoins=0; reviveUsed=false;
+    pipes=[]; pipeTimer=PIPE_SPACING; score=0; sessionCoins=0; reviveUsed=false; floatingCoins=[];
     gameSpeed=PIPE_SPEED_START; pipeGap=PIPE_GAP_START;
     groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[];
     scoreDisplay.textContent="0";
   }
 
   function spawnPipe() {
-    const minY=80, maxY=H-GROUND_HEIGHT-pipeGap-80;
-    pipes.push({ x:W+20, topH:minY+Math.random()*(maxY-minY), scored:false, glow:0 });
+    // Każda rura ma swój własny losowy gap
+    const gapVariation = (Math.random() - 0.5) * 60; // ±30px od bazowego
+    const thisGap = Math.max(PIPE_GAP_MIN, Math.min(pipeGap + gapVariation, PIPE_GAP_START + 20));
+    const minY=80, maxY=H-GROUND_HEIGHT-thisGap-80;
+    const topH = minY+Math.random()*(maxY-minY);
+    pipes.push({ x:W+20, topH, gap:thisGap, scored:false, glow:0 });
+    // Losowa moneta między rurami (70% szans)
+    if (Math.random() < 0.7) {
+      const coinY = topH + thisGap * (0.2 + Math.random() * 0.6);
+      floatingCoins.push({ x: W + 20 + PIPE_WIDTH/2, y: coinY, collected: false, wobble: Math.random()*Math.PI*2 });
+    }
+    // Bonus coin w trudnym miejscu (20% przy wyższych score)
+    if (score > 5 && Math.random() < 0.2) {
+      const bonusY = Math.random() * (H - GROUND_HEIGHT - 100) + 50;
+      floatingCoins.push({ x: W + 120 + Math.random()*80, y: bonusY, collected: false, wobble: Math.random()*Math.PI*2, bonus: true });
+    }
   }
 
   function burst(x,y,color,count) {
@@ -705,7 +719,7 @@
     if (by+br>H-GROUND_HEIGHT||by-br<0) return true;
     for (const p of pipes)
       if (bx+br>p.x && bx-br<p.x+PIPE_WIDTH)
-        if (by-br<p.topH || by+br>p.topH+pipeGap) return true;
+        if (by-br<p.topH || by+br>p.topH+p.gap) return true;
     return false;
   }
 
@@ -829,17 +843,31 @@
       groundX-=gameSpeed; if(groundX<-40) groundX+=40;
       pipeTimer-=gameSpeed; if(pipeTimer<=0){ spawnPipe(); pipeTimer=PIPE_SPACING; }
 
+      // Zbieranie monet (kolizja z ptakiem)
+      for(let i=floatingCoins.length-1;i>=0;i--) {
+        const c=floatingCoins[i];
+        c.x-=gameSpeed;
+        c.wobble+=0.05;
+        if(c.collected || c.x < -20) { floatingCoins.splice(i,1); continue; }
+        const dx=bird.x-c.x, dy=bird.y-c.y;
+        if(dx*dx+dy*dy < 20*20) {
+          c.collected=true;
+          const amt = c.bonus ? 3 : 1;
+          addCoins(amt); playSound("coin");
+          showCoinPopup(c.x, c.y-15, amt);
+          burst(c.x, c.y, "#ffee00", 8);
+          floatingCoins.splice(i,1);
+        }
+      }
+
       for(let i=pipes.length-1;i>=0;i--) {
         pipes[i].x-=gameSpeed;
         if(pipes[i].glow>0) pipes[i].glow-=0.03;
         if(!pipes[i].scored && pipes[i].x+PIPE_WIDTH<bird.x) {
           pipes[i].scored=true; pipes[i].glow=1; score++;
           scoreDisplay.textContent=score;
-          const coinAmt=(score%10===0)?5:1;
-          addCoins(coinAmt); playSound("coin");
-          showCoinPopup(bird.x+30, bird.y-20, coinAmt);
+          playSound("score");
           if(streakMilestones.includes(score)) { playSound("milestone"); showStreak(`🔥 ${score}!`); burst(W/2,H*0.3,"#ffee00",20); }
-          else playSound("score");
           gameSpeed=Math.min(PIPE_SPEED_MAX, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
@@ -884,7 +912,7 @@
   }
 
   function drawPipe(p) {
-    const topH=p.topH, botY=topH+pipeGap;
+    const topH=p.topH, botY=topH+p.gap;
     if(p.glow>0){ ctx.shadowColor="#00f0ff"; ctx.shadowBlur=20*p.glow; }
     const pg=ctx.createLinearGradient(p.x,0,p.x+PIPE_WIDTH,0);
     pg.addColorStop(0,"#1a3a4a"); pg.addColorStop(0.3,"#0d4a5a"); pg.addColorStop(0.7,"#0d4a5a"); pg.addColorStop(1,"#1a3a4a");
@@ -898,14 +926,23 @@
     ctx.strokeRect(p.x+2,0,PIPE_WIDTH-4,topH-20);
     ctx.strokeRect(p.x+2,botY+20,PIPE_WIDTH-4,H-botY-GROUND_HEIGHT-20);
     ctx.shadowColor="transparent"; ctx.shadowBlur=0;
-    // Floating coin
-    if(!p.scored) {
-      const cx=p.x+PIPE_WIDTH/2, cy=topH+pipeGap/2, wobble=Math.sin(Date.now()/300+p.x)*3;
-      ctx.save(); ctx.shadowColor="#ffee00"; ctx.shadowBlur=10;
-      ctx.fillStyle="#ffee00"; ctx.beginPath(); ctx.arc(cx,cy+wobble,8,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="#ffaa00"; ctx.beginPath(); ctx.arc(cx,cy+wobble,5,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle="#ffee00"; ctx.font="bold 8px sans-serif"; ctx.textAlign="center";
-      ctx.fillText("$",cx,cy+wobble+3); ctx.restore();
+  }
+
+  function drawFloatingCoins() {
+    for(const c of floatingCoins) {
+      if(c.collected) continue;
+      const wobble=Math.sin(c.wobble)*3;
+      const r = c.bonus ? 10 : 8;
+      ctx.save();
+      ctx.shadowColor=c.bonus?"#ff00e6":"#ffee00"; ctx.shadowBlur=12;
+      ctx.fillStyle=c.bonus?"#ff66ff":"#ffee00";
+      ctx.beginPath(); ctx.arc(c.x,c.y+wobble,r,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=c.bonus?"#cc44cc":"#ffaa00";
+      ctx.beginPath(); ctx.arc(c.x,c.y+wobble,r*0.6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=c.bonus?"#ff88ff":"#ffee00";
+      ctx.font=`bold ${r-1}px sans-serif`; ctx.textAlign="center";
+      ctx.fillText(c.bonus?"$":"$",c.x,c.y+wobble+3);
+      ctx.restore();
     }
   }
 
@@ -983,6 +1020,7 @@
     if(shakeMag>0.5) ctx.translate(shakeX,shakeY);
     drawBackground();
     for(const p of pipes) drawPipe(p);
+    drawFloatingCoins();
     drawGround(); drawBird(); drawParticles(); drawFlash();
     ctx.restore();
     requestAnimationFrame(frame);
