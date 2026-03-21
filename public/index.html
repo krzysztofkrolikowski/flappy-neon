@@ -1317,7 +1317,7 @@
     }
   });
   document.addEventListener("keyup", e => {
-    if(e.code==="Space"||e.code==="ArrowUp") thrustStop();
+    if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") thrustStop();
   });
 
   document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGame(); });
