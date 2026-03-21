@@ -407,15 +407,15 @@
   //  SKINS
   // =============================================
   const SKINS = [
-    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff" },
-    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00" },
-    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88" },
-    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44" },
-    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff" },
-    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88" },
-    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff" },
-    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)" },
-    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41" },
+    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff", fx: "none", desc: "Standardowy dron" },
+    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00", fx: "plasma", desc: "Płomienne cząstki + żar" },
+    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88", fx: "acid", desc: "Toksyczne krople + skan" },
+    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Korona słoneczna" },
+    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff", fx: "void", desc: "Błyskawice + wir" },
+    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88", fx: "aurum", desc: "Złota korona + iskry" },
+    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff", fx: "prism", desc: "Pryzmat + chromatic halo" },
+    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)", fx: "phantom", desc: "Widmowe ślady + faza" },
+    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41", fx: "glitch", desc: "Matrix rain + glitch" },
   ];
 
   // =============================================
@@ -722,8 +722,9 @@
       card.className = "skin-card" + (equipped?" equipped":owned?" owned":!canBuy?" locked":"");
       const bg = s.body === "rainbow" ? "conic-gradient(red,orange,yellow,green,cyan,blue,violet,red)" : s.body;
       card.innerHTML = `
-        <div class="skin-preview" style="background:${bg};box-shadow:0 0 10px ${s.glow}"></div>
+        <div class="skin-preview" style="background:${bg};box-shadow:0 0 12px ${s.glow}"></div>
         <div class="skin-name">${s.name}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:3px">${s.desc}</div>
         <div class="skin-price ${s.price===0?'free':''}">
           ${equipped?'✓ Aktywny':owned?'Wybierz':s.price===0?'Darmowy':s.price+' 🪙'}
         </div>`;
@@ -2019,6 +2020,167 @@
     const pulseDot=0.5+Math.sin(t*10)*0.5;
     ctx.fillStyle=sk.glow; ctx.globalAlpha=pulseDot;
     ctx.beginPath(); ctx.arc(BIRD_SIZE*0.52,0,1.5,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+
+    // === SKIN-SPECIFIC FX ===
+    const skinId = equippedSkin;
+
+    if (skinId === "fire") {
+      // Ember particles orbiting body
+      for(let i=0;i<6;i++){
+        const ea=t*3+i*1.05;
+        const er=coreR*(1.2+Math.sin(t*5+i)*0.4);
+        const ex=Math.cos(ea)*er, ey=Math.sin(ea)*er;
+        ctx.fillStyle='#ff6622'; ctx.globalAlpha=0.5+Math.sin(t*8+i)*0.3;
+        ctx.beginPath(); ctx.arc(ex,ey,1.5+Math.random(),0,Math.PI*2); ctx.fill();
+      }
+      // Heat shimmer waves
+      ctx.strokeStyle='#ff4400'; ctx.lineWidth=1; ctx.globalAlpha=0.12;
+      for(let i=0;i<3;i++){
+        const shimY=(Math.sin(t*12+i*2)-0.5)*ringR*1.5;
+        ctx.beginPath(); ctx.moveTo(-ringR,shimY);
+        ctx.bezierCurveTo(-ringR*0.3,shimY+4,ringR*0.3,shimY-4,ringR,shimY); ctx.stroke();
+      }
+    } else if (skinId === "toxic") {
+      // Dripping acid drops
+      for(let i=0;i<4;i++){
+        const dx=(i-1.5)*8;
+        const dripPhase=(t*2+i*0.7)%1;
+        const dy=coreR+dripPhase*22;
+        ctx.fillStyle='#00ff44'; ctx.globalAlpha=(1-dripPhase)*0.6;
+        ctx.beginPath(); ctx.arc(dx,dy,2.2-dripPhase*1.5,0,Math.PI*2); ctx.fill();
+      }
+      // Horizontal scanlines
+      ctx.strokeStyle='#00ff44'; ctx.lineWidth=0.5; ctx.globalAlpha=0.08;
+      for(let i=-8;i<=8;i++){
+        const ly=i*3+Math.sin(t*4)*1.5;
+        ctx.beginPath(); ctx.moveTo(-ringR,ly); ctx.lineTo(ringR,ly); ctx.stroke();
+      }
+    } else if (skinId === "sunset") {
+      // Solar corona rays
+      ctx.shadowColor='#ff6600'; ctx.shadowBlur=15;
+      for(let i=0;i<12;i++){
+        const ra=t*0.5+i*(Math.PI/6);
+        const rLen=coreR*(1.4+Math.sin(t*4+i*0.9)*0.5);
+        ctx.strokeStyle='#ffaa00'; ctx.lineWidth=1.8; ctx.globalAlpha=0.2+Math.sin(t*6+i)*0.15;
+        ctx.beginPath(); ctx.moveTo(Math.cos(ra)*coreR*0.7,Math.sin(ra)*coreR*0.7);
+        ctx.lineTo(Math.cos(ra)*rLen,Math.sin(ra)*rLen); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+    } else if (skinId === "purple") {
+      // Lightning arcs
+      for(let i=0;i<3;i++){
+        if(Math.random()>0.5) continue;
+        const la=t*2+i*2.1;
+        ctx.strokeStyle='#dd88ff'; ctx.lineWidth=1.3; ctx.globalAlpha=0.7;
+        ctx.beginPath();
+        let lx=Math.cos(la)*coreR*0.4, ly2=Math.sin(la)*coreR*0.4;
+        ctx.moveTo(lx,ly2);
+        for(let j=0;j<5;j++){
+          lx+=Math.cos(la+j*0.5)*coreR*0.22+(Math.random()-0.5)*6;
+          ly2+=Math.sin(la+j*0.5)*coreR*0.22+(Math.random()-0.5)*6;
+          ctx.lineTo(lx,ly2);
+        }
+        ctx.stroke();
+      }
+      // Dark matter vortex spiral
+      ctx.strokeStyle='#aa00ff'; ctx.lineWidth=1; ctx.globalAlpha=0.2;
+      ctx.beginPath();
+      for(let a=0;a<Math.PI*3;a+=0.15){
+        const vr=coreR*0.2+a*coreR*0.08;
+        const vx=Math.cos(a+t*3)*vr, vy=Math.sin(a+t*3)*vr;
+        a===0?ctx.moveTo(vx,vy):ctx.lineTo(vx,vy);
+      }
+      ctx.stroke();
+    } else if (skinId === "golden") {
+      // Crown of light rays (top arc)
+      ctx.shadowColor='#ffd700'; ctx.shadowBlur=20;
+      for(let i=0;i<7;i++){
+        const ca=-Math.PI*0.5+(i-3)*0.22;
+        const cLen=BIRD_SIZE*(0.7+Math.sin(t*5+i)*0.2);
+        ctx.strokeStyle='#ffd700'; ctx.lineWidth=2; ctx.globalAlpha=0.35+Math.sin(t*4+i*1.2)*0.15;
+        ctx.beginPath(); ctx.moveTo(Math.cos(ca)*coreR*0.6,Math.sin(ca)*coreR*0.6);
+        ctx.lineTo(Math.cos(ca)*cLen,Math.sin(ca)*cLen); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+      // Diamond sparkle particles
+      for(let i=0;i<5;i++){
+        const sa=t*1.5+i*1.3;
+        const sr=ringR*(0.7+Math.sin(t*3+i)*0.35);
+        const sx=Math.cos(sa)*sr, sy=Math.sin(sa)*sr;
+        const sz=1.5+Math.sin(t*8+i)*1;
+        ctx.fillStyle='#fffce0'; ctx.globalAlpha=0.6+Math.sin(t*6+i)*0.3;
+        ctx.beginPath();
+        ctx.moveTo(sx,sy-sz*2.5); ctx.lineTo(sx+sz*0.6,sy);
+        ctx.lineTo(sx,sy+sz*2.5); ctx.lineTo(sx-sz*0.6,sy);
+        ctx.closePath(); ctx.fill();
+      }
+    } else if (skinId === "rainbow") {
+      // Prismatic light beams (rotating)
+      for(let i=0;i<6;i++){
+        const ra=t*1.2+i*(Math.PI/3);
+        const hue=(i*60+(Date.now()/5))%360;
+        const rLen=BIRD_SIZE*(0.95+Math.sin(t*3+i)*0.3);
+        ctx.strokeStyle=`hsl(${hue},100%,60%)`; ctx.lineWidth=2; ctx.globalAlpha=0.3;
+        ctx.beginPath(); ctx.moveTo(0,0);
+        ctx.lineTo(Math.cos(ra)*rLen,Math.sin(ra)*rLen); ctx.stroke();
+      }
+      // Chromatic aberration halo
+      ['#ff0044','#00ff44','#4488ff'].forEach((c,ci)=>{
+        ctx.strokeStyle=c; ctx.lineWidth=1.5; ctx.globalAlpha=0.12;
+        ctx.beginPath(); ctx.arc(ci*1.5-1.5,ci*0.5-0.5,coreR*1.3+ci*2,0,Math.PI*2); ctx.stroke();
+      });
+      // Floating prismatic sparks
+      for(let i=0;i<6;i++){
+        const pa2=t*2+i*1.05;
+        const pd=ringR*(0.5+Math.sin(t*4+i)*0.45);
+        const h2=(i*60+Date.now()/8)%360;
+        ctx.fillStyle=`hsl(${h2},100%,70%)`; ctx.globalAlpha=0.5+Math.sin(t*7+i)*0.3;
+        ctx.beginPath(); ctx.arc(Math.cos(pa2)*pd,Math.sin(pa2)*pd,1.8,0,Math.PI*2); ctx.fill();
+      }
+    } else if (skinId === "ghost") {
+      // Afterimage ghost copies
+      for(let i=1;i<=3;i++){
+        ctx.fillStyle='rgba(200,200,255,0.15)'; ctx.globalAlpha=0.08-i*0.015;
+        ctx.beginPath(); ctx.arc(-i*7,i*2,coreR*(1-i*0.12),0,Math.PI*2); ctx.fill();
+      }
+      // Ectoplasmic wisps
+      for(let i=0;i<4;i++){
+        const wa=t*1.5+i*1.6;
+        const wr=ringR*(0.7+Math.sin(t*2+i)*0.5);
+        ctx.strokeStyle='rgba(200,200,255,0.3)'; ctx.lineWidth=1.5; ctx.globalAlpha=0.18+Math.sin(t*3+i)*0.1;
+        ctx.beginPath();
+        const wx=Math.cos(wa)*wr, wy=Math.sin(wa)*wr;
+        ctx.moveTo(wx,wy);
+        ctx.quadraticCurveTo(wx+Math.sin(t*5+i)*10,wy+Math.cos(t*4+i)*10,wx+Math.sin(t*3)*15,wy+Math.cos(t*2)*15);
+        ctx.stroke();
+      }
+      // Phasing outer ring
+      ctx.strokeStyle='rgba(200,200,255,0.2)'; ctx.lineWidth=1;
+      ctx.globalAlpha=0.12+Math.sin(t*2)*0.08;
+      ctx.setLineDash([2,5]); ctx.beginPath(); ctx.arc(0,0,ringR*1.3,0,Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+    } else if (skinId === "matrix") {
+      // Matrix rain characters
+      ctx.font='bold 7px monospace'; ctx.textAlign='center';
+      for(let i=0;i<5;i++){
+        const mx=(i-2)*7;
+        ctx.fillStyle='#00ff41'; ctx.globalAlpha=0.35+Math.random()*0.3;
+        const charCode=0x30A0+Math.floor(((t*8+i*3)%1)*96);
+        const char2=String.fromCharCode(charCode);
+        const my=((t*30+i*13)%40)-20;
+        ctx.fillText(char2,mx,my);
+      }
+      // Random glitch bar
+      if(Math.random()>0.82){
+        const gy=(Math.random()-0.5)*BIRD_SIZE;
+        ctx.fillStyle='#00ff41'; ctx.globalAlpha=0.18;
+        ctx.fillRect(-BIRD_SIZE*0.7,gy,BIRD_SIZE*1.4,2);
+      }
+      // Sweeping scan line
+      const scanYg=((t*20)%2-1)*ringR;
+      ctx.strokeStyle='#00ff41'; ctx.lineWidth=1; ctx.globalAlpha=0.25;
+      ctx.beginPath(); ctx.moveTo(-ringR,scanYg); ctx.lineTo(ringR,scanYg); ctx.stroke();
+    }
     ctx.globalAlpha=1;
 
     // === HEX SCANNER LINE (only while alive) ===
