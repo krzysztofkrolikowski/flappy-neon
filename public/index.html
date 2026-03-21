@@ -302,6 +302,7 @@
   <div class="menu-title" style="font-size:2rem">⏸ PAUZA</div>
   <div class="menu-sub">ESC lub Space — kontynuuj</div>
   <button class="btn btn-primary" id="btn-resume">▶ KONTYNUUJ</button>
+  <button class="btn btn-small" id="btn-menu-pause" style="margin-top:8px;font-size:12px">🏠 Menu główne</button>
 </div>
 
 <!-- MENU -->
@@ -341,6 +342,7 @@
       <button class="btn btn-small" id="btn-revive-ad" style="display:none"></button>
       <button class="btn btn-primary btn-small" id="btn-restart">🔄 Jeszcze raz</button>
       <button class="btn btn-small" id="btn-shop-go" style="font-size:12px">🛒 Sklep</button>
+      <button class="btn btn-small" id="btn-menu-go" style="font-size:12px">🏠 Menu</button>
       <button class="btn btn-small" id="btn-share" style="font-size:12px">📤 Udostępnij</button>
     </div>
   </div>
@@ -1337,6 +1339,14 @@
     }
   }
   function thrustStop() { isThrusting=false; }
+  function goToMenu() {
+    state=STATE.MENU; isThrusting=false;
+    document.getElementById('pause-overlay').classList.remove('active');
+    goPanel.classList.remove('show'); goOverlay.classList.remove('active');
+    scoreDisplay.classList.remove('visible');
+    menuOverlay.classList.add('active');
+    resetGame();
+  }
   function startGame() {
     if(adActive) return;
     initAudio();
@@ -1386,6 +1396,8 @@
 
   document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGame(); });
   document.getElementById("btn-resume").addEventListener("click", e => { e.stopPropagation(); state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; });
+  document.getElementById("btn-menu-pause").addEventListener("click", e => { e.stopPropagation(); goToMenu(); });
+  document.getElementById("btn-menu-go").addEventListener("click", e => { e.stopPropagation(); goToMenu(); });
   document.getElementById("btn-shop").addEventListener("click", e => {
     e.stopPropagation(); renderShop(); shopOverlay.classList.add("active");
     setTimeout(()=>shopPanel.classList.add("show"), 50);
