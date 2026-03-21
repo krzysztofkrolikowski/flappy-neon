@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FlappyNeon</string>
+    <string name="title_activity_main">FlappyNeon</string>
+    <string name="package_name">pl.flappyneon.app</string>
+    <string name="custom_url_scheme">pl.flappyneon.app</string>
+</resources>

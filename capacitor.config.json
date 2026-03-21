@@ -1,0 +1,14 @@
+{
+  "appId": "pl.flappyneon.app",
+  "appName": "FlappyNeon",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "AdMob": {
+      "appIdAndroid": "ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX",
+      "appIdIos": "ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"
+    }
+  }
+}

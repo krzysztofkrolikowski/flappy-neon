@@ -1,0 +1,22 @@
+{
+  "name": "flappy-neon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Addictive neon Flappy Bird game for mobile",
+  "scripts": {
+    "dev": "npx serve public -l 3333",
+    "preview": "open http://localhost:3333 && npx serve public -l 3333",
+    "build:zip": "mkdir -p dist && cd public && zip -r ../dist/flappy-neon.zip . -x '.*' && echo 'ZIP: dist/flappy-neon.zip'",
+    "cap:sync": "npx cap sync",
+    "cap:android": "npx cap open android",
+    "cap:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.2.0",
+    "@capacitor/core": "8.2.0",
+    "@capacitor/ios": "8.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.2.0"
+  }
+}
