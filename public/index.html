@@ -534,7 +534,7 @@
   let audioCtx;
   function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
   function playSound(type) {
-    if (!audioCtx) return;
+    if (!audioCtx || muted) return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.connect(gain); gain.connect(audioCtx.destination);
