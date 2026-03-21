@@ -858,7 +858,7 @@
     const minY=80, maxY=H-GROUND_HEIGHT-thisGap-80;
     const topH = minY+Math.random()*(maxY-minY);
     // Ruchome bramy od score 5 (40% szans)
-    const isMoving = score >= 5 && Math.random() < 0.4;
+    const isMoving = score >= 5 && Math.random() < 0.6;
     const moveSpeed = 0.5 + Math.random() * 0.8;
     const moveRange = 25 + Math.random() * 35;
     pipes.push({ x:W+20, topH, gap:thisGap, scored:false, glow:0,
@@ -1717,13 +1717,7 @@
       ctx.fillStyle=`rgba(0,255,200,${p.glow*0.2})`;
       ctx.fillRect(px-6,topH,PANEL_W+12,p.gap);
     }
-    // Moving gate indicator
-    if(p.moving) {
-      const arrY=topH+p.gap/2, dir=p.moveDir;
-      ctx.fillStyle='rgba(255,100,0,0.5)'; ctx.shadowColor='#ff6600'; ctx.shadowBlur=6;
-      ctx.beginPath(); ctx.moveTo(cx-6,arrY); ctx.lineTo(cx+6,arrY); ctx.lineTo(cx,arrY+dir*10); ctx.closePath(); ctx.fill();
-      ctx.shadowBlur=0;
-    }
+
   }
 
   function drawFloatingCoins() {
