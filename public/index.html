@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.json">
-<title>Flappy Neon</title>
+<title>Neon Drift</title>
 <!-- Google AdSense — zamień ca-pub-8654195531699282 na swoje ID z https://adsense.google.com -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8654195531699282" crossorigin="anonymous"></script>
 <style>
@@ -224,8 +224,8 @@
 
 <!-- MENU -->
 <div id="menu-overlay" class="overlay active">
-  <div class="menu-title">FLAPPY NEON</div>
-  <div class="menu-sub">Dotknij, aby zagrać</div>
+  <div class="menu-title">NEON DRIFT</div>
+  <div class="menu-sub">Dotknij, aby lecieć</div>
   <div class="menu-buttons">
     <button class="btn btn-primary" id="btn-play">▶ GRAJ</button>
     <button class="btn" id="btn-shop">🛒 SKLEP</button>
@@ -320,15 +320,15 @@
   //  SKINS
   // =============================================
   const SKINS = [
-    { id: "neon",    name: "Neon",      price: 0,    body: "#00d4ff", glow: "#00f0ff", wing: "#0090cc", beak: "#ffaa00" },
-    { id: "fire",    name: "Ognisty",   price: 100,  body: "#ff5533", glow: "#ff4400", wing: "#cc3300", beak: "#ffee00" },
-    { id: "toxic",   name: "Toksyczny", price: 150,  body: "#44ff44", glow: "#00ff44", wing: "#22aa22", beak: "#ffaa00" },
-    { id: "sunset",  name: "Zachód",    price: 200,  body: "#ff8844", glow: "#ff6600", wing: "#cc5500", beak: "#ffee00" },
-    { id: "purple",  name: "Ultra",     price: 300,  body: "#bb44ff", glow: "#aa00ff", wing: "#8822cc", beak: "#ff88ff" },
-    { id: "golden",  name: "Złoty",     price: 500,  body: "#ffd700", glow: "#ffaa00", wing: "#cc9900", beak: "#ff6600" },
-    { id: "rainbow", name: "Tęcza",     price: 1000, body: "rainbow", glow: "#ff00e6", wing: "#8822cc", beak: "#ffee00" },
-    { id: "ghost",   name: "Duch",      price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", wing: "rgba(150,150,220,0.4)", beak: "rgba(255,200,100,0.6)" },
-    { id: "matrix",  name: "Matrix",    price: 400,  body: "#00ff41", glow: "#00ff41", wing: "#008f11", beak: "#00ff41" },
+    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff" },
+    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00" },
+    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88" },
+    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44" },
+    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff" },
+    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88" },
+    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff" },
+    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)" },
+    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41" },
   ];
 
   // =============================================
@@ -348,7 +348,7 @@
   let score = 0, sessionCoins = 0, reviveUsed = false;
 
   const BIRD_SIZE = 22, GRAVITY = 0.65, FLAP_POWER = -10;
-  const PIPE_WIDTH = 52, PIPE_GAP_START = 240, PIPE_GAP_MIN = 175;
+  const PIPE_WIDTH = 16, PIPE_GAP_START = 240, PIPE_GAP_MIN = 175;
   const PIPE_SPEED_START = 3.5, PIPE_SPEED_MAX = 6, PIPE_SPACING = 230;
   const GROUND_HEIGHT = 70, AD_EVERY_N_DEATHS = 3, REVIVE_COST = 50;
   const TICK_MS = 1000 / 60; // fixed 60 ticks/s
@@ -389,10 +389,11 @@
     osc.connect(gain); gain.connect(audioCtx.destination);
     const t = audioCtx.currentTime;
     if (type==="flap") {
-      osc.type="sine"; osc.frequency.setValueAtTime(400,t);
-      osc.frequency.exponentialRampToValueAtTime(600,t+0.08);
-      gain.gain.setValueAtTime(0.12,t); gain.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-      osc.start(t); osc.stop(t+0.12);
+      osc.type="triangle"; osc.frequency.setValueAtTime(200,t);
+      osc.frequency.exponentialRampToValueAtTime(500,t+0.06);
+      osc.frequency.exponentialRampToValueAtTime(300,t+0.12);
+      gain.gain.setValueAtTime(0.1,t); gain.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      osc.start(t); osc.stop(t+0.15);
     } else if (type==="score") {
       osc.type="square"; osc.frequency.setValueAtTime(520,t);
       osc.frequency.setValueAtTime(680,t+0.06); osc.frequency.setValueAtTime(880,t+0.12);
@@ -499,7 +500,7 @@
         <div class="skin-preview" style="background:${bg};box-shadow:0 0 10px ${s.glow}"></div>
         <div class="skin-name">${s.name}</div>
         <div class="skin-price ${s.price===0?'free':''}">
-          ${equipped?'✓ Noszony':owned?'Załóż':s.price===0?'Darmowy':s.price+' 🪙'}
+          ${equipped?'✓ Aktywny':owned?'Wybierz':s.price===0?'Darmowy':s.price+' 🪙'}
         </div>`;
       card.addEventListener("click", () => {
         if (equipped) return;
@@ -895,37 +896,75 @@
   // =============================================
   function drawBackground() {
     const grad=ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,"#0a0a2e"); grad.addColorStop(0.5,"#141440");
-    grad.addColorStop(0.85,"#1a1a50"); grad.addColorStop(1,"#0d0d30");
+    grad.addColorStop(0,"#050510"); grad.addColorStop(0.4,"#0a0a25");
+    grad.addColorStop(0.7,"#10103a"); grad.addColorStop(1,"#0a0820");
     ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    // Stars
     for(const s of starParticles) {
       ctx.globalAlpha=0.3+Math.sin(s.flicker)*0.3; ctx.fillStyle="#fff";
       ctx.beginPath(); ctx.arc(s.x,s.y,s.size,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
-    ctx.fillStyle="rgba(20,20,60,0.6)";
-    const cityY=H-GROUND_HEIGHT-60;
-    for(let x=0;x<W;x+=30+Math.sin(x*0.1)*15) {
-      const h=20+Math.abs(Math.sin(x*0.05))*60;
-      ctx.fillRect(x,cityY+60-h,18+Math.sin(x)*8,h);
+    // Distant neon cityscape
+    const cityY=H-GROUND_HEIGHT-50;
+    for(let x=0;x<W;x+=25+Math.sin(x*0.08)*15) {
+      const h=15+Math.abs(Math.sin(x*0.04))*55;
+      const bx=x, by=cityY+50-h;
+      ctx.fillStyle="rgba(10,10,35,0.8)";
+      ctx.fillRect(bx,by,16+Math.sin(x)*6,h);
+      // Random lit windows
+      ctx.fillStyle="rgba(0,200,255,0.15)";
+      for(let wy=by+4;wy<by+h-6;wy+=8) {
+        if(Math.sin(x*3+wy*2)>0.3) ctx.fillRect(bx+3,wy,4,3);
+        if(Math.sin(x*5+wy)>0.4) ctx.fillRect(bx+9,wy,4,3);
+      }
+    }
+    // Floating hologram rings (decorative)
+    ctx.strokeStyle="rgba(0,240,255,0.06)"; ctx.lineWidth=1;
+    const holoOff=Date.now()*0.01;
+    for(let i=0;i<3;i++) {
+      const hx=(holoOff*0.3+i*W/3)%W, hy=H*0.25+Math.sin(holoOff*0.02+i)*40;
+      ctx.beginPath(); ctx.ellipse(hx,hy,40+i*10,12,0.2,0,Math.PI*2); ctx.stroke();
     }
   }
 
   function drawPipe(p) {
     const topH=p.topH, botY=topH+p.gap;
-    if(p.glow>0){ ctx.shadowColor="#00f0ff"; ctx.shadowBlur=20*p.glow; }
-    const pg=ctx.createLinearGradient(p.x,0,p.x+PIPE_WIDTH,0);
-    pg.addColorStop(0,"#1a3a4a"); pg.addColorStop(0.3,"#0d4a5a"); pg.addColorStop(0.7,"#0d4a5a"); pg.addColorStop(1,"#1a3a4a");
-    ctx.fillStyle=pg; ctx.fillRect(p.x,0,PIPE_WIDTH,topH);
-    ctx.fillStyle="#00c8ff"; ctx.fillRect(p.x-4,topH-20,PIPE_WIDTH+8,20);
-    ctx.fillStyle="rgba(0,240,255,0.3)"; ctx.fillRect(p.x-4,topH-20,PIPE_WIDTH+8,3);
-    ctx.fillStyle=pg; ctx.fillRect(p.x,botY,PIPE_WIDTH,H-botY-GROUND_HEIGHT);
-    ctx.fillStyle="#00c8ff"; ctx.fillRect(p.x-4,botY,PIPE_WIDTH+8,20);
-    ctx.fillStyle="rgba(0,240,255,0.3)"; ctx.fillRect(p.x-4,botY+17,PIPE_WIDTH+8,3);
-    ctx.strokeStyle="rgba(0,240,255,0.4)"; ctx.lineWidth=1;
-    ctx.strokeRect(p.x+2,0,PIPE_WIDTH-4,topH-20);
-    ctx.strokeRect(p.x+2,botY+20,PIPE_WIDTH-4,H-botY-GROUND_HEIGHT-20);
-    ctx.shadowColor="transparent"; ctx.shadowBlur=0;
+    // Laser barrier emitters (top)
+    const emW=30, emH=14;
+    ctx.fillStyle="#1a2a3a";
+    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2,topH-emH,emW,emH);
+    ctx.fillStyle="#0d4a5a";
+    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2+2,topH-emH+2,emW-4,emH-4);
+    // Laser barrier emitters (bottom)
+    ctx.fillStyle="#1a2a3a";
+    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2,botY,emW,emH);
+    ctx.fillStyle="#0d4a5a";
+    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2+2,botY+2,emW-4,emH-4);
+    // Laser beams (top)
+    const beamFlicker=0.7+Math.sin(Date.now()/80+p.x)*0.3;
+    ctx.globalAlpha=beamFlicker;
+    ctx.shadowColor="#ff0066"; ctx.shadowBlur=15;
+    const grad1=ctx.createLinearGradient(p.x+PIPE_WIDTH/2,0,p.x+PIPE_WIDTH/2,topH);
+    grad1.addColorStop(0,"rgba(255,0,100,0.1)"); grad1.addColorStop(0.7,"rgba(255,0,100,0.6)"); grad1.addColorStop(1,"rgba(255,0,100,1)");
+    ctx.fillStyle=grad1;
+    ctx.fillRect(p.x,0,PIPE_WIDTH,topH);
+    // Core line top
+    ctx.strokeStyle="#ff3388"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(p.x+PIPE_WIDTH/2,0); ctx.lineTo(p.x+PIPE_WIDTH/2,topH); ctx.stroke();
+    // Laser beams (bottom)
+    const grad2=ctx.createLinearGradient(p.x+PIPE_WIDTH/2,botY,p.x+PIPE_WIDTH/2,H-GROUND_HEIGHT);
+    grad2.addColorStop(0,"rgba(255,0,100,1)"); grad2.addColorStop(0.3,"rgba(255,0,100,0.6)"); grad2.addColorStop(1,"rgba(255,0,100,0.1)");
+    ctx.fillStyle=grad2;
+    ctx.fillRect(p.x,botY,PIPE_WIDTH,H-botY-GROUND_HEIGHT);
+    ctx.strokeStyle="#ff3388"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(p.x+PIPE_WIDTH/2,botY); ctx.lineTo(p.x+PIPE_WIDTH/2,H-GROUND_HEIGHT); ctx.stroke();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+    // Score glow on gap
+    if(p.glow>0) {
+      ctx.fillStyle=`rgba(0,255,200,${p.glow*0.15})`;
+      ctx.fillRect(p.x-10,topH,PIPE_WIDTH+20,p.gap);
+    }
   }
 
   function drawFloatingCoins() {
@@ -948,47 +987,73 @@
 
   function drawGround() {
     const gy=H-GROUND_HEIGHT;
+    // Synthwave grid floor
     const gGrad=ctx.createLinearGradient(0,gy,0,H);
-    gGrad.addColorStop(0,"#2a1a3a"); gGrad.addColorStop(0.1,"#1a1030"); gGrad.addColorStop(1,"#0a0818");
+    gGrad.addColorStop(0,"#1a0030"); gGrad.addColorStop(0.15,"#0d0020"); gGrad.addColorStop(1,"#050010");
     ctx.fillStyle=gGrad; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
-    ctx.strokeStyle="#ff00e6"; ctx.lineWidth=2; ctx.shadowColor="#ff00e6"; ctx.shadowBlur=10;
-    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); ctx.shadowBlur=0;
-    ctx.strokeStyle="rgba(255,0,230,0.15)"; ctx.lineWidth=1;
-    for(let x=groundX;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,gy+5); ctx.lineTo(x,H); ctx.stroke(); }
-    for(let y=gy+20;y<H;y+=20){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    // Horizon glow line
+    ctx.shadowColor="#ff00e6"; ctx.shadowBlur=15;
+    ctx.strokeStyle="#ff00e6"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
+    ctx.shadowBlur=0;
+    // Perspective grid
+    ctx.strokeStyle="rgba(255,0,230,0.12)"; ctx.lineWidth=1;
+    for(let x=groundX;x<W;x+=35){ ctx.beginPath(); ctx.moveTo(x,gy+2); ctx.lineTo(x,H); ctx.stroke(); }
+    for(let y=gy+12;y<H;y+=12){ 
+      const fade=1-((y-gy)/GROUND_HEIGHT)*0.7;
+      ctx.strokeStyle=`rgba(255,0,230,${0.12*fade})`;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); 
+    }
+    // Secondary glow line
+    ctx.strokeStyle="rgba(0,200,255,0.08)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,gy+1); ctx.lineTo(W,gy+1); ctx.stroke();
   }
 
   function getSkinColors() {
     const s=SKINS.find(sk=>sk.id===equippedSkin)||SKINS[0];
     if(s.body==="rainbow") {
       const hue=(Date.now()/10)%360;
-      return { body:`hsl(${hue},100%,60%)`, glow:`hsl(${hue},100%,50%)`, wing:`hsl(${(hue+120)%360},80%,40%)`, beak:s.beak };
+      return { body:`hsl(${hue},100%,60%)`, glow:`hsl(${hue},100%,50%)`, ring:`hsl(${(hue+120)%360},80%,40%)`, thrust:`hsl(${(hue+60)%360},100%,70%)` };
     }
-    return { body:s.body, glow:s.glow, wing:s.wing, beak:s.beak };
+    return { body:s.body, glow:s.glow, ring:s.ring, thrust:s.thrust };
   }
 
   function drawBird() {
     const sk=getSkinColors();
     ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.angle);
+    // Trail
     for(const t of bird.trail) {
       if(t.life<=0) continue;
-      ctx.globalAlpha=t.life*0.3; ctx.fillStyle=sk.glow;
-      ctx.beginPath(); ctx.arc(t.x-bird.x,t.y-bird.y,4*t.life,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=t.life*0.4; ctx.fillStyle=sk.thrust;
+      ctx.beginPath(); ctx.arc(t.x-bird.x,t.y-bird.y,3*t.life,0,Math.PI*2); ctx.fill();
     }
-    ctx.globalAlpha=1; ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
-    ctx.fillStyle=sk.body;
-    ctx.beginPath(); ctx.ellipse(0,0,BIRD_SIZE*0.55,BIRD_SIZE*0.42,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="rgba(255,255,255,0.25)";
-    ctx.beginPath(); ctx.ellipse(-3,-5,BIRD_SIZE*0.3,BIRD_SIZE*0.18,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // Thrust glow (engine at back)
+    const thrustLen=4+Math.sin(bird.wingPhase*3)*3;
+    ctx.shadowColor=sk.thrust; ctx.shadowBlur=12;
+    ctx.fillStyle=sk.thrust; ctx.globalAlpha=0.7;
+    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,-4); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,4); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+    // Outer ring
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=20;
+    ctx.strokeStyle=sk.ring; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.48,0,Math.PI*2); ctx.stroke();
+    // Core orb
+    ctx.shadowBlur=15;
+    const orbGrad=ctx.createRadialGradient(0,-3,2, 0,0,BIRD_SIZE*0.38);
+    orbGrad.addColorStop(0,"rgba(255,255,255,0.9)"); orbGrad.addColorStop(0.4,sk.body); orbGrad.addColorStop(1,sk.glow);
+    ctx.fillStyle=orbGrad;
+    ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.38,0,Math.PI*2); ctx.fill();
+    // Inner highlight
+    ctx.fillStyle="rgba(255,255,255,0.3)";
+    ctx.beginPath(); ctx.arc(-2,-4,BIRD_SIZE*0.15,0,Math.PI*2); ctx.fill();
+    // Rotating scanner line
     ctx.shadowBlur=0;
-    const wingY=Math.sin(bird.wingPhase)*6;
-    ctx.fillStyle=sk.wing;
-    ctx.beginPath(); ctx.ellipse(-4,wingY+2,10,5,-0.2+wingY*0.03,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(8,-4,5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#111"; ctx.beginPath(); ctx.arc(9.5,-3.5,2.5,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(10.5,-5,1,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle=sk.beak;
-    ctx.beginPath(); ctx.moveTo(13,-1); ctx.lineTo(20,2); ctx.lineTo(13,5); ctx.closePath(); ctx.fill();
+    const scanAngle=(Date.now()/200)%(Math.PI*2);
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.5;
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(scanAngle)*BIRD_SIZE*0.45, Math.sin(scanAngle)*BIRD_SIZE*0.45);
+    ctx.stroke(); ctx.globalAlpha=1;
     ctx.restore();
   }
 
