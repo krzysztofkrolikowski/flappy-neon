@@ -225,7 +225,7 @@
 <!-- MENU -->
 <div id="menu-overlay" class="overlay active">
   <div class="menu-title">NEON DRIFT</div>
-  <div class="menu-sub">Dotknij, aby lecieć</div>
+  <div class="menu-sub">Przytrzymaj ▲ Puść ▼</div>
   <div class="menu-buttons">
     <button class="btn btn-primary" id="btn-play">▶ GRAJ</button>
     <button class="btn" id="btn-shop">🛒 SKLEP</button>
@@ -347,15 +347,15 @@
   let state = STATE.MENU;
   let score = 0, sessionCoins = 0, reviveUsed = false;
 
-  const BIRD_SIZE = 22, GRAVITY = 0.65, FLAP_POWER = -10;
+  const BIRD_SIZE = 22, THRUST_POWER = 0.55, DRIFT_GRAV = 0.30, MAX_VY = 7;
   const PIPE_WIDTH = 16, PIPE_GAP_START = 240, PIPE_GAP_MIN = 175;
-  const PIPE_SPEED_START = 3.5, PIPE_SPEED_MAX = 6, PIPE_SPACING = 230;
+  const PIPE_SPEED_START = 3.0, PIPE_SPEED_MAX = 5.5, PIPE_SPACING = 260;
   const GROUND_HEIGHT = 70, AD_EVERY_N_DEATHS = 3, REVIVE_COST = 50;
   const TICK_MS = 1000 / 60; // fixed 60 ticks/s
   let lastTime = 0, accumulator = 0;
 
   let bird = { x:0, y:0, vy:0, angle:0, wingPhase:0, trail:[] };
-  let pipes = [], pipeTimer = 0, floatingCoins = [];
+  let pipes = [], pipeTimer = 0, floatingCoins = [], isThrusting = false;
   let gameSpeed = PIPE_SPEED_START, pipeGap = PIPE_GAP_START;
   let groundX = 0, shakeX = 0, shakeY = 0, shakeMag = 0, flash = 0;
   let starParticles = [], particles = [];
@@ -674,17 +674,22 @@
     bird.x=W*0.22; bird.y=H*0.42; bird.vy=0; bird.angle=0; bird.wingPhase=0; bird.trail=[];
     pipes=[]; pipeTimer=PIPE_SPACING; score=0; sessionCoins=0; reviveUsed=false; floatingCoins=[];
     gameSpeed=PIPE_SPEED_START; pipeGap=PIPE_GAP_START;
-    groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[];
+    groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[]; isThrusting=false;
     scoreDisplay.textContent="0";
   }
 
   function spawnPipe() {
-    // Każda rura ma swój własny losowy gap
-    const gapVariation = (Math.random() - 0.5) * 60; // ±30px od bazowego
+    const gapVariation = (Math.random() - 0.5) * 60;
     const thisGap = Math.max(PIPE_GAP_MIN, Math.min(pipeGap + gapVariation, PIPE_GAP_START + 20));
     const minY=80, maxY=H-GROUND_HEIGHT-thisGap-80;
     const topH = minY+Math.random()*(maxY-minY);
-    pipes.push({ x:W+20, topH, gap:thisGap, scored:false, glow:0 });
+    // Ruchome bramy od score 5 (40% szans)
+    const isMoving = score >= 5 && Math.random() < 0.4;
+    const moveSpeed = 0.5 + Math.random() * 0.8;
+    const moveRange = 25 + Math.random() * 35;
+    pipes.push({ x:W+20, topH, gap:thisGap, scored:false, glow:0,
+      moving:isMoving, moveDir:Math.random()<0.5?1:-1, moveSpeed,
+      moveMin:Math.max(60,topH-moveRange), moveMax:Math.min(H-GROUND_HEIGHT-thisGap-60,topH+moveRange) });
     // Losowa moneta między rurami (70% szans)
     if (Math.random() < 0.7) {
       const coinY = topH + thisGap * (0.2 + Math.random() * 0.6);
@@ -731,7 +736,7 @@
   // =============================================
   function doRevive() {
     reviveUsed=true; state=STATE.PLAYING;
-    bird.vy=FLAP_POWER; bird.y=Math.min(bird.y, H*0.4);
+    bird.vy=-3; bird.y=Math.min(bird.y, H*0.4); isThrusting=false;
     shakeMag=0; flash=0;
     goOverlay.classList.remove("active"); goPanel.classList.remove("show");
     scoreDisplay.classList.add("visible");
@@ -775,23 +780,29 @@
   // =============================================
   //  INPUT
   // =============================================
-  function flap() {
+  function thrustStart() {
     initAudio();
-    if (state===STATE.PLAYING) {
-      bird.vy=FLAP_POWER; bird.wingPhase=0;
-      playSound("flap"); burst(bird.x-8,bird.y+6,"rgba(0,240,255,0.6)",5);
+    if (state===STATE.PLAYING && !isThrusting) {
+      isThrusting=true; playSound("flap");
     }
   }
+  function thrustStop() { isThrusting=false; }
   function startGame() {
-    resetGame(); state=STATE.PLAYING;
+    resetGame(); state=STATE.PLAYING; isThrusting=false;
     lastTime=0; accumulator=0;
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
-    scoreDisplay.classList.add("visible"); bird.vy=FLAP_POWER; playSound("flap");
+    scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
   }
 
-  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(state===STATE.PLAYING) flap(); else if(state===STATE.MENU) startGame(); });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); });
+  canvas.addEventListener("pointerup", () => thrustStop());
+  canvas.addEventListener("pointerleave", () => thrustStop());
+  canvas.addEventListener("pointercancel", () => thrustStop());
   document.addEventListener("keydown", e => {
-    if(e.code==="Space"||e.code==="ArrowUp") { e.preventDefault(); if(state===STATE.PLAYING) flap(); else if(state===STATE.MENU) startGame(); }
+    if(e.code==="Space"||e.code==="ArrowUp") { e.preventDefault(); if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); }
+  });
+  document.addEventListener("keyup", e => {
+    if(e.code==="Space"||e.code==="ArrowUp") thrustStop();
   });
 
   document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGame(); });
@@ -835,12 +846,15 @@
       bird.angle=Math.sin(Date.now()/500)*0.1; bird.wingPhase+=0.15; return;
     }
     if (state===STATE.PLAYING) {
-      bird.vy+=GRAVITY; bird.y+=bird.vy;
+      if(isThrusting){bird.vy-=THRUST_POWER;if(bird.vy<-MAX_VY)bird.vy=-MAX_VY;}
+      else{bird.vy+=DRIFT_GRAV;if(bird.vy>MAX_VY)bird.vy=MAX_VY;}
+      bird.vy*=0.98; bird.y+=bird.vy;
       bird.angle=Math.max(-0.5,Math.min(bird.vy*0.06,1.2));
-      bird.wingPhase+=bird.vy<0?0.4:0.12;
+      bird.wingPhase+=isThrusting?0.35:0.12;
       bird.trail.push({x:bird.x,y:bird.y,life:1});
-      if(bird.trail.length>12)bird.trail.shift();
-      for(const t of bird.trail) t.life-=0.08;
+      if(bird.trail.length>15)bird.trail.shift();
+      for(const t of bird.trail) t.life-=0.07;
+      if(isThrusting){const a=Math.PI+Math.random()*0.5-0.25;particles.push({x:bird.x-BIRD_SIZE*0.5,y:bird.y,vx:Math.cos(a)*3,vy:Math.sin(a)*1.5,life:0.5,decay:0.04,size:2+Math.random()*2,color:getSkinColors().thrust});}
       groundX-=gameSpeed; if(groundX<-40) groundX+=40;
       pipeTimer-=gameSpeed; if(pipeTimer<=0){ spawnPipe(); pipeTimer=PIPE_SPACING; }
 
@@ -862,17 +876,22 @@
       }
 
       for(let i=pipes.length-1;i>=0;i--) {
-        pipes[i].x-=gameSpeed;
-        if(pipes[i].glow>0) pipes[i].glow-=0.03;
-        if(!pipes[i].scored && pipes[i].x+PIPE_WIDTH<bird.x) {
-          pipes[i].scored=true; pipes[i].glow=1; score++;
+        const p=pipes[i];
+        p.x-=gameSpeed;
+        if(p.moving){p.topH+=p.moveDir*p.moveSpeed;if(p.topH<=p.moveMin||p.topH>=p.moveMax)p.moveDir*=-1;}
+        if(p.glow>0) p.glow-=0.03;
+        if(!p.scored && p.x+PIPE_WIDTH<bird.x) {
+          p.scored=true; p.glow=1; score++;
           scoreDisplay.textContent=score;
           playSound("score");
-          if(streakMilestones.includes(score)) { playSound("milestone"); showStreak(`🔥 ${score}!`); burst(W/2,H*0.3,"#ffee00",20); }
+          const distTop=Math.abs(bird.y-p.topH),distBot=Math.abs(bird.y-(p.topH+p.gap));
+          const nearDist=Math.min(distTop,distBot);
+          if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);}
+          else if(nearDist<25){addCoins(2);showStreak("⚡ DRIFT!");burst(bird.x,bird.y,"#00ffaa",12);playSound("coin");}
           gameSpeed=Math.min(PIPE_SPEED_MAX, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
-        if(pipes[i].x+PIPE_WIDTH<-10) pipes.splice(i,1);
+        if(p.x+PIPE_WIDTH<-10) pipes.splice(i,1);
       }
       if(checkCollision()) {
         state=STATE.DYING; playSound("hit"); shakeMag=12; flash=1;
@@ -880,7 +899,8 @@
       }
     }
     if (state===STATE.DYING) {
-      bird.vy+=GRAVITY*0.8; bird.y+=bird.vy; bird.angle+=0.15;
+      isThrusting=false;
+      bird.vy+=DRIFT_GRAV*2; bird.y+=bird.vy; bird.angle+=0.15;
       shakeMag*=0.9; shakeX=(Math.random()-0.5)*shakeMag; shakeY=(Math.random()-0.5)*shakeMag;
       flash*=0.85;
       if(bird.y>H-GROUND_HEIGHT+20){ state=STATE.DEAD; showGameOver(); }
@@ -965,6 +985,13 @@
       ctx.fillStyle=`rgba(0,255,200,${p.glow*0.15})`;
       ctx.fillRect(p.x-10,topH,PIPE_WIDTH+20,p.gap);
     }
+    // Moving gate indicator
+    if(p.moving) {
+      const arrY=topH+p.gap/2, dir=p.moveDir;
+      ctx.fillStyle='rgba(255,100,0,0.5)'; ctx.shadowColor='#ff6600'; ctx.shadowBlur=6;
+      ctx.beginPath(); ctx.moveTo(p.x+PIPE_WIDTH/2-5,arrY); ctx.lineTo(p.x+PIPE_WIDTH/2+5,arrY); ctx.lineTo(p.x+PIPE_WIDTH/2,arrY+dir*8); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur=0;
+    }
   }
 
   function drawFloatingCoins() {
@@ -1028,11 +1055,13 @@
       ctx.beginPath(); ctx.arc(t.x-bird.x,t.y-bird.y,3*t.life,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
-    // Thrust glow (engine at back)
-    const thrustLen=4+Math.sin(bird.wingPhase*3)*3;
-    ctx.shadowColor=sk.thrust; ctx.shadowBlur=12;
-    ctx.fillStyle=sk.thrust; ctx.globalAlpha=0.7;
-    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,-4); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,4); ctx.closePath(); ctx.fill();
+    // Thrust glow (engine at back) — bigger when holding
+    const thrustLen=isThrusting?(10+Math.sin(bird.wingPhase*4)*5):(2+Math.sin(bird.wingPhase*2)*1.5);
+    const thrustSpread=isThrusting?7:4;
+    ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?22:8;
+    ctx.fillStyle=sk.thrust; ctx.globalAlpha=isThrusting?0.9:0.4;
+    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,-thrustSpread); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,thrustSpread); ctx.closePath(); ctx.fill();
+    if(isThrusting){ctx.fillStyle=sk.glow;ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(-BIRD_SIZE*0.5,0);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.6-2,-thrustSpread*0.5);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.6-2,thrustSpread*0.5);ctx.closePath();ctx.fill();}
     ctx.globalAlpha=1;
     // Outer ring
     ctx.shadowColor=sk.glow; ctx.shadowBlur=20;
