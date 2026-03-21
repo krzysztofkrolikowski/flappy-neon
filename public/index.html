@@ -1694,6 +1694,8 @@
   });
 
   canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
+  // Global tap handler for DYING skip (catches taps even if canvas doesn't get them)
+  document.addEventListener("pointerdown", e => { if(state===STATE.DYING && !adActive) { e.preventDefault(); state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } });
   canvas.addEventListener("pointerup", () => thrustStop());
   canvas.addEventListener("pointerleave", () => thrustStop());
   canvas.addEventListener("pointercancel", () => thrustStop());
@@ -1894,9 +1896,9 @@
           showStreak('🛡️ TARCZA!');
         } else {
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=14; flash=1;
-          chromAb=8; screenPulse=1; deathFreezeFrames=2;
+          chromAb=8; screenPulse=1; deathFreezeFrames=0;
           dyingTimer=0; // safety counter
-          timeScaleTarget=0.35; // BULLET TIME (lighter)
+          timeScaleTarget=0.55; // BULLET TIME (light, short)
           triggerBassPulse('hit');
           burst(bird.x,bird.y,"#ff4466",18); burst(bird.x,bird.y,"#ffee00",10);
           burst(bird.x,bird.y,"#ffffff",6); // white sparks
@@ -1925,10 +1927,10 @@
       flash*=0.82;
       dyingTimer=(dyingTimer||0)+1;
       // Ramp timeScale back up faster after initial hit
-      if(dyingTimer>30) timeScaleTarget+=(1-timeScaleTarget)*0.06;
+      if(dyingTimer>12) timeScaleTarget+=(1-timeScaleTarget)*0.12;
       // Dying trail sparks (fewer)
       if(Math.random()>0.7) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.5,decay:0.04,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
-      if(bird.y>H-GROUND_HEIGHT+20 || dyingTimer>90){ state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
+      if(bird.y>H-GROUND_HEIGHT+20 || dyingTimer>45){ state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
       }
     }
     for(let i=particles.length-1;i>=0;i--) {
@@ -3709,6 +3711,16 @@
     for(const p of pipes) drawPipe(p);
     drawFloatingCoins(); drawPowerUpOrbs();
     drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
+    // "TAP TO SKIP" hint during DYING
+    if(state===STATE.DYING){
+      const hAlpha=0.4+Math.sin(Date.now()*0.008)*0.3;
+      ctx.globalAlpha=hAlpha;
+      ctx.font='bold '+Math.round(14*dpr)+'px sans-serif';
+      ctx.textAlign='center'; ctx.fillStyle='#fff';
+      ctx.shadowColor='#ff4466'; ctx.shadowBlur=12;
+      ctx.fillText('DOTKNIJ ABY POMINĄĆ',W*dpr/2,H*dpr*0.78);
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+    }
     ctx.restore();
     // Post-processing pass
     postProcess();
