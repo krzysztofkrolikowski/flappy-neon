@@ -856,14 +856,52 @@
     const gapVariation = (Math.random() - 0.5) * 60;
     const thisGap = Math.max(PIPE_GAP_MIN, Math.min(pipeGap + gapVariation, PIPE_GAP_START + 20));
     const minY=80, maxY=H-GROUND_HEIGHT-thisGap-80;
-    const topH = minY+Math.random()*(maxY-minY);
-    // Ruchome bramy od score 5 (40% szans)
+
+    // === Reachability: limit gap center distance from previous pipe ===
+    // Player max vertical travel: ~MAX_VY * (PIPE_SPACING / gameSpeed) pixels
+    // We cap gap-center difference so the player can always reach the next gap
+    const travelTicks = PIPE_SPACING / Math.max(gameSpeed, PIPE_SPEED_START);
+    const maxReach = MAX_VY * travelTicks * 0.65; // 65% of theoretical max (safety margin)
+    let topH;
+    const prev = pipes.length > 0 ? pipes[pipes.length - 1] : null;
+    if (prev) {
+      const prevCenter = prev.topH + prev.gap / 2;
+      // If prev is moving, account for its worst-case position
+      const prevWorst = prev.moving ? prev.moveRange || 0 : 0;
+      const lo = Math.max(minY, prevCenter - thisGap/2 - maxReach + prevWorst);
+      const hi = Math.min(maxY, prevCenter - thisGap/2 + maxReach - prevWorst);
+      if (lo < hi) {
+        topH = lo + Math.random() * (hi - lo);
+      } else {
+        // Fallback: center on previous gap
+        topH = Math.max(minY, Math.min(maxY, prevCenter - thisGap/2));
+      }
+    } else {
+      topH = minY + Math.random() * (maxY - minY);
+    }
+
+    // Ruchome bramy od score 5 (60% szans)
     const isMoving = score >= 5 && Math.random() < 0.6;
     const moveSpeed = 0.5 + Math.random() * 0.8;
-    const moveRange = 25 + Math.random() * 35;
+    // Limit moveRange so both extremes stay reachable from previous pipe
+    let moveRange = 25 + Math.random() * 35;
+    if (prev && isMoving) {
+      const prevCenter = prev.topH + prev.gap / 2;
+      const thisCenter = topH + thisGap / 2;
+      const dist = Math.abs(thisCenter - prevCenter);
+      const prevWorst = prev.moving ? (prev.moveRange || 0) : 0;
+      // Ensure: dist + moveRange + prevWorst <= maxReach
+      const allowed = Math.max(10, maxReach - dist - prevWorst);
+      moveRange = Math.min(moveRange, allowed);
+    }
+    const moveMin = Math.max(60, topH - moveRange);
+    const moveMax = Math.min(H - GROUND_HEIGHT - thisGap - 60, topH + moveRange);
+    // If bounds are too tight, disable movement
+    const effectiveMoving = isMoving && (moveMax - moveMin > 15);
+
     pipes.push({ x:W+20, topH, gap:thisGap, scored:false, glow:0,
-      moving:isMoving, moveDir:Math.random()<0.5?1:-1, moveSpeed,
-      moveMin:Math.max(60,topH-moveRange), moveMax:Math.min(H-GROUND_HEIGHT-thisGap-60,topH+moveRange) });
+      moving:effectiveMoving, moveDir:Math.random()<0.5?1:-1, moveSpeed,
+      moveMin, moveMax, moveRange });
     // Losowa moneta między rurami (70% szans)
     if (Math.random() < 0.7) {
       const coinY = topH + thisGap * (0.2 + Math.random() * 0.6);
