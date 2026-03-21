@@ -539,7 +539,6 @@
     const t = audioCtx.currentTime;
     const dest = audioCtx.destination;
 
-    // Helper: create filtered oscillator
     function synth(wave, freq, endFreq, dur, vol, filterFreq) {
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
@@ -551,7 +550,7 @@
       if (filterFreq) {
         const f = audioCtx.createBiquadFilter();
         f.type = 'lowpass'; f.frequency.setValueAtTime(filterFreq, t);
-        f.Q.setValueAtTime(8, t);
+        f.Q.setValueAtTime(2, t);
         o.connect(f); f.connect(g);
       } else { o.connect(g); }
       g.connect(dest);
@@ -559,149 +558,83 @@
     }
 
     if (type === "flap") {
-      // Sci-fi thruster pulse — filtered noise burst + sub thump
-      const bufLen = audioCtx.sampleRate * 0.08;
+      // Soft thruster puff
+      const bufLen = audioCtx.sampleRate * 0.04;
       const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
       const d = buf.getChannelData(0);
-      for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+      for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 2);
       const src = audioCtx.createBufferSource(); src.buffer = buf;
       const filt = audioCtx.createBiquadFilter();
-      filt.type = 'bandpass'; filt.frequency.setValueAtTime(2200, t);
-      filt.frequency.exponentialRampToValueAtTime(600, t + 0.07); filt.Q.setValueAtTime(3, t);
+      filt.type = 'bandpass'; filt.frequency.setValueAtTime(1000, t);
+      filt.frequency.exponentialRampToValueAtTime(350, t + 0.035); filt.Q.setValueAtTime(1, t);
       const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.09, t); g.gain.linearRampToValueAtTime(0, t + 0.08);
+      g.gain.setValueAtTime(0.035, t); g.gain.linearRampToValueAtTime(0, t + 0.04);
       src.connect(filt); filt.connect(g); g.connect(dest);
-      src.start(t); src.stop(t + 0.08);
-      // Sub thump
-      synth('sine', 90, 40, 0.06, 0.07);
+      src.start(t); src.stop(t + 0.04);
 
     } else if (type === "score") {
-      // Data-gate ping — two detuned sines with shimmer
-      synth('sine', 1100, 1400, 0.12, 0.06);
-      synth('sine', 1650, 2100, 0.1, 0.03);
-      // Subtle metallic tick
-      const bufLen = audioCtx.sampleRate * 0.02;
-      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 3);
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const filt = audioCtx.createBiquadFilter();
-      filt.type = 'highpass'; filt.frequency.setValueAtTime(4000, t);
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.04, t); g.gain.linearRampToValueAtTime(0, t + 0.03);
-      src.connect(filt); filt.connect(g); g.connect(dest);
-      src.start(t); src.stop(t + 0.03);
+      // Gentle ping
+      synth('sine', 880, 1050, 0.09, 0.025, 1800);
 
     } else if (type === "hit") {
-      // System crash — distorted noise sweep down + glitch
-      const bufLen = audioCtx.sampleRate * 0.35;
+      // Muffled impact
+      const bufLen = audioCtx.sampleRate * 0.2;
       const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
       const d = buf.getChannelData(0);
       for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1);
       const src = audioCtx.createBufferSource(); src.buffer = buf;
       const filt = audioCtx.createBiquadFilter();
-      filt.type = 'lowpass'; filt.frequency.setValueAtTime(5000, t);
-      filt.frequency.exponentialRampToValueAtTime(80, t + 0.3); filt.Q.setValueAtTime(5, t);
+      filt.type = 'lowpass'; filt.frequency.setValueAtTime(1200, t);
+      filt.frequency.exponentialRampToValueAtTime(50, t + 0.18); filt.Q.setValueAtTime(1, t);
       const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.14, t); g.gain.linearRampToValueAtTime(0, t + 0.35);
+      g.gain.setValueAtTime(0.06, t); g.gain.linearRampToValueAtTime(0, t + 0.2);
       src.connect(filt); filt.connect(g); g.connect(dest);
-      src.start(t); src.stop(t + 0.35);
-      // Low error tone
-      synth('sawtooth', 80, 30, 0.25, 0.08, 200);
+      src.start(t); src.stop(t + 0.2);
+      synth('sine', 55, 30, 0.15, 0.03);
 
     } else if (type === "milestone") {
-      // Ascending synth arp — 4 notes with reverb tail feel
-      const notes = [523, 659, 784, 1047];
-      notes.forEach((freq, i) => {
-        const delay = i * 0.07;
+      // Soft 3-note arp
+      [660, 880, 1050].forEach((freq, i) => {
+        const delay = i * 0.08;
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        const f = audioCtx.createBiquadFilter();
         o.type = 'sine'; o.frequency.setValueAtTime(freq, t + delay);
-        f.type = 'lowpass'; f.frequency.setValueAtTime(3000, t + delay);
-        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.06, t + delay + 0.02);
-        g.gain.linearRampToValueAtTime(0, t + delay + 0.25);
-        o.connect(f); f.connect(g); g.connect(dest);
-        o.start(t + delay); o.stop(t + delay + 0.25);
-        // Octave shimmer
-        const o2 = audioCtx.createOscillator();
-        const g2 = audioCtx.createGain();
-        o2.type = 'sine'; o2.frequency.setValueAtTime(freq * 2, t + delay);
-        g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(0.02, t + delay + 0.02);
-        g2.gain.linearRampToValueAtTime(0, t + delay + 0.2);
-        o2.connect(g2); g2.connect(dest);
-        o2.start(t + delay); o2.stop(t + delay + 0.2);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.025, t + delay + 0.02);
+        g.gain.linearRampToValueAtTime(0, t + delay + 0.18);
+        o.connect(g); g.connect(dest);
+        o.start(t + delay); o.stop(t + delay + 0.18);
       });
 
     } else if (type === "coin") {
-      // Digital credit pickup — quick filtered blip + high harmonic
-      synth('sine', 1800, 2400, 0.06, 0.05, 4000);
-      synth('triangle', 3600, 4800, 0.04, 0.02);
+      // Tiny blip
+      synth('sine', 1100, 1350, 0.04, 0.02, 2000);
 
     } else if (type === "buy") {
-      // Transaction confirmed — descending then ascending sweep
-      synth('sine', 800, 400, 0.1, 0.06, 2000);
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = 'sine'; o.frequency.setValueAtTime(400, t + 0.1);
-      o.frequency.exponentialRampToValueAtTime(1200, t + 0.25);
-      g.gain.setValueAtTime(0.06, t + 0.1); g.gain.linearRampToValueAtTime(0, t + 0.3);
-      o.connect(g); g.connect(dest);
-      o.start(t + 0.1); o.stop(t + 0.3);
+      // Soft confirm
+      synth('sine', 550, 400, 0.07, 0.025, 1200);
+      synth('sine', 750, 900, 0.07, 0.025, 1500);
 
     } else if (type === "revive") {
-      // System reboot — low hum ascending with digital sweep
+      // Gentle sweep up
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       const f = audioCtx.createBiquadFilter();
-      o.type = 'sawtooth'; o.frequency.setValueAtTime(80, t);
-      o.frequency.exponentialRampToValueAtTime(800, t + 0.5);
-      f.type = 'lowpass'; f.frequency.setValueAtTime(200, t);
-      f.frequency.exponentialRampToValueAtTime(6000, t + 0.45); f.Q.setValueAtTime(4, t);
-      g.gain.setValueAtTime(0.07, t); g.gain.linearRampToValueAtTime(0.09, t + 0.3);
-      g.gain.linearRampToValueAtTime(0, t + 0.55);
+      o.type = 'sine'; o.frequency.setValueAtTime(200, t);
+      o.frequency.exponentialRampToValueAtTime(550, t + 0.35);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(400, t);
+      f.frequency.exponentialRampToValueAtTime(1500, t + 0.3); f.Q.setValueAtTime(1, t);
+      g.gain.setValueAtTime(0.03, t); g.gain.linearRampToValueAtTime(0.04, t + 0.2);
+      g.gain.linearRampToValueAtTime(0, t + 0.4);
       o.connect(f); f.connect(g); g.connect(dest);
-      o.start(t); o.stop(t + 0.55);
-      // Confirmation ping at end
-      synth('sine', 1200, 1600, 0.12, 0.05);
+      o.start(t); o.stop(t + 0.4);
 
     } else if (type === "powerup") {
-      // Energy charge — rising filtered saw + sparkle
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      const f = audioCtx.createBiquadFilter();
-      o.type = 'sawtooth'; o.frequency.setValueAtTime(200, t);
-      o.frequency.exponentialRampToValueAtTime(1200, t + 0.25);
-      f.type = 'lowpass'; f.frequency.setValueAtTime(400, t);
-      f.frequency.exponentialRampToValueAtTime(5000, t + 0.2); f.Q.setValueAtTime(6, t);
-      g.gain.setValueAtTime(0.06, t); g.gain.linearRampToValueAtTime(0.08, t + 0.15);
-      g.gain.linearRampToValueAtTime(0, t + 0.3);
-      o.connect(f); f.connect(g); g.connect(dest);
-      o.start(t); o.stop(t + 0.3);
-      // Sparkle top
-      synth('sine', 2400, 3200, 0.1, 0.03);
+      // Quiet rising tone
+      synth('sine', 400, 700, 0.18, 0.03, 1200);
 
     } else if (type === "shield") {
-      // Energy deflect — metallic resonant ping + noise burst
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      const f = audioCtx.createBiquadFilter();
-      o.type = 'triangle'; o.frequency.setValueAtTime(600, t);
-      o.frequency.exponentialRampToValueAtTime(200, t + 0.15);
-      f.type = 'bandpass'; f.frequency.setValueAtTime(800, t); f.Q.setValueAtTime(12, t);
-      g.gain.setValueAtTime(0.1, t); g.gain.linearRampToValueAtTime(0, t + 0.18);
-      o.connect(f); f.connect(g); g.connect(dest);
-      o.start(t); o.stop(t + 0.18);
-      // Short noise snap
-      const bufLen = audioCtx.sampleRate * 0.03;
-      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 2);
-      const src = audioCtx.createBufferSource(); src.buffer = buf;
-      const fg = audioCtx.createGain();
-      fg.gain.setValueAtTime(0.06, t); fg.gain.linearRampToValueAtTime(0, t + 0.03);
-      src.connect(fg); fg.connect(dest);
-      src.start(t); src.stop(t + 0.03);
+      // Soft tap
+      synth('triangle', 350, 180, 0.08, 0.03, 700);
     }
   }
 
