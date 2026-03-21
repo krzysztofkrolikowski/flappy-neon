@@ -606,6 +606,7 @@
   const dailyPanel = document.getElementById("daily-panel");
   const adInterstitial = document.getElementById("ad-interstitial");
   const adRewarded = document.getElementById("ad-rewarded");
+  let adActive = false; // blocks all game input while ad is showing
 
   function updateCoinHud() { coinCount.textContent = coins; }
   updateCoinHud();
@@ -750,19 +751,21 @@
   }
 
   async function showNativeInterstitial(onDone) {
+    adActive = true;
     try {
       await admobPlugin.prepareInterstitial({ adId: getAdId('interstitial') });
       const handler = admobPlugin.addListener('onInterstitialAdDismissed', () => {
-        handler.remove(); onDone();
+        handler.remove(); adActive=false; onDone();
       });
       await admobPlugin.showInterstitial();
     } catch(e) {
       console.warn('[AdMob] Interstitial failed:', e);
-      onDone();
+      adActive=false; onDone();
     }
   }
 
   function showWebInterstitial(onDone) {
+    adActive = true;
     adInterstitial.classList.add("active");
     pushAdSense();
     let sec = 5;
@@ -777,7 +780,7 @@
         skipEl.innerHTML = "Pomiń ✕";
         skipEl.classList.add("ready");
         skipEl.style.pointerEvents = "auto";
-        skipEl.onclick = () => { adInterstitial.classList.remove("active"); skipEl.onclick=null; onDone(); };
+        skipEl.onclick = () => { adInterstitial.classList.remove("active"); skipEl.onclick=null; adActive=false; onDone(); };
       } else {
         skipEl.innerHTML = 'Pomiń za <span class="ad-timer">' + sec + '</span>s';
       }
@@ -794,22 +797,24 @@
   }
 
   async function showNativeRewarded(onReward) {
+    adActive = true;
     try {
       await admobPlugin.prepareRewardVideoAd({ adId: getAdId('rewarded') });
       const handler = admobPlugin.addListener('onRewardedVideoAdReward', () => {
         handler.remove(); onReward();
       });
       const dismiss = admobPlugin.addListener('onRewardedVideoAdDismissed', () => {
-        dismiss.remove();
+        dismiss.remove(); adActive=false;
       });
       await admobPlugin.showRewardVideoAd();
     } catch(e) {
       console.warn('[AdMob] Rewarded failed, granting reward:', e);
-      onReward();
+      adActive=false; onReward();
     }
   }
 
   function showWebRewarded(onReward) {
+    adActive = true;
     adRewarded.classList.add("active");
     const fill = document.getElementById("rewarded-fill");
     const status = document.getElementById("rewarded-status");
@@ -821,7 +826,7 @@
       if (progress >= 100) {
         clearInterval(iv);
         status.textContent = "Nagroda odebrana!";
-        setTimeout(() => { adRewarded.classList.remove("active"); fill.style.width="0"; onReward(); }, 300);
+        setTimeout(() => { adRewarded.classList.remove("active"); fill.style.width="0"; adActive=false; onReward(); }, 300);
       }
     }, 60);
   }
@@ -1271,6 +1276,7 @@
   muteBtn.addEventListener('click', toggleMute);
 
   function thrustStart() {
+    if(adActive) return;
     initAudio();
     if(!muted && !musicPlaying) startMusic();
     if (state===STATE.PLAYING && !isThrusting) {
@@ -1279,6 +1285,7 @@
   }
   function thrustStop() { isThrusting=false; }
   function startGame() {
+    if(adActive) return;
     initAudio();
     if(!muted && !musicPlaying) startMusic();
     resetGame(); state=STATE.PLAYING; isThrusting=false;
@@ -1287,11 +1294,12 @@
     scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
   }
 
-  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   canvas.addEventListener("pointerup", () => thrustStop());
   canvas.addEventListener("pointerleave", () => thrustStop());
   canvas.addEventListener("pointercancel", () => thrustStop());
   document.addEventListener("keydown", e => {
+    if(adActive) return;
     if(e.code==="Escape") {
       e.preventDefault();
       if(state===STATE.PLAYING) { state=STATE.PAUSED; isThrusting=false; document.getElementById('pause-overlay').classList.add('active'); }
