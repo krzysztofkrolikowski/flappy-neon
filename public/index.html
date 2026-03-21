@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.json">
 <title>Flappy Neon</title>
+<!-- Google AdSense — zamień ca-pub-XXXX na swoje ID z https://adsense.google.com -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXX" crossorigin="anonymous"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -278,24 +280,24 @@
   </div>
 </div>
 
-<!-- INTERSTITIAL AD PLACEHOLDER -->
+<!-- INTERSTITIAL AD -->
 <div id="ad-interstitial" class="ad-overlay">
-  <div class="ad-box">
+  <div class="ad-box" id="ad-interstitial-slot">
     <div class="ad-label">REKLAMA</div>
-    <div style="font-size:40px;margin:12px 0">📢</div>
-    <div>Tutaj będzie Twoja reklama<br><small>(AdMob / AdSense)</small></div>
+    <!-- AdSense display ad (web) — zamieni się automatycznie -->
+    <ins class="adsbygoogle" style="display:block;width:300px;height:250px" data-ad-client="ca-pub-XXXX" data-ad-slot="INTERSTITIAL_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
   </div>
-  <div class="ad-skip" id="ad-skip">Pomiń za <span class="ad-timer" id="ad-timer">3</span>s</div>
+  <div class="ad-skip" id="ad-skip">Pomiń za <span class="ad-timer" id="ad-timer">5</span>s</div>
 </div>
 
-<!-- REWARDED AD PLACEHOLDER -->
+<!-- REWARDED AD -->
 <div id="ad-rewarded" class="ad-overlay">
   <div class="rewarded-box">
     <div class="ad-label">REKLAMA Z NAGRODĄ</div>
     <div style="font-size:32px;margin:8px 0">🎬</div>
-    <div>Oglądasz reklamę...</div>
+    <div id="rewarded-status">Ładowanie reklamy...</div>
     <div class="rewarded-progress"><div class="rewarded-fill" id="rewarded-fill"></div></div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.3)">Tutaj SDK odtwarza wideo</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3)" id="rewarded-hint">Oglądaj do końca aby otrzymać nagrodę</div>
   </div>
 </div>
 
@@ -345,9 +347,9 @@
   let state = STATE.MENU;
   let score = 0, sessionCoins = 0, reviveUsed = false;
 
-  const BIRD_SIZE = 22, GRAVITY = 0.42, FLAP_POWER = -7.8;
+  const BIRD_SIZE = 22, GRAVITY = 0.6, FLAP_POWER = -9.5;
   const PIPE_WIDTH = 52, PIPE_GAP_START = 240, PIPE_GAP_MIN = 175;
-  const PIPE_SPEED_START = 2.3, PIPE_SPEED_MAX = 4.2, PIPE_SPACING = 250;
+  const PIPE_SPEED_START = 3.2, PIPE_SPEED_MAX = 5.5, PIPE_SPACING = 250;
   const GROUND_HEIGHT = 70, AD_EVERY_N_DEATHS = 3, REVIVE_COST = 50;
 
   let bird = { x:0, y:0, vy:0, angle:0, wingPhase:0, trail:[] };
@@ -514,18 +516,88 @@
   }
 
   // =============================================
-  //  ADS (placeholders — replace with real SDK)
+  //  ADS — unified: AdMob (native) / AdSense (web)
   // =============================================
+  const IS_NATIVE = typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform();
+  let admobPlugin = null;
+  let admobReady = false;
+
+  // ── AdMob IDs (zamień na swoje z https://admob.google.com) ──
+  const ADMOB_INTERSTITIAL_ANDROID = 'ca-app-pub-XXXX/INTERSTITIAL_ANDROID';
+  const ADMOB_INTERSTITIAL_IOS     = 'ca-app-pub-XXXX/INTERSTITIAL_IOS';
+  const ADMOB_REWARDED_ANDROID     = 'ca-app-pub-XXXX/REWARDED_ANDROID';
+  const ADMOB_REWARDED_IOS         = 'ca-app-pub-XXXX/REWARDED_IOS';
+
+  // ── Test IDs (Google oficjalne — działają bez konta) ──
+  const TEST_INTERSTITIAL_ANDROID = 'ca-app-pub-3940256099942544/1033173712';
+  const TEST_INTERSTITIAL_IOS     = 'ca-app-pub-3940256099942544/4411468910';
+  const TEST_REWARDED_ANDROID     = 'ca-app-pub-3940256099942544/5224354917';
+  const TEST_REWARDED_IOS         = 'ca-app-pub-3940256099942544/1712485313';
+
+  // Użyj TEST IDs dopóki nie wstawisz swoich:
+  const USE_TEST_ADS = true;
+  function getAdId(type) {
+    const isIos = IS_NATIVE && window.Capacitor.getPlatform() === 'ios';
+    if (USE_TEST_ADS) {
+      return type === 'interstitial'
+        ? (isIos ? TEST_INTERSTITIAL_IOS : TEST_INTERSTITIAL_ANDROID)
+        : (isIos ? TEST_REWARDED_IOS : TEST_REWARDED_ANDROID);
+    }
+    return type === 'interstitial'
+      ? (isIos ? ADMOB_INTERSTITIAL_IOS : ADMOB_INTERSTITIAL_ANDROID)
+      : (isIos ? ADMOB_REWARDED_IOS : ADMOB_REWARDED_ANDROID);
+  }
+
+  // ── Init AdMob (native only) ──
+  async function initAdMob() {
+    if (!IS_NATIVE) return;
+    try {
+      const mod = await import('https://unpkg.com/@capacitor-community/admob@latest/dist/esm/index.js').catch(() => null);
+      if (mod && mod.AdMob) {
+        admobPlugin = mod.AdMob;
+        await admobPlugin.initialize({ initializeForTesting: USE_TEST_ADS });
+        admobReady = true;
+        console.log('[AdMob] Initialized');
+      }
+    } catch(e) { console.warn('[AdMob] Init failed:', e); }
+  }
+  initAdMob();
+
+  // ── Init AdSense ad slot (web only) ──
+  function pushAdSense() {
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+  }
+
+  // ── INTERSTITIAL ──
   function showInterstitialAd(onDone) {
+    if (IS_NATIVE && admobReady) {
+      showNativeInterstitial(onDone);
+    } else {
+      showWebInterstitial(onDone);
+    }
+  }
+
+  async function showNativeInterstitial(onDone) {
+    try {
+      await admobPlugin.prepareInterstitial({ adId: getAdId('interstitial') });
+      const handler = admobPlugin.addListener('onInterstitialAdDismissed', () => {
+        handler.remove(); onDone();
+      });
+      await admobPlugin.showInterstitial();
+    } catch(e) {
+      console.warn('[AdMob] Interstitial failed:', e);
+      onDone();
+    }
+  }
+
+  function showWebInterstitial(onDone) {
     adInterstitial.classList.add("active");
-    let sec = 3;
-    const timerEl = document.getElementById("ad-timer");
+    pushAdSense();
+    let sec = 5;
     const skipEl = document.getElementById("ad-skip");
-    timerEl.textContent = sec;
     skipEl.classList.remove("ready");
     skipEl.style.pointerEvents = "none";
-    skipEl.textContent = "";
-    skipEl.innerHTML = 'Pomiń za <span class="ad-timer" id="ad-timer">' + sec + '</span>s';
+    skipEl.innerHTML = 'Pomiń za <span class="ad-timer">' + sec + '</span>s';
     const iv = setInterval(() => {
       sec--;
       if (sec <= 0) {
@@ -540,15 +612,43 @@
     }, 1000);
   }
 
+  // ── REWARDED ──
   function showRewardedAd(onReward) {
+    if (IS_NATIVE && admobReady) {
+      showNativeRewarded(onReward);
+    } else {
+      showWebRewarded(onReward);
+    }
+  }
+
+  async function showNativeRewarded(onReward) {
+    try {
+      await admobPlugin.prepareRewardVideoAd({ adId: getAdId('rewarded') });
+      const handler = admobPlugin.addListener('onRewardedVideoAdReward', () => {
+        handler.remove(); onReward();
+      });
+      const dismiss = admobPlugin.addListener('onRewardedVideoAdDismissed', () => {
+        dismiss.remove();
+      });
+      await admobPlugin.showRewardVideoAd();
+    } catch(e) {
+      console.warn('[AdMob] Rewarded failed, granting reward:', e);
+      onReward();
+    }
+  }
+
+  function showWebRewarded(onReward) {
     adRewarded.classList.add("active");
     const fill = document.getElementById("rewarded-fill");
+    const status = document.getElementById("rewarded-status");
+    status.textContent = "Oglądasz reklamę...";
     let progress = 0;
     const iv = setInterval(() => {
       progress += 2;
       fill.style.width = progress + "%";
       if (progress >= 100) {
         clearInterval(iv);
+        status.textContent = "Nagroda odebrana!";
         setTimeout(() => { adRewarded.classList.remove("active"); fill.style.width="0"; onReward(); }, 300);
       }
     }, 60);
