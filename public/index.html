@@ -347,10 +347,12 @@
   let state = STATE.MENU;
   let score = 0, sessionCoins = 0, reviveUsed = false;
 
-  const BIRD_SIZE = 22, GRAVITY = 0.6, FLAP_POWER = -9.5;
+  const BIRD_SIZE = 22, GRAVITY = 0.65, FLAP_POWER = -10;
   const PIPE_WIDTH = 52, PIPE_GAP_START = 240, PIPE_GAP_MIN = 175;
-  const PIPE_SPEED_START = 3.2, PIPE_SPEED_MAX = 5.5, PIPE_SPACING = 250;
+  const PIPE_SPEED_START = 3.5, PIPE_SPEED_MAX = 6, PIPE_SPACING = 230;
   const GROUND_HEIGHT = 70, AD_EVERY_N_DEATHS = 3, REVIVE_COST = 50;
+  const TICK_MS = 1000 / 60; // fixed 60 ticks/s
+  let lastTime = 0, accumulator = 0;
 
   let bird = { x:0, y:0, vy:0, angle:0, wingPhase:0, trail:[] };
   let pipes = [], pipeTimer = 0;
@@ -767,6 +769,7 @@
   }
   function startGame() {
     resetGame(); state=STATE.PLAYING;
+    lastTime=0; accumulator=0;
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
     scoreDisplay.classList.add("visible"); bird.vy=FLAP_POWER; playSound("flap");
   }
@@ -965,10 +968,17 @@
   }
 
   // =============================================
-  //  GAME LOOP
+  //  GAME LOOP (fixed timestep — 60 ticks/s)
   // =============================================
-  function frame() {
-    update();
+  function frame(now) {
+    if (!lastTime) lastTime = now;
+    const dt = Math.min(now - lastTime, 100); // cap at 100ms to avoid spiral
+    lastTime = now;
+    accumulator += dt;
+    while (accumulator >= TICK_MS) {
+      update();
+      accumulator -= TICK_MS;
+    }
     ctx.save();
     if(shakeMag>0.5) ctx.translate(shakeX,shakeY);
     drawBackground();
@@ -978,7 +988,7 @@
     requestAnimationFrame(frame);
   }
 
-  resetGame(); frame();
+  resetGame(); requestAnimationFrame(frame);
 
   // PWA
   if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
