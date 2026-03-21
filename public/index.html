@@ -887,7 +887,7 @@
     combo++; comboTimer=COMBO_DECAY;
     comboMultiplier=1+Math.floor(combo/3)*0.5; // x1, x1.5, x2, x2.5...
     if(combo>maxCombo) maxCombo=combo;
-    comboText.textContent=`x${combo}`;
+    comboText.textContent=`x${combo} → +${Math.max(1,Math.floor(comboMultiplier))}`;
     comboFill.style.width='100%';
     comboHud.classList.add('visible','bump');
     setTimeout(()=>comboHud.classList.remove('bump'),150);
@@ -1376,13 +1376,16 @@
         if(p.glow>0) p.glow-=0.03;
         const pRight=p.x-(56-PIPE_WIDTH)/2+56; // right edge of visual panel
         if(!p.scored && pRight<bird.x) {
-          p.scored=true; p.glow=1; score++;
+          p.scored=true; p.glow=1;
+          const pts=Math.max(1,Math.floor(comboMultiplier));
+          score+=pts;
           scoreDisplay.textContent=score;
           playSound("score"); addCombo(); checkZone(); spawnSpeedLines();
           const distTop=Math.abs(bird.y-p.topH),distBot=Math.abs(bird.y-(p.topH+p.gap));
           const nearDist=Math.min(distTop,distBot);
           if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
-          else if(nearDist<25){driftCount++;addCoins(Math.ceil(2*comboMultiplier));showStreak(`⚡ DRIFT x${comboMultiplier.toFixed(1)}!`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
+          else if(nearDist<25){driftCount++;addCoins(Math.ceil(2*comboMultiplier));showStreak(`⚡ DRIFT +${pts}×${comboMultiplier.toFixed(1)}`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
+          else if(pts>1){showStreak(`+${pts} ×${comboMultiplier.toFixed(1)}`);}
           gameSpeed=Math.min(PIPE_SPEED_MAX, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
