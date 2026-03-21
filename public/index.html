@@ -573,8 +573,8 @@
       src.start(t); src.stop(t + 0.04);
 
     } else if (type === "score") {
-      // Gentle ping
-      synth('sine', 880, 1050, 0.09, 0.025, 1800);
+      // Dark data-blip — low square tick, descending
+      synth('square', 220, 140, 0.06, 0.015, 500);
 
     } else if (type === "hit") {
       // Muffled impact
@@ -593,44 +593,47 @@
       synth('sine', 55, 30, 0.15, 0.03);
 
     } else if (type === "milestone") {
-      // Soft 3-note arp
-      [660, 880, 1050].forEach((freq, i) => {
-        const delay = i * 0.08;
+      // Ominous descending 3-note — dark arp
+      [440, 330, 220].forEach((freq, i) => {
+        const delay = i * 0.09;
         const o = audioCtx.createOscillator();
         const g = audioCtx.createGain();
-        o.type = 'sine'; o.frequency.setValueAtTime(freq, t + delay);
-        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.025, t + delay + 0.02);
-        g.gain.linearRampToValueAtTime(0, t + delay + 0.18);
-        o.connect(g); g.connect(dest);
-        o.start(t + delay); o.stop(t + delay + 0.18);
+        const f = audioCtx.createBiquadFilter();
+        o.type = 'square'; o.frequency.setValueAtTime(freq, t + delay);
+        o.frequency.exponentialRampToValueAtTime(freq * 0.7, t + delay + 0.12);
+        f.type = 'lowpass'; f.frequency.setValueAtTime(600, t + delay); f.Q.setValueAtTime(3, t);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.018, t + delay + 0.015);
+        g.gain.linearRampToValueAtTime(0, t + delay + 0.15);
+        o.connect(f); f.connect(g); g.connect(dest);
+        o.start(t + delay); o.stop(t + delay + 0.15);
       });
 
     } else if (type === "coin") {
-      // Tiny blip
-      synth('sine', 1100, 1350, 0.04, 0.02, 2000);
+      // Sharp metallic tick — triangle descending
+      synth('triangle', 650, 280, 0.035, 0.02, 900);
 
     } else if (type === "buy") {
-      // Soft confirm
-      synth('sine', 550, 400, 0.07, 0.025, 1200);
-      synth('sine', 750, 900, 0.07, 0.025, 1500);
+      // Mechanical confirmation — two low clicks
+      synth('square', 300, 180, 0.05, 0.018, 450);
+      synth('square', 200, 130, 0.06, 0.02, 400);
 
     } else if (type === "revive") {
-      // Gentle sweep up
+      // Dark energy charge — low ominous sweep
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
       const f = audioCtx.createBiquadFilter();
-      o.type = 'sine'; o.frequency.setValueAtTime(200, t);
-      o.frequency.exponentialRampToValueAtTime(550, t + 0.35);
-      f.type = 'lowpass'; f.frequency.setValueAtTime(400, t);
-      f.frequency.exponentialRampToValueAtTime(1500, t + 0.3); f.Q.setValueAtTime(1, t);
-      g.gain.setValueAtTime(0.03, t); g.gain.linearRampToValueAtTime(0.04, t + 0.2);
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(80, t);
+      o.frequency.exponentialRampToValueAtTime(320, t + 0.35);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(200, t);
+      f.frequency.exponentialRampToValueAtTime(800, t + 0.3); f.Q.setValueAtTime(4, t);
+      g.gain.setValueAtTime(0.02, t); g.gain.linearRampToValueAtTime(0.035, t + 0.2);
       g.gain.linearRampToValueAtTime(0, t + 0.4);
       o.connect(f); f.connect(g); g.connect(dest);
       o.start(t); o.stop(t + 0.4);
 
     } else if (type === "powerup") {
-      // Quiet rising tone
-      synth('sine', 400, 700, 0.18, 0.03, 1200);
+      // Dark resonant pulse — filtered sawtooth
+      synth('sawtooth', 120, 220, 0.2, 0.025, 400);
 
     } else if (type === "shield") {
       // Soft tap
