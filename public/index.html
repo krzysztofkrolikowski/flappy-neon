@@ -407,15 +407,22 @@
   //  SKINS
   // =============================================
   const SKINS = [
+    // === ORYGINALNE 9 ===
     { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff", fx: "none", desc: "Dron rekonesansowy" },
     { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00", fx: "plasma", desc: "Myśliwiec delta V-wing" },
     { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88", fx: "acid", desc: "Bio-pasożyt z mackami" },
-    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Dysk skarabeusza" },
+    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Słoneczny skarabeusz" },
     { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff", fx: "void", desc: "Czarna dziura + dysk" },
     { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88", fx: "aurum", desc: "Imperialny krążownik" },
     { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff", fx: "prism", desc: "Kryształowy pryzmat" },
     { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)", fx: "phantom", desc: "Widmowy wraith" },
     { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41", fx: "glitch", desc: "Wireframe sześcian 3D" },
+    // === 5 NOWYCH BRUTALNYCH ===
+    { id: "cerberus", name: "CERBERUS", price: 1500, body: "#cc1100", glow: "#ff2200", ring: "#881100", thrust: "#ff6600", fx: "hellfire", desc: "Trójgłowy piekielny pies. Gryziesz — płoniesz." },
+    { id: "plague",   name: "PLAGUE",   price: 2000, body: "#aacc22", glow: "#88aa00", ring: "#667700", thrust: "#ccff44", fx: "disease", desc: "Zaraza. Trucizna. Rozkład. Bez leku." },
+    { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "Z dna oceanu. 8 macek. Miażdży kadłuby." },
+    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "Krzyk zabija. Fala uderzeniowa łamie kości." },
+    { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon z Otchłani. Rogi. Ogień piekielny. Koniec." },
   ];
 
   // =============================================
@@ -863,6 +870,137 @@
       if(Math.random()>0.6){c.fillStyle=sk.glow; c.globalAlpha=0.15;
         c.fillRect(-R,(Math.random()-0.5)*R*2,R*2,2);}
       c.shadowBlur=0;
+    } else if(s.id==='cerberus'){
+      // CERBERUS — triple-headed hellhound
+      c.fillStyle=sk.body; c.shadowColor=sk.glow; c.shadowBlur=15;
+      c.beginPath(); c.moveTo(R*0.2,0); c.lineTo(-R*0.1,-R*1.1); c.lineTo(-R*0.9,-R*0.9);
+      c.lineTo(-R*0.9,R*0.9); c.lineTo(-R*0.1,R*1.1); c.closePath(); c.fill();
+      // 3 heads
+      for(let h=0;h<3;h++){
+        const hy=(h-1)*R*0.75; const hx=R*0.15+Math.abs(h-1)*0.2*R;
+        const jaw=2+Math.sin(t*8+h*2)*2;
+        c.fillStyle='#220000'; c.globalAlpha=0.9;
+        c.beginPath(); c.ellipse(hx,hy,R*0.4,R*0.25,0,0,Math.PI*2); c.fill();
+        // Upper+lower jaw
+        c.fillStyle=sk.body; c.globalAlpha=1;
+        c.beginPath(); c.moveTo(hx+R*0.38,hy-jaw); c.lineTo(hx+R*0.55,hy-jaw-1); c.lineTo(hx-R*0.05,hy-jaw); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(hx+R*0.38,hy+jaw); c.lineTo(hx+R*0.55,hy+jaw+1); c.lineTo(hx-R*0.05,hy+jaw); c.closePath(); c.fill();
+        // Eyes
+        c.fillStyle='#ff0000'; c.globalAlpha=0.7+Math.sin(t*10+h)*0.3;
+        c.shadowColor='#ff0000'; c.shadowBlur=8;
+        c.beginPath(); c.arc(hx,hy-R*0.08,1.8,0,Math.PI*2); c.fill();
+        c.beginPath(); c.arc(hx+R*0.15,hy-R*0.08,1.8,0,Math.PI*2); c.fill();
+        c.shadowBlur=0;
+      }
+      // Hellfire particles
+      for(let i=0;i<6;i++){const pa=t*3+i*1.05; const pr=R*(0.5+Math.sin(t*4+i)*0.3);
+        c.fillStyle=i%2?'#ff2200':'#ffaa00'; c.globalAlpha=0.4;
+        c.beginPath(); c.arc(Math.cos(pa)*pr,Math.sin(pa)*pr,1.5,0,Math.PI*2); c.fill();}
+    } else if(s.id==='plague'){
+      // PLAGUE — biohazard blob
+      const rot=1+Math.sin(t*2.5)*0.1;
+      c.fillStyle=sk.body; c.shadowColor=sk.glow; c.shadowBlur=12;
+      c.beginPath();
+      for(let a=0;a<Math.PI*2;a+=0.1){const w=1+Math.sin(a*2+t*3)*0.2+Math.sin(a*5-t*4)*0.12;
+        const r2=R*1.2*rot*w; a<0.01?c.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):c.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);}
+      c.closePath(); c.fill();
+      // Pustules
+      for(let i=0;i<5;i++){const pa=i*Math.PI*2/5+t*0.3; const pd=R*(0.5+Math.sin(t*2+i)*0.2);
+        c.fillStyle='#889900'; c.globalAlpha=0.7;
+        c.beginPath(); c.arc(Math.cos(pa)*pd,Math.sin(pa)*pd,2.5+Math.sin(t*4+i),0,Math.PI*2); c.fill();
+        c.fillStyle='#ccff44'; c.globalAlpha=0.5;
+        c.beginPath(); c.arc(Math.cos(pa)*pd-0.5,Math.sin(pa)*pd-0.5,1,0,Math.PI*2); c.fill();}
+      // Biohazard symbol
+      c.save(); c.rotate(t*0.5); c.strokeStyle='#ffcc00'; c.lineWidth=1.5; c.globalAlpha=0.35;
+      for(let i=0;i<3;i++){const ba=i*Math.PI*2/3;
+        c.beginPath(); c.arc(Math.cos(ba)*4,Math.sin(ba)*4,R*0.35,ba-0.8,ba+0.8); c.stroke();}
+      c.beginPath(); c.arc(0,0,R*0.15,0,Math.PI*2); c.stroke(); c.restore();
+      // Flies
+      for(let i=0;i<4;i++){const fa=t*6+i*1.57; const fd=R*(0.8+Math.sin(t*4+i)*0.4);
+        c.fillStyle='#222'; c.globalAlpha=0.6;
+        c.beginPath(); c.arc(Math.cos(fa)*fd,Math.sin(fa)*fd,1,0,Math.PI*2); c.fill();}
+    } else if(s.id==='kraken'){
+      // KRAKEN — massive head + tentacles
+      const breathe=1+Math.sin(t*3)*0.06;
+      c.fillStyle=sk.body; c.shadowColor=sk.glow; c.shadowBlur=15;
+      c.beginPath(); c.ellipse(0,0,R*0.9*breathe,R*1.1*breathe,0,0,Math.PI*2); c.fill();
+      // 8 tentacles
+      c.shadowBlur=0;
+      for(let i=0;i<8;i++){const ta=Math.PI*0.3+i*Math.PI*0.2125;
+        c.strokeStyle=i%2?sk.body:'#003344'; c.lineCap='round'; c.globalAlpha=0.85;
+        c.beginPath(); let tx=Math.cos(ta)*R*0.9,ty=Math.sin(ta)*R*0.9; c.moveTo(tx,ty);
+        for(let j=1;j<=5;j++){tx+=Math.cos(ta+Math.sin(t*2.5+i+j*0.6)*1.2)*4;
+          ty+=Math.sin(ta+Math.sin(t*1.8+i-j*0.5)*0.9)*4; c.lineWidth=3-j*0.4; c.lineTo(tx,ty);}
+        c.stroke(); c.fillStyle=sk.glow; c.globalAlpha=0.5;
+        c.beginPath(); c.arc(tx,ty,1.5,0,Math.PI*2); c.fill();}
+      c.lineCap='butt';
+      // Eye
+      c.fillStyle='#001111'; c.globalAlpha=0.95;
+      c.beginPath(); c.ellipse(R*0.1,0,R*0.4,R*0.3,0,0,Math.PI*2); c.fill();
+      c.fillStyle=sk.glow; c.globalAlpha=0.95;
+      c.beginPath(); c.arc(R*0.15+Math.sin(t*1.3)*2,Math.sin(t*1.1),R*0.2,0,Math.PI*2); c.fill();
+      c.fillStyle='#000'; c.globalAlpha=0.9;
+      c.beginPath(); c.ellipse(R*0.15+Math.sin(t*1.3)*2,Math.sin(t*1.1),R*0.13,R*0.03,0,0,Math.PI*2); c.fill();
+    } else if(s.id==='banshee'){
+      // BANSHEE — screaming wraith
+      const phase=0.6+Math.sin(t*3)*0.2; const flick=Math.random()>0.9?0.15:1;
+      // Tattered cloak
+      c.fillStyle='rgba(220,220,255,0.08)'; c.shadowColor='rgba(200,200,255,0.6)'; c.shadowBlur=18;
+      c.beginPath(); c.moveTo(R*0.5,0);
+      c.bezierCurveTo(R*0.3,-R*1.2,-R*0.5,-R*1.3,-R*0.8,-R*0.8);
+      c.lineTo(-R*0.9,0); c.lineTo(-R*0.8,R*0.8);
+      c.bezierCurveTo(-R*0.5,R*1.3,R*0.3,R*1.2,R*0.5,0);
+      c.closePath(); c.fill(); c.shadowBlur=0;
+      // Screaming mouth
+      c.fillStyle='#000'; c.globalAlpha=0.8*flick;
+      c.beginPath(); c.ellipse(R*0.05,2,R*0.25,4+Math.sin(t*6)*2,0,0,Math.PI*2); c.fill();
+      // Hollow eyes
+      for(const side of[-1,1]){const ex=R*0.02+side*5,ey=-4;
+        c.fillStyle='#000'; c.globalAlpha=0.85*flick;
+        c.beginPath(); c.ellipse(ex,ey,3,4,0,0,Math.PI*2); c.fill();
+        c.fillStyle='#ccccff'; c.globalAlpha=(0.5+Math.sin(t*8+side*2)*0.4)*flick;
+        c.shadowColor='#ccccff'; c.shadowBlur=8;
+        c.beginPath(); c.arc(ex,ey,1.5,0,Math.PI*2); c.fill(); c.shadowBlur=0;}
+      // Sonic rings
+      for(let i=0;i<3;i++){const sr=((t*15+i*8)%30);
+        c.strokeStyle='rgba(200,200,255,0.15)'; c.lineWidth=1; c.globalAlpha=(1-sr/30)*0.3*flick;
+        c.beginPath(); c.arc(R*0.5+sr,2,sr*0.4+2,Math.PI*-0.3,Math.PI*0.3); c.stroke();}
+    } else if(s.id==='abyssal'){
+      // ABYSSAL — void demon
+      c.fillStyle=sk.body; c.shadowColor=sk.glow; c.shadowBlur=20;
+      c.beginPath(); c.moveTo(R*0.8,0);
+      c.lineTo(R*0.2,-R*0.6); c.lineTo(-R*0.4,-R*0.8); c.lineTo(-R*0.8,-R*0.5);
+      c.lineTo(-R*0.8,R*0.5); c.lineTo(-R*0.4,R*0.8); c.lineTo(R*0.2,R*0.6);
+      c.closePath(); c.fill();
+      // Energy veins
+      c.strokeStyle='#ff0033'; c.lineWidth=1; c.globalAlpha=0.5;
+      for(let i=0;i<5;i++){const va=i*Math.PI*2/5+t*0.2;
+        c.beginPath(); c.moveTo(0,0); c.lineTo(Math.cos(va)*R*0.9,Math.sin(va)*R*0.9); c.stroke();}
+      c.shadowBlur=0;
+      // Horns
+      for(const side of[-1,1]){c.fillStyle='#220000'; c.globalAlpha=0.95;
+        c.beginPath(); c.moveTo(-R*0.15,side*R*0.5);
+        c.quadraticCurveTo(-R*0.5,side*R*1.5,-R*0.85,side*R*1.2);
+        c.quadraticCurveTo(-R*0.7,side*R*0.8,-R*0.3,side*R*0.5); c.closePath(); c.fill();
+        c.fillStyle=sk.glow; c.globalAlpha=0.5+Math.sin(t*5+side)*0.3;
+        c.shadowColor=sk.glow; c.shadowBlur=6;
+        c.beginPath(); c.arc(-R*0.85,side*R*1.2,2,0,Math.PI*2); c.fill(); c.shadowBlur=0;}
+      // Eyes
+      for(const side of[-1,1]){const ex=R*0.15,ey=side*R*0.2;
+        c.fillStyle='#000'; c.globalAlpha=0.9;
+        c.beginPath(); c.ellipse(ex,ey,4,2.5,side*0.2,0,0,Math.PI*2); c.fill();
+        c.fillStyle='#ff0033'; c.globalAlpha=0.9; c.shadowColor='#ff0033'; c.shadowBlur=12;
+        c.beginPath(); c.arc(ex,ey,2,0,Math.PI*2); c.fill(); c.shadowBlur=0;}
+      // Pentagram
+      c.save(); c.rotate(t*0.7); c.strokeStyle='#ff0033'; c.lineWidth=0.8; c.globalAlpha=0.25;
+      const pR=R*0.5;
+      for(let i=0;i<5;i++){const pa=i*Math.PI*2/5-Math.PI/2; const na=((i+2)%5)*Math.PI*2/5-Math.PI/2;
+        c.beginPath(); c.moveTo(Math.cos(pa)*pR,Math.sin(pa)*pR); c.lineTo(Math.cos(na)*pR,Math.sin(na)*pR); c.stroke();}
+      c.beginPath(); c.arc(0,0,pR,0,Math.PI*2); c.stroke(); c.restore();
+      // Dark core
+      const dG=c.createRadialGradient(0,0,0,0,0,R*0.35);
+      dG.addColorStop(0,'#ff0033'); dG.addColorStop(0.4,'#440011'); dG.addColorStop(1,'#000');
+      c.fillStyle=dG; c.globalAlpha=0.8; c.beginPath(); c.arc(0,0,R*0.35,0,Math.PI*2); c.fill();
     } else {
       // Classic neon drone
       c.shadowColor=sk.glow; c.shadowBlur=12;
@@ -2908,6 +3046,456 @@
       // PROCESS ID TEXT
       ctx.font='5px monospace'; ctx.fillStyle=sk.glow; ctx.globalAlpha=0.2;
       ctx.fillText('PID:'+Math.floor(t*10%999),BIRD_SIZE*0.3,-BIRD_SIZE*0.45);
+
+    } else if(skinId==="cerberus"){
+      // ═══ CERBERUS — trójgłowy piekielny pies ═══
+      const tB=isThrusting?1:0.3;
+      // HELLFIRE EXHAUST — chaotic flames from all 3 heads
+      ctx.shadowColor='#ff2200'; ctx.shadowBlur=isThrusting?40:8;
+      for(let i=0;i<(isThrusting?12:4);i++){
+        const fx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?30:8);
+        const fy=(Math.random()-0.5)*18;
+        ctx.fillStyle=i%3===0?'#ff0000':i%3===1?'#ff6600':'#ffcc00';
+        ctx.globalAlpha=tB*(0.3+Math.random()*0.4);
+        ctx.beginPath(); ctx.arc(fx,fy,2+Math.random()*4,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      // MAIN BODY — armored hellhound torso
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+      ctx.beginPath();
+      ctx.moveTo(BIRD_SIZE*0.2,0);
+      ctx.lineTo(-BIRD_SIZE*0.1,-BIRD_SIZE*0.35);
+      ctx.lineTo(-BIRD_SIZE*0.5,-BIRD_SIZE*0.3);
+      ctx.lineTo(-BIRD_SIZE*0.5,BIRD_SIZE*0.3);
+      ctx.lineTo(-BIRD_SIZE*0.1,BIRD_SIZE*0.35);
+      ctx.closePath(); ctx.fill();
+      // Armor cracks (lava veins)
+      ctx.strokeStyle='#ff4400'; ctx.lineWidth=1; ctx.globalAlpha=0.5;
+      for(let i=0;i<5;i++){
+        const cx2=-BIRD_SIZE*0.3+Math.random()*BIRD_SIZE*0.4;
+        const cy2=(Math.random()-0.5)*BIRD_SIZE*0.5;
+        ctx.beginPath(); ctx.moveTo(cx2,cy2);
+        ctx.lineTo(cx2+Math.random()*8-4,cy2+Math.random()*8-4); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+      // THREE HEADS — snapping jaws
+      for(let h=0;h<3;h++){
+        const hy=(h-1)*BIRD_SIZE*0.38;
+        const hx=BIRD_SIZE*0.15+Math.abs(h-1)*BIRD_SIZE*0.15;
+        const jawOpen=3+Math.sin(t*8+h*2.1)*3;
+        // Skull
+        ctx.fillStyle='#220000'; ctx.globalAlpha=0.9;
+        ctx.beginPath(); ctx.ellipse(hx,hy,BIRD_SIZE*0.22,BIRD_SIZE*0.14,0,0,Math.PI*2); ctx.fill();
+        // Upper jaw
+        ctx.fillStyle=sk.body; ctx.globalAlpha=1;
+        ctx.beginPath(); ctx.moveTo(hx+BIRD_SIZE*0.22,hy-jawOpen);
+        ctx.lineTo(hx+BIRD_SIZE*0.35,hy-jawOpen-2);
+        ctx.lineTo(hx-BIRD_SIZE*0.05,hy-jawOpen); ctx.closePath(); ctx.fill();
+        // Lower jaw
+        ctx.beginPath(); ctx.moveTo(hx+BIRD_SIZE*0.22,hy+jawOpen);
+        ctx.lineTo(hx+BIRD_SIZE*0.35,hy+jawOpen+2);
+        ctx.lineTo(hx-BIRD_SIZE*0.05,hy+jawOpen); ctx.closePath(); ctx.fill();
+        // TEETH — jagged
+        ctx.fillStyle='#ffeecc'; ctx.globalAlpha=0.9;
+        for(let ti=0;ti<4;ti++){
+          const tx=hx+BIRD_SIZE*0.05+ti*BIRD_SIZE*0.065;
+          ctx.beginPath(); ctx.moveTo(tx,hy-jawOpen); ctx.lineTo(tx+2,hy-jawOpen+4); ctx.lineTo(tx-2,hy-jawOpen+4); ctx.closePath(); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(tx,hy+jawOpen); ctx.lineTo(tx+2,hy+jawOpen-4); ctx.lineTo(tx-2,hy+jawOpen-4); ctx.closePath(); ctx.fill();
+        }
+        // HELLFIRE EYES — pulsing red
+        ctx.fillStyle='#ff0000'; ctx.globalAlpha=0.7+Math.sin(t*10+h)*0.3;
+        ctx.shadowColor='#ff0000'; ctx.shadowBlur=12;
+        ctx.beginPath(); ctx.arc(hx-BIRD_SIZE*0.02,hy-BIRD_SIZE*0.05,2.5,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(hx+BIRD_SIZE*0.08,hy-BIRD_SIZE*0.05,2.5,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // CHAINS — swinging between heads
+      ctx.strokeStyle='#666'; ctx.lineWidth=2; ctx.globalAlpha=0.6;
+      for(let c=0;c<2;c++){
+        const cy1=(c-0.5)*BIRD_SIZE*0.38;
+        ctx.beginPath();
+        for(let cl=0;cl<8;cl++){
+          const clx=-BIRD_SIZE*0.3+cl*BIRD_SIZE*0.08;
+          const cly=cy1+Math.sin(t*3+cl*0.8+c)*3;
+          cl===0?ctx.moveTo(clx,cly):ctx.lineTo(clx,cly);
+        }
+        ctx.stroke();
+      }
+      // BRIMSTONE PARTICLES — raining fire
+      for(let i=0;i<8;i++){
+        const pa=t*2.5+i*0.79;
+        const pr=BIRD_SIZE*(0.4+Math.sin(t*3+i)*0.3);
+        ctx.fillStyle=i%2?'#ff2200':'#ffaa00'; ctx.globalAlpha=0.4+Math.sin(t*6+i)*0.3;
+        ctx.beginPath(); ctx.arc(Math.cos(pa)*pr,Math.sin(pa)*pr,1.5+Math.sin(t*8+i),0,Math.PI*2); ctx.fill();
+      }
+      // HELL AURA — pulsing rings of fire
+      ctx.strokeStyle='#ff2200'; ctx.lineWidth=1.5; ctx.globalAlpha=0.08;
+      for(let i=0;i<3;i++){
+        const ar=BIRD_SIZE*(0.8+i*0.2)+Math.sin(t*3+i)*3;
+        ctx.beginPath(); ctx.arc(0,0,ar,0,Math.PI*2); ctx.stroke();
+      }
+
+    } else if(skinId==="plague"){
+      // ═══ PLAGUE — zaraza, rozkład, śmierć ═══
+      const tB=isThrusting?1:0.3;
+      // SPORE CLOUD EXHAUST
+      ctx.shadowColor='#88aa00'; ctx.shadowBlur=isThrusting?25:5;
+      for(let i=0;i<(isThrusting?10:3);i++){
+        const fx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?25:6);
+        const fy=(Math.random()-0.5)*14;
+        ctx.fillStyle=i%3===0?'#aacc22':i%3===1?'#667700':'#ccff44';
+        ctx.globalAlpha=tB*(0.2+Math.random()*0.3);
+        ctx.beginPath(); ctx.arc(fx,fy,2+Math.random()*5,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      // ROTTING ORGANIC MASS (amorphous, pulsating)
+      const rot=1+Math.sin(t*2.5)*0.1+Math.sin(t*6)*0.05;
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
+      ctx.beginPath();
+      for(let a=0;a<Math.PI*2;a+=0.05){
+        const w=1+Math.sin(a*2+t*3)*0.2+Math.sin(a*5-t*4)*0.12+Math.sin(a*9+t*7)*0.06;
+        const r2=coreR*1.5*rot*w;
+        a<0.01?ctx.moveTo(Math.cos(a)*r2,Math.sin(a)*r2):ctx.lineTo(Math.cos(a)*r2,Math.sin(a)*r2);
+      }
+      ctx.closePath(); ctx.fill();
+      // PUSTULES (bulging boils)
+      for(let i=0;i<7;i++){
+        const pa=i*Math.PI*2/7+t*0.3;
+        const pd=coreR*(0.6+Math.sin(t*2+i)*0.3);
+        const ps=3+Math.sin(t*4+i)*2;
+        ctx.fillStyle='#889900'; ctx.globalAlpha=0.7;
+        ctx.beginPath(); ctx.arc(Math.cos(pa)*pd,Math.sin(pa)*pd,ps,0,Math.PI*2); ctx.fill();
+        // Pus highlight
+        ctx.fillStyle='#ccff44'; ctx.globalAlpha=0.5;
+        ctx.beginPath(); ctx.arc(Math.cos(pa)*pd-1,Math.sin(pa)*pd-1,ps*0.4,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0;
+      // TOXIC DRIP — oozing slime
+      for(let i=0;i<6;i++){
+        const dx=(i-2.5)*6;
+        const drip=(t*1.8+i*0.6)%1;
+        ctx.fillStyle=i%2?'#aacc22':'#667700';
+        ctx.globalAlpha=(1-drip)*0.6;
+        // Drip stretching
+        ctx.beginPath();
+        ctx.moveTo(dx-2,coreR*1.3); ctx.lineTo(dx+2,coreR*1.3);
+        ctx.lineTo(dx+1,coreR*1.3+drip*30); ctx.lineTo(dx-1,coreR*1.3+drip*30);
+        ctx.closePath(); ctx.fill();
+      }
+      // BIOHAZARD SYMBOL (rotating, ominous)
+      ctx.save(); ctx.rotate(t*0.5);
+      ctx.strokeStyle='#ffcc00'; ctx.lineWidth=2; ctx.globalAlpha=0.35;
+      // Three crescents of biohazard
+      for(let i=0;i<3;i++){
+        const ba=i*Math.PI*2/3;
+        ctx.beginPath(); ctx.arc(Math.cos(ba)*5,Math.sin(ba)*5,coreR*0.4,ba-0.8,ba+0.8); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.2,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+      // DEATH FLIES — buzzing around
+      for(let i=0;i<5;i++){
+        const fa=t*6+i*1.26;
+        const fd=coreR*(0.8+Math.sin(t*4+i)*0.5);
+        ctx.fillStyle='#222'; ctx.globalAlpha=0.6;
+        ctx.beginPath(); ctx.arc(Math.cos(fa)*fd,Math.sin(fa)*fd,1.2,0,Math.PI*2); ctx.fill();
+        // Wing
+        ctx.strokeStyle='#555'; ctx.lineWidth=0.5; ctx.globalAlpha=0.4;
+        ctx.beginPath(); ctx.arc(Math.cos(fa)*fd+1,Math.sin(fa)*fd-1,2,0,Math.PI); ctx.stroke();
+      }
+      // MIASMA CLOUD (expanding toxic fog)
+      ctx.fillStyle='rgba(100,130,0,0.04)';
+      ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*1.5+Math.sin(t*2)*5,0,Math.PI*2); ctx.fill();
+
+    } else if(skinId==="kraken"){
+      // ═══ KRAKEN — potwór z otchłani oceanu ═══
+      const tB=isThrusting?1:0.3;
+      // INK JET EXHAUST
+      ctx.shadowColor='#00ccdd'; ctx.shadowBlur=isThrusting?30:6;
+      for(let i=0;i<(isThrusting?8:2);i++){
+        const fx=-BIRD_SIZE*0.4-Math.random()*(isThrusting?28:5);
+        const fy=(Math.random()-0.5)*12;
+        ctx.fillStyle=i%2?'#002233':'#005566';
+        ctx.globalAlpha=tB*(0.3+Math.random()*0.3);
+        ctx.beginPath(); ctx.arc(fx,fy,3+Math.random()*5,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      // MASSIVE HEAD (bulging, terrifying)
+      const breathe=1+Math.sin(t*3)*0.08;
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=20;
+      ctx.beginPath();
+      ctx.moveTo(BIRD_SIZE*0.4,0);
+      ctx.bezierCurveTo(BIRD_SIZE*0.4,-BIRD_SIZE*0.5,-BIRD_SIZE*0.1,-BIRD_SIZE*0.6*breathe,-BIRD_SIZE*0.4,-BIRD_SIZE*0.35*breathe);
+      ctx.bezierCurveTo(-BIRD_SIZE*0.55,-BIRD_SIZE*0.15,-BIRD_SIZE*0.55,BIRD_SIZE*0.15,-BIRD_SIZE*0.4,BIRD_SIZE*0.35*breathe);
+      ctx.bezierCurveTo(-BIRD_SIZE*0.1,BIRD_SIZE*0.6*breathe,BIRD_SIZE*0.4,BIRD_SIZE*0.5,BIRD_SIZE*0.4,0);
+      ctx.closePath(); ctx.fill();
+      // Barnacles / texture bumps
+      ctx.fillStyle='#005566'; ctx.globalAlpha=0.3;
+      for(let i=0;i<8;i++){
+        const ba=i*0.79+t*0.1;
+        const br=coreR*(0.5+Math.sin(i)*0.3);
+        ctx.beginPath(); ctx.arc(Math.cos(ba)*br,Math.sin(ba)*br,2+Math.sin(t+i)*1,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0;
+      // 8 MASSIVE TENTACLES — writhing, crushing
+      for(let i=0;i<8;i++){
+        const ta=Math.PI*0.3+i*Math.PI*0.175;
+        ctx.globalAlpha=0.85; ctx.strokeStyle=i%2?sk.body:'#003344'; ctx.lineCap='round';
+        ctx.beginPath();
+        let tx=Math.cos(ta)*coreR*1.1, ty=Math.sin(ta)*coreR*1.1;
+        ctx.moveTo(tx,ty);
+        for(let j=1;j<=9;j++){
+          tx+=Math.cos(ta+Math.sin(t*2.5+i+j*0.6)*1.2)*6;
+          ty+=Math.sin(ta+Math.sin(t*1.8+i-j*0.5)*0.9)*6;
+          ctx.lineWidth=4.5-j*0.4;
+          ctx.lineTo(tx,ty);
+        }
+        ctx.stroke();
+        // SUCKERS on tentacles
+        if(i%2===0){
+          for(let s=2;s<8;s+=2){
+            const sx=Math.cos(ta+Math.sin(t*2.5+i+s*0.6)*1.2)*s*5.5;
+            const sy=Math.sin(ta+Math.sin(t*1.8+i-s*0.5)*0.9)*s*5.5;
+            ctx.fillStyle='#00aacc'; ctx.globalAlpha=0.4;
+            ctx.beginPath(); ctx.arc(Math.cos(ta)*coreR*1.1+sx*0.3,Math.sin(ta)*coreR*1.1+sy*0.3,1.5,0,Math.PI*2); ctx.fill();
+          }
+        }
+        // Glowing tip
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.5+Math.sin(t*5+i)*0.3;
+        ctx.shadowColor=sk.glow; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(tx,ty,2,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      ctx.lineCap='butt';
+      // GIANT EYE — terrifying, tracking
+      ctx.fillStyle='#001111'; ctx.globalAlpha=0.95;
+      ctx.beginPath(); ctx.ellipse(BIRD_SIZE*0.08,0,coreR*0.5,coreR*0.35,0,0,Math.PI*2); ctx.fill();
+      // Iris (bioluminescent)
+      ctx.fillStyle=sk.glow; ctx.globalAlpha=0.95;
+      const ix=BIRD_SIZE*0.12+Math.sin(t*1.3)*3, iy=Math.sin(t*1.1)*2;
+      ctx.beginPath(); ctx.arc(ix,iy,coreR*0.22,0,Math.PI*2); ctx.fill();
+      // Pupil (horizontal slit — fish-like)
+      ctx.fillStyle='#000'; ctx.globalAlpha=0.9;
+      ctx.beginPath(); ctx.ellipse(ix,iy,coreR*0.16,coreR*0.04,0,0,Math.PI*2); ctx.fill();
+      // Eye glow
+      ctx.fillStyle='#fff'; ctx.globalAlpha=0.4;
+      ctx.beginPath(); ctx.arc(ix+2,iy-2,coreR*0.07,0,Math.PI*2); ctx.fill();
+      // BIOLUMINESCENT SPOTS
+      for(let i=0;i<10;i++){
+        const ba=t*0.5+i*0.63;
+        const br=BIRD_SIZE*(0.25+Math.sin(t*1.5+i)*0.2);
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.15+Math.sin(t*3+i)*0.1;
+        ctx.shadowColor=sk.glow; ctx.shadowBlur=6;
+        ctx.beginPath(); ctx.arc(Math.cos(ba)*br,Math.sin(ba)*br,2+Math.sin(t*4+i),0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // BUBBLES — deep sea
+      for(let i=0;i<4;i++){
+        const by=-coreR*(1+i*0.4)-((t*20+i*17)%40);
+        const bx=(i-1.5)*5+Math.sin(t*2+i)*3;
+        ctx.strokeStyle=sk.glow; ctx.lineWidth=0.8; ctx.globalAlpha=0.2;
+        ctx.beginPath(); ctx.arc(bx,by,2+Math.random(),0,Math.PI*2); ctx.stroke();
+      }
+
+    } else if(skinId==="banshee"){
+      // ═══ BANSHEE — krzycząca śmierć ═══
+      const tB=isThrusting?0.7:0.15;
+      const phase=0.6+Math.sin(t*3)*0.2;
+      // SOUNDWAVE EXHAUST
+      ctx.strokeStyle='#ccccff'; ctx.lineWidth=1.5;
+      for(let i=0;i<(isThrusting?6:2);i++){
+        const sw=-BIRD_SIZE*0.5-i*8;
+        ctx.globalAlpha=tB*(0.3-i*0.04);
+        ctx.beginPath(); ctx.arc(sw,0,4+i*3,Math.PI*0.3,Math.PI*1.7); ctx.stroke();
+      }
+      ctx.globalAlpha=1;
+      // SCREAMING WRAITH BODY — distorted, flickering
+      const flick=Math.random()>0.9?0.15:1;
+      // Tattered cloak shape
+      ctx.fillStyle='rgba(220,220,255,0.08)';
+      ctx.shadowColor='rgba(200,200,255,0.6)'; ctx.shadowBlur=25;
+      ctx.beginPath();
+      ctx.moveTo(BIRD_SIZE*0.3,0);
+      ctx.bezierCurveTo(BIRD_SIZE*0.2,-BIRD_SIZE*0.5,-BIRD_SIZE*0.3,-BIRD_SIZE*0.6,-BIRD_SIZE*0.5,-BIRD_SIZE*0.4);
+      ctx.lineTo(-BIRD_SIZE*0.6,0);
+      ctx.lineTo(-BIRD_SIZE*0.5,BIRD_SIZE*0.4);
+      ctx.bezierCurveTo(-BIRD_SIZE*0.3,BIRD_SIZE*0.6,BIRD_SIZE*0.2,BIRD_SIZE*0.5,BIRD_SIZE*0.3,0);
+      ctx.closePath(); ctx.fill();
+      // Tattered bottom strips
+      for(let i=0;i<5;i++){
+        const sx=-BIRD_SIZE*0.4+i*BIRD_SIZE*0.15;
+        const sl=BIRD_SIZE*(0.3+Math.sin(t*4+i)*0.15);
+        ctx.strokeStyle='rgba(220,220,255,0.1)'; ctx.lineWidth=2;
+        ctx.globalAlpha=phase*flick;
+        ctx.beginPath(); ctx.moveTo(sx,BIRD_SIZE*0.35);
+        ctx.bezierCurveTo(sx+Math.sin(t*3+i)*5,BIRD_SIZE*0.35+sl*0.5,sx+Math.sin(t*5+i)*8,BIRD_SIZE*0.35+sl,sx,BIRD_SIZE*0.35+sl);
+        ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+      // SCREAMING MOUTH — wide open, horrifying
+      ctx.globalAlpha=phase*2*flick;
+      const mouthOpen=5+Math.sin(t*6)*3;
+      // Dark void of mouth
+      ctx.fillStyle='#000'; ctx.globalAlpha=0.8*flick;
+      ctx.beginPath(); ctx.ellipse(BIRD_SIZE*0.05,2,BIRD_SIZE*0.15,mouthOpen,0,0,Math.PI*2); ctx.fill();
+      // Inner scream glow
+      ctx.fillStyle='rgba(200,200,255,0.3)';
+      ctx.beginPath(); ctx.ellipse(BIRD_SIZE*0.05,2,BIRD_SIZE*0.08,mouthOpen*0.5,0,0,Math.PI*2); ctx.fill();
+      // HOLLOW EYES — empty, soul-devouring
+      for(const side of[-1,1]){
+        const ex=BIRD_SIZE*0.02+side*6, ey=-5;
+        // Socket
+        ctx.fillStyle='#000'; ctx.globalAlpha=0.85*flick;
+        ctx.beginPath(); ctx.ellipse(ex,ey,4,5,0,0,Math.PI*2); ctx.fill();
+        // Burning pupil deep inside
+        ctx.fillStyle='#ccccff'; ctx.globalAlpha=(0.5+Math.sin(t*8+side*2)*0.4)*flick;
+        ctx.shadowColor='#ccccff'; ctx.shadowBlur=10;
+        ctx.beginPath(); ctx.arc(ex+Math.sin(t*1.5)*1,ey+Math.sin(t*1.8)*0.5,1.8,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // SONIC SHOCKWAVE RINGS — expanding from mouth
+      for(let i=0;i<4;i++){
+        const sr=((t*15+i*8)%40);
+        ctx.strokeStyle='rgba(200,200,255,0.15)'; ctx.lineWidth=1.5;
+        ctx.globalAlpha=(1-sr/40)*0.25*flick;
+        ctx.beginPath(); ctx.arc(BIRD_SIZE*0.3+sr,2,sr*0.5+3,Math.PI*-0.3,Math.PI*0.3); ctx.stroke();
+      }
+      // WAILING TRAILS — spectral wisps
+      for(let i=0;i<6;i++){
+        const wa=t*1.5+i*1.05;
+        const wd=BIRD_SIZE*(0.3+Math.sin(t*2+i)*0.4);
+        ctx.strokeStyle='rgba(220,220,255,0.15)'; ctx.lineWidth=1.5; ctx.globalAlpha=phase*flick;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(wa)*wd,Math.sin(wa)*wd);
+        ctx.bezierCurveTo(Math.cos(wa)*wd+Math.sin(t*4+i)*15,Math.sin(wa)*wd+10,
+          Math.cos(wa)*wd+20,Math.sin(wa)*wd+Math.cos(t*3)*15,
+          Math.cos(wa)*wd+Math.sin(t*2+i)*25,Math.sin(wa)*wd+Math.cos(t*2+i)*25);
+        ctx.stroke();
+      }
+      // HAIR — long spectral strands flowing back
+      ctx.strokeStyle='rgba(220,220,255,0.12)'; ctx.lineWidth=1; ctx.lineCap='round';
+      for(let i=0;i<8;i++){
+        const hx=-BIRD_SIZE*0.1+i*BIRD_SIZE*0.04-BIRD_SIZE*0.12;
+        ctx.globalAlpha=phase*0.8*flick;
+        ctx.beginPath(); ctx.moveTo(hx,-BIRD_SIZE*0.45);
+        ctx.bezierCurveTo(hx-10,-BIRD_SIZE*0.5+Math.sin(t*3+i)*5,hx-20,-BIRD_SIZE*0.3,hx-25+Math.sin(t*2.5+i)*8,-BIRD_SIZE*0.2+Math.sin(t*4+i)*10);
+        ctx.stroke();
+      }
+      ctx.lineCap='butt';
+
+    } else if(skinId==="abyssal"){
+      // ═══ ABYSSAL — demon z otchłani, najdroższy skin ═══
+      const tB=isThrusting?1:0.3;
+      // HELLFIRE EXHAUST — dark energy
+      ctx.shadowColor='#ff0033'; ctx.shadowBlur=isThrusting?45:10;
+      for(let i=0;i<(isThrusting?10:3);i++){
+        const fx=-BIRD_SIZE*0.5-Math.random()*(isThrusting?35:8);
+        const fy=(Math.random()-0.5)*16;
+        ctx.fillStyle=i%3===0?'#ff0033':i%3===1?'#880011':'#ff0066';
+        ctx.globalAlpha=tB*(0.3+Math.random()*0.4);
+        ctx.beginPath(); ctx.arc(fx,fy,2+Math.random()*5,0,Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      // DEMON BODY — angular, armored, massive
+      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=25;
+      ctx.beginPath();
+      ctx.moveTo(BIRD_SIZE*0.5,0);
+      ctx.lineTo(BIRD_SIZE*0.15,-BIRD_SIZE*0.3);
+      ctx.lineTo(-BIRD_SIZE*0.2,-BIRD_SIZE*0.45);
+      ctx.lineTo(-BIRD_SIZE*0.5,-BIRD_SIZE*0.3);
+      ctx.lineTo(-BIRD_SIZE*0.5,BIRD_SIZE*0.3);
+      ctx.lineTo(-BIRD_SIZE*0.2,BIRD_SIZE*0.45);
+      ctx.lineTo(BIRD_SIZE*0.15,BIRD_SIZE*0.3);
+      ctx.closePath(); ctx.fill();
+      // Dark energy veins (red cracks)
+      ctx.strokeStyle='#ff0033'; ctx.lineWidth=1.2; ctx.globalAlpha=0.5+Math.sin(t*4)*0.2;
+      for(let i=0;i<6;i++){
+        const va=i*Math.PI*2/6+t*0.2;
+        ctx.beginPath(); ctx.moveTo(0,0);
+        ctx.lineTo(Math.cos(va)*coreR*1.2,Math.sin(va)*coreR*1.2); ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+      // DEMON HORNS — massive curved
+      for(const side of[-1,1]){
+        ctx.fillStyle='#220000'; ctx.globalAlpha=0.95;
+        ctx.beginPath();
+        ctx.moveTo(-BIRD_SIZE*0.1,side*BIRD_SIZE*0.3);
+        ctx.quadraticCurveTo(-BIRD_SIZE*0.35,side*BIRD_SIZE*0.9,-BIRD_SIZE*0.55,side*BIRD_SIZE*0.7);
+        ctx.quadraticCurveTo(-BIRD_SIZE*0.45,side*BIRD_SIZE*0.5,-BIRD_SIZE*0.2,side*BIRD_SIZE*0.3);
+        ctx.closePath(); ctx.fill();
+        // Horn tip glow
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.5+Math.sin(t*5+side)*0.3;
+        ctx.shadowColor=sk.glow; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(-BIRD_SIZE*0.55,side*BIRD_SIZE*0.7,2.5,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // HELLFIRE EYES — burning with malice
+      for(const side of[-1,1]){
+        const ex=BIRD_SIZE*0.1, ey=side*BIRD_SIZE*0.12;
+        // Eye socket
+        ctx.fillStyle='#000'; ctx.globalAlpha=0.9;
+        ctx.beginPath(); ctx.ellipse(ex,ey,5,3.5,side*0.2,0,Math.PI*2); ctx.fill();
+        // Burning iris
+        ctx.fillStyle='#ff0033'; ctx.globalAlpha=0.9;
+        ctx.shadowColor='#ff0033'; ctx.shadowBlur=15;
+        ctx.beginPath(); ctx.arc(ex+Math.sin(t*1.5),ey+Math.sin(t*1.2)*0.5,2.5,0,Math.PI*2); ctx.fill();
+        // Inner fire
+        ctx.fillStyle='#ff6600'; ctx.globalAlpha=0.7;
+        ctx.beginPath(); ctx.arc(ex+Math.sin(t*1.5),ey+Math.sin(t*1.2)*0.5,1.2,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      // SIGIL — demonic pentagram (rotating)
+      ctx.save(); ctx.rotate(t*0.7);
+      ctx.strokeStyle='#ff0033'; ctx.lineWidth=1; ctx.globalAlpha=0.2;
+      // Pentagon + star
+      const pR=coreR*0.55;
+      ctx.beginPath();
+      for(let i=0;i<5;i++){
+        const pa=i*Math.PI*2/5-Math.PI/2;
+        const na=((i+2)%5)*Math.PI*2/5-Math.PI/2;
+        ctx.moveTo(Math.cos(pa)*pR,Math.sin(pa)*pR);
+        ctx.lineTo(Math.cos(na)*pR,Math.sin(na)*pR);
+      }
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,pR,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+      // DARK ENERGY ORB — core
+      const demonG=ctx.createRadialGradient(0,0,0,0,0,coreR*0.5);
+      demonG.addColorStop(0,'#ff0033'); demonG.addColorStop(0.4,'#440011'); demonG.addColorStop(1,'#000');
+      ctx.fillStyle=demonG; ctx.globalAlpha=0.9;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.5,0,Math.PI*2); ctx.fill();
+      // SOUL CHAINS — reaching out to grab
+      for(let i=0;i<4;i++){
+        const ca=t*1.2+i*Math.PI*0.5;
+        const cr=BIRD_SIZE*(0.6+Math.sin(t*2+i)*0.3);
+        ctx.strokeStyle='#440000'; ctx.lineWidth=2; ctx.globalAlpha=0.4;
+        ctx.beginPath();
+        let cx2=Math.cos(ca)*coreR*0.5, cy2=Math.sin(ca)*coreR*0.5;
+        ctx.moveTo(cx2,cy2);
+        for(let j=0;j<6;j++){
+          cx2+=Math.cos(ca+Math.sin(t*3+j)*0.5)*5;
+          cy2+=Math.sin(ca+Math.sin(t*2+j)*0.5)*5;
+          ctx.lineTo(cx2,cy2);
+        }
+        ctx.stroke();
+        // Chain end hook
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.5;
+        ctx.beginPath(); ctx.arc(cx2,cy2,2,0,Math.PI*2); ctx.fill();
+      }
+      // FIRE AURA — pulsing hellfire ring
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=3; ctx.globalAlpha=0.06+Math.sin(t*3)*0.03;
+      ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*1.1,0,Math.PI*2); ctx.stroke();
+      // ORBITING SKULLS — tiny death symbols
+      for(let i=0;i<3;i++){
+        const sa=t*1.5+i*Math.PI*2/3;
+        const sr=BIRD_SIZE*0.75;
+        const sx=Math.cos(sa)*sr, sy=Math.sin(sa)*sr;
+        ctx.fillStyle='#220000'; ctx.globalAlpha=0.6;
+        ctx.beginPath(); ctx.arc(sx,sy,3,0,Math.PI*2); ctx.fill();
+        // Skull eyes
+        ctx.fillStyle=sk.glow; ctx.globalAlpha=0.7;
+        ctx.beginPath(); ctx.arc(sx-1,sy-1,0.8,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sx+1,sy-1,0.8,0,Math.PI*2); ctx.fill();
+      }
 
     } else {
       // ═══ NEON RECON DRONE — default classic design ═══
