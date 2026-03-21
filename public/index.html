@@ -1264,72 +1264,194 @@
       ctx.beginPath(); ctx.arc(s.x,s.y,s.size,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
-    // Distant neon cityscape
+    // === FAR LAYER: Nebula clouds ===
+    const nebulaT=Date.now()*0.0001;
+    for(let i=0;i<4;i++) {
+      const nx=(nebulaT*20+i*W*0.4)%(W*1.5)-W*0.25;
+      const ny=H*0.2+Math.sin(nebulaT+i*2)*H*0.15;
+      const nr=80+i*35;
+      ctx.globalAlpha=0.035;
+      const nebGrad=ctx.createRadialGradient(nx,ny,0,nx,ny,nr);
+      nebGrad.addColorStop(0,z.accent); nebGrad.addColorStop(0.5,z.laser+'30'); nebGrad.addColorStop(1,'transparent');
+      ctx.fillStyle=nebGrad;
+      ctx.beginPath(); ctx.arc(nx,ny,nr,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    // === MID LAYER: Industrial structures (parallax 0.3x) ===
+    const midOff=state===STATE.PLAYING?groundX*0.3:Date.now()*0.005;
+    ctx.globalAlpha=0.15;
+    for(let i=0;i<5;i++) {
+      const sx=((midOff+i*W*0.28)%(W*1.4))-W*0.2;
+      const sBaseY=H-GROUND_HEIGHT-30;
+      const tw=8+(i%3)*4, th=60+(i%4)*40;
+      ctx.fillStyle=z.bg3; ctx.fillRect(sx,sBaseY-th,tw,th);
+      ctx.strokeStyle=z.accent; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(sx+tw/2,sBaseY-th); ctx.lineTo(sx+tw/2,sBaseY-th-15); ctx.stroke();
+      if(Math.sin(Date.now()*0.003+i*1.5)>0.5) {
+        ctx.fillStyle=z.accent; ctx.shadowColor=z.accent; ctx.shadowBlur=8;
+        ctx.beginPath(); ctx.arc(sx+tw/2,sBaseY-th-15,2,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+      ctx.strokeStyle=z.bg2;
+      for(let by=sBaseY-th+15;by<sBaseY;by+=20) {
+        ctx.beginPath(); ctx.moveTo(sx,by); ctx.lineTo(sx+tw,by+10); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha=1;
+    // === NEAR LAYER: City skyline (parallax 0.6x) ===
+    const cityOff=state===STATE.PLAYING?groundX*0.6:Date.now()*0.008;
     const cityY=H-GROUND_HEIGHT-50;
-    for(let x=0;x<W;x+=25+Math.sin(x*0.08)*15) {
+    for(let x=0;x<W+30;x+=25+Math.sin(x*0.08)*15) {
+      const bx=((x+cityOff)%(W+60))-30;
       const h=15+Math.abs(Math.sin(x*0.04))*55;
-      const bx=x, by=cityY+50-h;
+      const by=cityY+50-h;
       ctx.fillStyle="rgba(10,10,35,0.8)";
       ctx.fillRect(bx,by,16+Math.sin(x)*6,h);
-      // Random lit windows
       ctx.fillStyle="rgba(0,200,255,0.15)";
       for(let wy=by+4;wy<by+h-6;wy+=8) {
         if(Math.sin(x*3+wy*2)>0.3) ctx.fillRect(bx+3,wy,4,3);
         if(Math.sin(x*5+wy)>0.4) ctx.fillRect(bx+9,wy,4,3);
       }
     }
-    // Floating hologram rings (decorative)
+    // Floating hologram rings
     ctx.strokeStyle="rgba(0,240,255,0.06)"; ctx.lineWidth=1;
     const holoOff=Date.now()*0.01;
     for(let i=0;i<3;i++) {
       const hx=(holoOff*0.3+i*W/3)%W, hy=H*0.25+Math.sin(holoOff*0.02+i)*40;
       ctx.beginPath(); ctx.ellipse(hx,hy,40+i*10,12,0.2,0,Math.PI*2); ctx.stroke();
     }
+    // === DATA STREAM LINES ===
+    const dsOff=Date.now()*0.05;
+    for(let i=0;i<6;i++) {
+      const dy=H*0.15+i*H*0.12, dx=(dsOff+i*200)%(W+300)-150, dLen=40+i*15;
+      ctx.globalAlpha=0.06;
+      const dsGrad=ctx.createLinearGradient(dx,dy,dx+dLen,dy);
+      dsGrad.addColorStop(0,'transparent'); dsGrad.addColorStop(0.5,z.accent); dsGrad.addColorStop(1,'transparent');
+      ctx.strokeStyle=dsGrad; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(dx,dy); ctx.lineTo(dx+dLen,dy); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
   }
 
   function drawPipe(p) {
     const topH=p.topH, botY=topH+p.gap;
-    // Laser barrier emitters (top)
-    const emW=30, emH=14;
-    ctx.fillStyle="#1a2a3a";
-    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2,topH-emH,emW,emH);
-    ctx.fillStyle="#0d4a5a";
-    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2+2,topH-emH+2,emW-4,emH-4);
-    // Laser barrier emitters (bottom)
-    ctx.fillStyle="#1a2a3a";
-    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2,botY,emW,emH);
-    ctx.fillStyle="#0d4a5a";
-    ctx.fillRect(p.x-emW/2+PIPE_WIDTH/2+2,botY+2,emW-4,emH-4);
-    // Laser beams (top)
+    const z=currentZone;
+    const PANEL_W=56;
+    const px=p.x-(PANEL_W-PIPE_WIDTH)/2; // center visual around hitbox
+    const cx=px+PANEL_W/2; // center x
     const beamFlicker=0.7+Math.sin(Date.now()/80+p.x)*0.3;
-    ctx.globalAlpha=beamFlicker;
-    ctx.shadowColor="#ff0066"; ctx.shadowBlur=15;
-    const lc=currentZone.laser;
-    const grad1=ctx.createLinearGradient(p.x+PIPE_WIDTH/2,0,p.x+PIPE_WIDTH/2,topH);
-    grad1.addColorStop(0,lc+'1a'); grad1.addColorStop(0.7,lc+'99'); grad1.addColorStop(1,lc+'ff');
-    ctx.fillStyle=grad1;
-    ctx.fillRect(p.x,0,PIPE_WIDTH,topH);
-    // Core line top
-    ctx.strokeStyle="#ff3388"; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(p.x+PIPE_WIDTH/2,0); ctx.lineTo(p.x+PIPE_WIDTH/2,topH); ctx.stroke();
-    // Laser beams (bottom)
-    const grad2=ctx.createLinearGradient(p.x+PIPE_WIDTH/2,botY,p.x+PIPE_WIDTH/2,H-GROUND_HEIGHT);
-    grad2.addColorStop(0,lc+'ff'); grad2.addColorStop(0.3,lc+'99'); grad2.addColorStop(1,lc+'1a');
-    ctx.fillStyle=grad2;
-    ctx.fillRect(p.x,botY,PIPE_WIDTH,H-botY-GROUND_HEIGHT);
-    ctx.strokeStyle="#ff3388"; ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(p.x+PIPE_WIDTH/2,botY); ctx.lineTo(p.x+PIPE_WIDTH/2,H-GROUND_HEIGHT); ctx.stroke();
-    ctx.shadowBlur=0; ctx.globalAlpha=1;
+    // === TOP WALL PANEL ===
+    const tGrad=ctx.createLinearGradient(px,0,px+PANEL_W,0);
+    tGrad.addColorStop(0,'#080c14'); tGrad.addColorStop(0.12,'#0e1a2a');
+    tGrad.addColorStop(0.5,'#142840'); tGrad.addColorStop(0.88,'#0e1a2a');
+    tGrad.addColorStop(1,'#080c14');
+    ctx.fillStyle=tGrad; ctx.fillRect(px,0,PANEL_W,topH);
+    // Panel edge glow
+    ctx.strokeStyle='rgba(0,180,255,0.18)'; ctx.lineWidth=1;
+    ctx.strokeRect(px+1,0,PANEL_W-2,topH);
+    // Horizontal circuit traces
+    ctx.strokeStyle='rgba(0,140,220,0.07)'; ctx.lineWidth=1;
+    for(let y=18;y<topH-8;y+=24) {
+      ctx.beginPath(); ctx.moveTo(px+8,y); ctx.lineTo(px+PANEL_W-8,y); ctx.stroke();
+      if(Math.sin(y*0.12+Date.now()*0.003)>0.3) {
+        ctx.fillStyle=z.accent+'44';
+        ctx.beginPath(); ctx.arc(px+8+(y%3)*14,y,1.5,0,Math.PI*2); ctx.fill();
+      }
+    }
+    // Vertical circuit traces
+    ctx.strokeStyle='rgba(0,140,220,0.05)';
+    for(let x=px+12;x<px+PANEL_W-8;x+=16) {
+      ctx.beginPath(); ctx.moveTo(x,8); ctx.lineTo(x,topH-8); ctx.stroke();
+    }
+    // Warning stripes near emitter
+    for(let sy=topH-28;sy<topH-10;sy+=6) {
+      ctx.fillStyle=(sy/6)%2===0?'rgba(255,180,0,0.06)':'transparent';
+      ctx.fillRect(px+4,sy,PANEL_W-8,3);
+    }
+    // TOP EMITTER (gate frame)
+    const emH=12;
+    ctx.fillStyle='#0c1e30'; ctx.fillRect(px-6,topH-emH,PANEL_W+12,emH);
+    ctx.fillStyle=z.laser+'66'; ctx.fillRect(px-2,topH-emH+2,PANEL_W+4,emH-4);
+    ctx.shadowColor=z.laser; ctx.shadowBlur=12;
+    ctx.fillStyle=z.laser; ctx.fillRect(px+2,topH-3,PANEL_W-4,2);
+    ctx.shadowBlur=0;
+    // Status LEDs
+    for(let lx=px+8;lx<px+PANEL_W-4;lx+=10) {
+      ctx.fillStyle=Math.sin(Date.now()*0.005+lx)>0?z.accent:'#0a0a1a';
+      ctx.beginPath(); ctx.arc(lx,topH-emH+5,1.2,0,Math.PI*2); ctx.fill();
+    }
+    // === BOTTOM WALL PANEL ===
+    const bGrad=ctx.createLinearGradient(px,botY,px+PANEL_W,botY);
+    bGrad.addColorStop(0,'#080c14'); bGrad.addColorStop(0.12,'#0e1a2a');
+    bGrad.addColorStop(0.5,'#142840'); bGrad.addColorStop(0.88,'#0e1a2a');
+    bGrad.addColorStop(1,'#080c14');
+    ctx.fillStyle=bGrad; ctx.fillRect(px,botY,PANEL_W,H-botY-GROUND_HEIGHT);
+    ctx.strokeStyle='rgba(0,180,255,0.18)'; ctx.lineWidth=1;
+    ctx.strokeRect(px+1,botY,PANEL_W-2,H-botY-GROUND_HEIGHT);
+    // Horizontal circuit traces (bottom)
+    ctx.strokeStyle='rgba(0,140,220,0.07)'; ctx.lineWidth=1;
+    for(let y=botY+18;y<H-GROUND_HEIGHT-8;y+=24) {
+      ctx.beginPath(); ctx.moveTo(px+8,y); ctx.lineTo(px+PANEL_W-8,y); ctx.stroke();
+      if(Math.sin(y*0.12+Date.now()*0.003)>0.3) {
+        ctx.fillStyle=z.accent+'44';
+        ctx.beginPath(); ctx.arc(px+PANEL_W-8-(y%3)*14,y,1.5,0,Math.PI*2); ctx.fill();
+      }
+    }
+    // Vertical circuit traces (bottom)
+    ctx.strokeStyle='rgba(0,140,220,0.05)';
+    for(let x=px+12;x<px+PANEL_W-8;x+=16) {
+      ctx.beginPath(); ctx.moveTo(x,botY+8); ctx.lineTo(x,H-GROUND_HEIGHT-8); ctx.stroke();
+    }
+    // Warning stripes near emitter (bottom)
+    for(let sy=botY+10;sy<botY+28;sy+=6) {
+      ctx.fillStyle=(sy/6)%2===0?'rgba(255,180,0,0.06)':'transparent';
+      ctx.fillRect(px+4,sy,PANEL_W-8,3);
+    }
+    // BOTTOM EMITTER
+    ctx.fillStyle='#0c1e30'; ctx.fillRect(px-6,botY,PANEL_W+12,emH);
+    ctx.fillStyle=z.laser+'66'; ctx.fillRect(px-2,botY+2,PANEL_W+4,emH-4);
+    ctx.shadowColor=z.laser; ctx.shadowBlur=12;
+    ctx.fillStyle=z.laser; ctx.fillRect(px+2,botY+1,PANEL_W-4,2);
+    ctx.shadowBlur=0;
+    for(let lx=px+8;lx<px+PANEL_W-4;lx+=10) {
+      ctx.fillStyle=Math.sin(Date.now()*0.005+lx+1)>0?z.accent:'#0a0a1a';
+      ctx.beginPath(); ctx.arc(lx,botY+emH-5,1.2,0,Math.PI*2); ctx.fill();
+    }
+    // === ENERGY FIELD IN GAP ===
+    ctx.globalAlpha=beamFlicker*0.1;
+    const eGrad=ctx.createLinearGradient(px,topH,px,botY);
+    eGrad.addColorStop(0,z.laser); eGrad.addColorStop(0.5,'transparent'); eGrad.addColorStop(1,z.laser);
+    ctx.fillStyle=eGrad; ctx.fillRect(px,topH,PANEL_W,p.gap);
+    ctx.globalAlpha=1;
+    // Horizontal scan line in gap
+    const scanY=topH+(Date.now()*0.05+p.x)%(p.gap);
+    ctx.globalAlpha=0.15; ctx.strokeStyle=z.laser; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(px+4,scanY); ctx.lineTo(px+PANEL_W-4,scanY); ctx.stroke();
+    ctx.globalAlpha=1;
+    // === GATE FRAME (corner brackets) ===
+    const cLen=14;
+    ctx.strokeStyle=z.accent; ctx.lineWidth=2.5; ctx.shadowColor=z.accent; ctx.shadowBlur=8;
+    ctx.beginPath(); ctx.moveTo(px-3,topH+cLen); ctx.lineTo(px-3,topH); ctx.lineTo(px+cLen,topH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+PANEL_W+3,topH+cLen); ctx.lineTo(px+PANEL_W+3,topH); ctx.lineTo(px+PANEL_W-cLen,topH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px-3,botY-cLen); ctx.lineTo(px-3,botY); ctx.lineTo(px+cLen,botY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+PANEL_W+3,botY-cLen); ctx.lineTo(px+PANEL_W+3,botY); ctx.lineTo(px+PANEL_W-cLen,botY); ctx.stroke();
+    ctx.shadowBlur=0;
+    // Gate center crosshair
+    const gapMid=topH+p.gap/2;
+    ctx.globalAlpha=0.12; ctx.strokeStyle=z.accent; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(cx-8,gapMid); ctx.lineTo(cx+8,gapMid); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,gapMid-8); ctx.lineTo(cx,gapMid+8); ctx.stroke();
+    ctx.globalAlpha=1;
     // Score glow on gap
     if(p.glow>0) {
-      ctx.fillStyle=`rgba(0,255,200,${p.glow*0.15})`;
-      ctx.fillRect(p.x-10,topH,PIPE_WIDTH+20,p.gap);
+      ctx.fillStyle=`rgba(0,255,200,${p.glow*0.2})`;
+      ctx.fillRect(px-6,topH,PANEL_W+12,p.gap);
     }
     // Moving gate indicator
     if(p.moving) {
       const arrY=topH+p.gap/2, dir=p.moveDir;
       ctx.fillStyle='rgba(255,100,0,0.5)'; ctx.shadowColor='#ff6600'; ctx.shadowBlur=6;
-      ctx.beginPath(); ctx.moveTo(p.x+PIPE_WIDTH/2-5,arrY); ctx.lineTo(p.x+PIPE_WIDTH/2+5,arrY); ctx.lineTo(p.x+PIPE_WIDTH/2,arrY+dir*8); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx-6,arrY); ctx.lineTo(cx+6,arrY); ctx.lineTo(cx,arrY+dir*10); ctx.closePath(); ctx.fill();
       ctx.shadowBlur=0;
     }
   }
@@ -1359,21 +1481,48 @@
     gGrad.addColorStop(0,z.ground); gGrad.addColorStop(0.15,z.bg1); gGrad.addColorStop(1,'#020008');
     ctx.fillStyle=gGrad; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
     // Horizon glow line
-    ctx.shadowColor=z.accent; ctx.shadowBlur=15;
+    ctx.shadowColor=z.accent; ctx.shadowBlur=18;
     ctx.strokeStyle=z.accent; ctx.lineWidth=2;
     ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
     ctx.shadowBlur=0;
-    // Perspective grid
-    ctx.strokeStyle="rgba(255,0,230,0.12)"; ctx.lineWidth=1;
-    for(let x=groundX;x<W;x+=35){ ctx.beginPath(); ctx.moveTo(x,gy+2); ctx.lineTo(x,H); ctx.stroke(); }
-    for(let y=gy+12;y<H;y+=12){ 
-      const fade=1-((y-gy)/GROUND_HEIGHT)*0.7;
-      ctx.strokeStyle=`rgba(255,0,230,${0.12*fade})`;
-      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); 
-    }
-    // Secondary glow line
-    ctx.strokeStyle="rgba(0,200,255,0.08)"; ctx.lineWidth=1;
+    // Secondary glow
+    ctx.strokeStyle="rgba(0,200,255,0.1)"; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(0,gy+1); ctx.lineTo(W,gy+1); ctx.stroke();
+    // Perspective grid
+    ctx.strokeStyle="rgba(255,0,230,0.1)"; ctx.lineWidth=1;
+    for(let x=groundX;x<W;x+=35){ ctx.beginPath(); ctx.moveTo(x,gy+2); ctx.lineTo(x,H); ctx.stroke(); }
+    for(let y=gy+12;y<H;y+=12){
+      const fade=1-((y-gy)/GROUND_HEIGHT)*0.7;
+      ctx.strokeStyle=`rgba(255,0,230,${0.1*fade})`;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    }
+    // === FLOWING LIGHT DOTS (data highway) ===
+    const dotOff=Date.now()*0.06;
+    ctx.fillStyle=z.accent;
+    for(let lane=0;lane<3;lane++) {
+      const ly=gy+8+lane*16;
+      ctx.globalAlpha=0.3-lane*0.07;
+      for(let i=0;i<10;i++) {
+        const dx=(dotOff*(1.5-lane*0.3)+i*W/8)%W;
+        ctx.beginPath(); ctx.arc(dx,ly,1.5,0,Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha=1;
+    // === GROUND STRUCTURES ===
+    ctx.globalAlpha=0.35;
+    for(let i=0;i<5;i++) {
+      const gsx=((groundX*0.8+i*W*0.25)%(W+40))-20;
+      if(i%2===0) {
+        ctx.strokeStyle=z.bg2; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(gsx,gy); ctx.lineTo(gsx,gy-7-(i%3)*4); ctx.stroke();
+        ctx.fillStyle=z.accent;
+        ctx.beginPath(); ctx.arc(gsx,gy-7-(i%3)*4,1.5,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle='#0a1525'; ctx.fillRect(gsx-4,gy-5,8,5);
+        ctx.fillStyle=z.accent+'66'; ctx.fillRect(gsx-2,gy-4,2,2);
+      }
+    }
+    ctx.globalAlpha=1;
   }
 
   function getSkinColors() {
@@ -1391,37 +1540,58 @@
     // Trail
     for(const t of bird.trail) {
       if(t.life<=0) continue;
-      ctx.globalAlpha=t.life*0.4; ctx.fillStyle=sk.thrust;
+      ctx.globalAlpha=t.life*0.35; ctx.fillStyle=sk.thrust;
       ctx.beginPath(); ctx.arc(t.x-bird.x,t.y-bird.y,3*t.life,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
-    // Thrust glow (engine at back) — bigger when holding
-    const thrustLen=isThrusting?(10+Math.sin(bird.wingPhase*4)*5):(2+Math.sin(bird.wingPhase*2)*1.5);
-    const thrustSpread=isThrusting?7:4;
-    ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?22:8;
+    // === THRUST ENGINE ===
+    const thrustLen=isThrusting?(14+Math.sin(bird.wingPhase*4)*6):(2+Math.sin(bird.wingPhase*2)*1.5);
+    const thrustSpread=isThrusting?9:4;
+    ctx.shadowColor=sk.thrust; ctx.shadowBlur=isThrusting?28:8;
     ctx.fillStyle=sk.thrust; ctx.globalAlpha=isThrusting?0.9:0.4;
-    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,-thrustSpread); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-4,thrustSpread); ctx.closePath(); ctx.fill();
-    if(isThrusting){ctx.fillStyle=sk.glow;ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(-BIRD_SIZE*0.5,0);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.6-2,-thrustSpread*0.5);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.6-2,thrustSpread*0.5);ctx.closePath();ctx.fill();}
+    ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,0); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-6,-thrustSpread); ctx.lineTo(-BIRD_SIZE*0.5-thrustLen-6,thrustSpread); ctx.closePath(); ctx.fill();
+    if(isThrusting){ctx.fillStyle='#ffffff';ctx.globalAlpha=0.5;ctx.beginPath();ctx.moveTo(-BIRD_SIZE*0.5,0);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.5,-thrustSpread*0.3);ctx.lineTo(-BIRD_SIZE*0.5-thrustLen*0.5,thrustSpread*0.3);ctx.closePath();ctx.fill();}
     ctx.globalAlpha=1;
-    // Outer ring
-    ctx.shadowColor=sk.glow; ctx.shadowBlur=20;
+    // === ROTATING ARC SEGMENTS (3 segments, not solid ring) ===
+    const ringR=BIRD_SIZE*0.52;
+    const segAngle=Math.PI*0.5, gapAngle=Math.PI*0.17;
+    const rotSpeed=Date.now()*0.002;
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
     ctx.strokeStyle=sk.ring; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.48,0,Math.PI*2); ctx.stroke();
-    // Core orb
-    ctx.shadowBlur=15;
-    const orbGrad=ctx.createRadialGradient(0,-3,2, 0,0,BIRD_SIZE*0.38);
-    orbGrad.addColorStop(0,"rgba(255,255,255,0.9)"); orbGrad.addColorStop(0.4,sk.body); orbGrad.addColorStop(1,sk.glow);
+    for(let i=0;i<3;i++) {
+      const sA=rotSpeed+i*(segAngle+gapAngle);
+      ctx.beginPath(); ctx.arc(0,0,ringR,sA,sA+segAngle); ctx.stroke();
+    }
+    // === OUTER SENSOR PINS ===
+    ctx.shadowBlur=0; ctx.strokeStyle=sk.ring; ctx.lineWidth=1; ctx.globalAlpha=0.6;
+    const pinR=BIRD_SIZE*0.64;
+    for(let i=0;i<4;i++) {
+      const pa=rotSpeed*0.7+i*Math.PI*0.5+0.3;
+      const ppx=Math.cos(pa)*ringR, ppy=Math.sin(pa)*ringR;
+      const ppx2=Math.cos(pa)*pinR, ppy2=Math.sin(pa)*pinR;
+      ctx.beginPath(); ctx.moveTo(ppx,ppy); ctx.lineTo(ppx2,ppy2); ctx.stroke();
+      ctx.fillStyle=sk.glow; ctx.beginPath(); ctx.arc(ppx2,ppy2,1.5,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    // === CORE ORB ===
+    ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+    const orbGrad=ctx.createRadialGradient(0,-3,2,0,0,BIRD_SIZE*0.38);
+    orbGrad.addColorStop(0,"rgba(255,255,255,0.9)"); orbGrad.addColorStop(0.3,sk.body); orbGrad.addColorStop(1,sk.glow);
     ctx.fillStyle=orbGrad;
     ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.38,0,Math.PI*2); ctx.fill();
     // Inner highlight
-    ctx.fillStyle="rgba(255,255,255,0.3)";
-    ctx.beginPath(); ctx.arc(-2,-4,BIRD_SIZE*0.15,0,Math.PI*2); ctx.fill();
-    // Rotating scanner line
+    ctx.fillStyle="rgba(255,255,255,0.35)";
+    ctx.beginPath(); ctx.arc(-2,-4,BIRD_SIZE*0.14,0,Math.PI*2); ctx.fill();
+    // === FRONT DIRECTION CHEVRON ===
     ctx.shadowBlur=0;
-    const scanAngle=(Date.now()/200)%(Math.PI*2);
-    ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.5;
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=1.5; ctx.globalAlpha=0.7;
+    ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.3,-4); ctx.lineTo(BIRD_SIZE*0.45,0); ctx.lineTo(BIRD_SIZE*0.3,4); ctx.stroke();
+    ctx.globalAlpha=1;
+    // Hex scanner
+    const scanAngle=(Date.now()/180)%(Math.PI*2);
+    ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.4;
     ctx.beginPath(); ctx.moveTo(0,0);
-    ctx.lineTo(Math.cos(scanAngle)*BIRD_SIZE*0.45, Math.sin(scanAngle)*BIRD_SIZE*0.45);
+    ctx.lineTo(Math.cos(scanAngle)*BIRD_SIZE*0.35,Math.sin(scanAngle)*BIRD_SIZE*0.35);
     ctx.stroke(); ctx.globalAlpha=1;
     ctx.restore();
   }
