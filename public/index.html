@@ -1036,12 +1036,17 @@
     scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
   }
 
-  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   canvas.addEventListener("pointerup", () => thrustStop());
   canvas.addEventListener("pointerleave", () => thrustStop());
   canvas.addEventListener("pointercancel", () => thrustStop());
   document.addEventListener("keydown", e => {
-    if(e.code==="Space"||e.code==="ArrowUp") { e.preventDefault(); if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); }
+    if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") {
+      e.preventDefault();
+      if(state===STATE.PLAYING) thrustStart();
+      else if(state===STATE.MENU) startGame();
+      else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); }
+    }
   });
   document.addEventListener("keyup", e => {
     if(e.code==="Space"||e.code==="ArrowUp") thrustStop();
