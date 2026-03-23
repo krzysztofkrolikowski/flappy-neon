@@ -81,6 +81,7 @@
     z-index: 30;
   }
   .overlay.active { display: flex; }
+  #nick-overlay, #lb-overlay { z-index: 40; background: rgba(5,5,15,0.92); }
 
   /* === Menu === */
   .menu-title {
@@ -452,7 +453,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v18-leaderboard-20260323";
+  const _BUILD = "v19-lb-fix-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
