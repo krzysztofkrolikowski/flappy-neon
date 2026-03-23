@@ -502,7 +502,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v32-economy-laser-20260323";
+  const _BUILD = "v33-laser-fx-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -642,7 +642,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   // === LASER SHOT (Banshee perk) ===
   const LASER_COOLDOWN = 600; // 10s at 60fps
-  const LASER_HOLE_SIZE = 90; // hole height in pipe
+  const LASER_HOLE_SIZE = 130; // hole height in pipe
   let laserCharge = LASER_COOLDOWN; // starts ready
   let laserProjectile = null; // {x, y, active}
   let laserReady = true;
@@ -2383,11 +2383,23 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
               // Determine if hitting top or bottom section
               if(ly < p.topH || ly > p.topH+p.gap) {
                 if(!p.holes) p.holes=[];
-                p.holes.push({y:ly, size:LASER_HOLE_SIZE});
-                // Explosion at impact
-                burst(laserProjectile.x, ly, '#ccccff', 15);
-                burst(laserProjectile.x, ly, currentZone.accent, 10);
-                shakeMag=2;
+                // Generate jagged edge points on creation
+                const jagTop=[], jagBot=[];
+                for(let jx=0;jx<=8;jx++) {
+                  jagTop.push((Math.random()-0.5)*18);
+                  jagBot.push((Math.random()-0.5)*18);
+                }
+                p.holes.push({y:ly, size:LASER_HOLE_SIZE, jagTop, jagBot, birth:_now});
+                // Bigger explosion at impact
+                burst(laserProjectile.x, ly, '#ccccff', 25);
+                burst(laserProjectile.x, ly, '#ff6600', 15);
+                burst(laserProjectile.x, ly, currentZone.accent, 12);
+                // Flying debris chunks
+                for(let d=0;d<8;d++){
+                  const a=Math.random()*Math.PI*2, sp=2+Math.random()*4;
+                  particles.push({x:laserProjectile.x+(Math.random()-0.5)*30,y:ly+(Math.random()-0.5)*40,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.2,decay:0.015,size:3+Math.random()*4,color:'#ff8844'});
+                }
+                shakeMag=5; chromAb=3;
                 hit=true;
                 break;
               }
@@ -2675,19 +2687,91 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     if(p.holes) {
       for(const h of p.holes) {
         const hy=h.y-h.size/2, hh=h.size;
-        // Clear hole area (dark void with energy edges)
+        const age=(_now-h.birth)*0.001; // seconds since creation
+        const PANEL_EX=10; // extend beyond panel
+        const lx=px-PANEL_EX, lw=PANEL_W+PANEL_EX*2;
+
+        // 1) Dark void background
         ctx.fillStyle='#020208';
-        ctx.fillRect(px-4, hy, PANEL_W+8, hh);
-        // Energy edges (top and bottom of hole)
-        ctx.strokeStyle='#ccccff'; ctx.lineWidth=2; ctx.globalAlpha=0.6;
-        ctx.beginPath(); ctx.moveTo(px-4,hy); ctx.lineTo(px+PANEL_W+4,hy); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(px-4,hy+hh); ctx.lineTo(px+PANEL_W+4,hy+hh); ctx.stroke();
+        ctx.fillRect(lx, hy, lw, hh);
+
+        // 2) Jagged torn edges (top)
+        ctx.beginPath();
+        ctx.moveTo(lx, hy-6);
+        for(let j=0;j<=8;j++) {
+          const jxp=lx+j*(lw/8);
+          ctx.lineTo(jxp, hy+h.jagTop[j]);
+        }
+        ctx.lineTo(lx+lw, hy-6);
+        ctx.closePath();
+        ctx.fillStyle='#020208'; ctx.fill();
+        // Top edge glow
+        ctx.beginPath();
+        for(let j=0;j<=8;j++) {
+          const jxp=lx+j*(lw/8);
+          j===0?ctx.moveTo(jxp,hy+h.jagTop[j]):ctx.lineTo(jxp,hy+h.jagTop[j]);
+        }
+        ctx.strokeStyle='#ff6600'; ctx.lineWidth=2; ctx.globalAlpha=0.7; ctx.stroke();
+        ctx.strokeStyle='#ffcc44'; ctx.lineWidth=1; ctx.globalAlpha=0.4; ctx.stroke();
         ctx.globalAlpha=1;
-        // Sparking edges
-        const spark=Math.sin(_now*0.01+h.y)*0.5+0.5;
-        ctx.fillStyle=`rgba(200,200,255,${spark*0.3})`;
-        ctx.fillRect(px-2, hy+2, PANEL_W+4, 3);
-        ctx.fillRect(px-2, hy+hh-5, PANEL_W+4, 3);
+
+        // 3) Jagged torn edges (bottom)
+        ctx.beginPath();
+        ctx.moveTo(lx, hy+hh+6);
+        for(let j=0;j<=8;j++) {
+          const jxp=lx+j*(lw/8);
+          ctx.lineTo(jxp, hy+hh+h.jagBot[j]);
+        }
+        ctx.lineTo(lx+lw, hy+hh+6);
+        ctx.closePath();
+        ctx.fillStyle='#020208'; ctx.fill();
+        // Bottom edge glow
+        ctx.beginPath();
+        for(let j=0;j<=8;j++) {
+          const jxp=lx+j*(lw/8);
+          j===0?ctx.moveTo(jxp,hy+hh+h.jagBot[j]):ctx.lineTo(jxp,hy+hh+h.jagBot[j]);
+        }
+        ctx.strokeStyle='#ff6600'; ctx.lineWidth=2; ctx.globalAlpha=0.7; ctx.stroke();
+        ctx.strokeStyle='#ffcc44'; ctx.lineWidth=1; ctx.globalAlpha=0.4; ctx.stroke();
+        ctx.globalAlpha=1;
+
+        // 4) Inner heat glow (fades over time)
+        const heatAlpha=Math.max(0, 0.3-age*0.05);
+        if(heatAlpha>0) {
+          const hGrad=ctx.createLinearGradient(lx,hy,lx,hy+hh);
+          hGrad.addColorStop(0,'#ff440066'); hGrad.addColorStop(0.3,'#ff220022');
+          hGrad.addColorStop(0.7,'#ff220022'); hGrad.addColorStop(1,'#ff440066');
+          ctx.globalAlpha=heatAlpha;
+          ctx.fillStyle=hGrad; ctx.fillRect(lx,hy,lw,hh);
+          ctx.globalAlpha=1;
+        }
+
+        // 5) Ember sparks along edges (animated)
+        const emberCount=5;
+        for(let e=0;e<emberCount;e++) {
+          const et=(_now*0.003+e*1.3+h.y)%3;
+          if(et>1) continue; // only some visible at a time
+          const ex=lx+Math.abs(Math.sin(e*2.7+_now*0.002))*lw;
+          const ey=Math.random()>0.5 ? hy+h.jagTop[e%8]*0.5 : hy+hh+h.jagBot[e%8]*0.5;
+          ctx.fillStyle='#ffaa44'; ctx.globalAlpha=0.6*(1-et);
+          ctx.beginPath(); ctx.arc(ex,ey,1+Math.random(),0,Math.PI*2); ctx.fill();
+        }
+        ctx.globalAlpha=1;
+
+        // 6) Exposed wires/sparks inside hole
+        ctx.strokeStyle='#334'; ctx.lineWidth=1; ctx.globalAlpha=0.3;
+        for(let w=0;w<3;w++) {
+          const wy=hy+10+w*(hh-20)/2;
+          const sag=Math.sin(_now*0.004+w*2)*6;
+          ctx.beginPath(); ctx.moveTo(lx+4,wy); ctx.quadraticCurveTo(lx+lw/2,wy+sag,lx+lw-4,wy); ctx.stroke();
+          // Spark at random wire point
+          if(Math.sin(_now*0.008+w*3)>0.7) {
+            const sx=lx+lw*(0.3+w*0.2);
+            ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.8;
+            ctx.beginPath(); ctx.arc(sx,wy+sag*0.5,1.5,0,Math.PI*2); ctx.fill();
+          }
+        }
+        ctx.globalAlpha=1;
       }
     }
 
