@@ -147,6 +147,32 @@
   .coins-earned { color: #ffee00; font-weight: 700; font-size: 18px; margin: 8px 0; }
   .go-buttons { display: flex; gap: 10px; margin-top: 16px; justify-content: center; flex-wrap: wrap; }
 
+  /* === Nickname Input === */
+  .nick-input {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(0,200,255,0.4);
+    border-radius: 10px; color: #fff; font-size: 16px; font-weight: 600;
+    padding: 10px 16px; width: 100%; max-width: 220px; text-align: center;
+    outline: none; font-family: inherit;
+  }
+  .nick-input:focus { border-color: #00f0ff; box-shadow: 0 0 12px rgba(0,240,255,0.3); }
+  .nick-input::placeholder { color: rgba(255,255,255,0.25); }
+
+  /* === Leaderboard === */
+  .lb-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .lb-table th { color: rgba(255,255,255,0.4); font-size: 11px; text-transform: uppercase; padding: 4px 8px; text-align: left; }
+  .lb-table td { padding: 5px 8px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .lb-table .lb-rank { color: rgba(255,255,255,0.35); width: 28px; }
+  .lb-table .lb-name { color: #fff; font-weight: 600; }
+  .lb-table .lb-score { color: #00f0ff; font-weight: 700; text-align: right; }
+  .lb-table .lb-me { background: rgba(0,240,255,0.08); }
+  .lb-table .lb-me .lb-name { color: #00f0ff; }
+  .lb-medal { margin-right: 4px; }
+  .lb-loading { color: rgba(255,255,255,0.3); font-size: 13px; padding: 20px 0; }
+  .lb-scroll { max-height: 45vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .nick-row { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 10px 0; }
+  .nick-display { color: #00f0ff; font-weight: 700; font-size: 14px; }
+  .nick-edit-btn { background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; color: rgba(255,255,255,0.5); font-size: 11px; padding: 3px 8px; cursor: pointer; }
+
   /* === Shop === */
   .shop-grid {
     display: grid; grid-template-columns: repeat(3, 1fr);
@@ -305,12 +331,44 @@
   <button class="btn btn-small" id="btn-menu-pause" style="margin-top:8px;font-size:12px">🏠 Menu główne</button>
 </div>
 
+<!-- NICKNAME -->
+<div id="nick-overlay" class="overlay">
+  <div class="panel" id="nick-panel">
+    <h2 style="color:#00f0ff">✏️ NICK</h2>
+    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px">Wybierz nick do rankingu (1-16 znaków)</div>
+    <input type="text" id="nick-input" class="nick-input" maxlength="16" placeholder="TwójNick" autocomplete="off" spellcheck="false">
+    <div style="margin-top:16px">
+      <button class="btn btn-primary btn-small" id="btn-nick-save">✅ Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="lb-overlay" class="overlay">
+  <div class="panel" id="lb-panel" style="max-width:380px">
+    <h2 style="color:#00f0ff">🏆 RANKING</h2>
+    <div class="nick-row">
+      <span class="nick-display" id="lb-nick"></span>
+      <button class="nick-edit-btn" id="btn-nick-edit">✏️</button>
+    </div>
+    <div class="lb-scroll" id="lb-scroll">
+      <div class="lb-loading" id="lb-loading">Ładowanie...</div>
+      <table class="lb-table" id="lb-table" style="display:none">
+        <thead><tr><th>#</th><th>Gracz</th><th style="text-align:right">Wynik</th></tr></thead>
+        <tbody id="lb-body"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-small" id="btn-lb-close" style="margin-top:12px">Zamknij</button>
+  </div>
+</div>
+
 <!-- MENU -->
 <div id="menu-overlay" class="overlay active">
   <div class="menu-title">NEON DRIFT</div>
   <div class="menu-sub">Przytrzymaj ▲ Puść ▼</div>
   <div class="menu-buttons">
     <button class="btn btn-primary" id="btn-play">▶ GRAJ</button>
+    <button class="btn" id="btn-leaderboard">🏆 RANKING</button>
     <button class="btn" id="btn-shop">🛒 SKLEP</button>
     <div style="position:relative;display:inline-block">
       <button class="btn btn-gold btn-small" id="btn-daily">🎁 Bonus dzienny</button>
@@ -343,6 +401,7 @@
       <button class="btn btn-primary" id="btn-restart" style="width:100%;font-size:16px;padding:14px 0">🔄 Zagraj ponownie</button>
       <div style="display:flex;gap:8px;width:100%">
         <button class="btn btn-small" id="btn-shop-go" style="flex:1;font-size:12px">🛒 Sklep</button>
+        <button class="btn btn-small" id="btn-lb-go" style="flex:1;font-size:12px">🏆 Ranking</button>
         <button class="btn btn-small" id="btn-menu-go" style="flex:1;font-size:12px">🏠 Menu</button>
         <button class="btn btn-small" id="btn-share" style="flex:1;font-size:12px">📤 Wyślij</button>
       </div>
@@ -393,7 +452,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v17-cosmic-20260323";
+  const _BUILD = "v18-leaderboard-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -406,6 +465,35 @@
     },
     set(key, val) { try { localStorage.setItem("fn_" + key, JSON.stringify(val)); } catch {} }
   };
+
+  // =============================================
+  //  SUPABASE LEADERBOARD
+  // =============================================
+  const SUPA_URL = 'https://iarlpsuluiznptatwixj.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlhcmxwc3VsdWl6bnB0YXR3aXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzUwODEsImV4cCI6MjA4OTg1MTA4MX0.mjqwbNIh92f4Uw9ii6LJo8yTsnjG1oaPHo6yQ2qBWbw';
+  const SUPA_HEADERS = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+
+  let playerNick = STORAGE.get('nick', '');
+
+  function supaFetch(path, opts = {}) {
+    return fetch(SUPA_URL + '/rest/v1/' + path, {
+      headers: SUPA_HEADERS, ...opts
+    }).then(r => { if(!r.ok) throw new Error(r.status); return r; });
+  }
+
+  function submitScore(nickname, sc) {
+    if(!nickname || sc <= 0) return Promise.resolve();
+    return supaFetch('leaderboard', {
+      method: 'POST',
+      body: JSON.stringify({ nickname, score: sc })
+    }).catch(e => console.warn('[LB] submit failed:', e));
+  }
+
+  function fetchLeaderboard(limit = 50) {
+    return supaFetch('leaderboard?select=nickname,score&order=score.desc&limit=' + limit, {
+      headers: { ...SUPA_HEADERS, 'Prefer': 'return=representation' }
+    }).then(r => r.json()).catch(e => { console.warn('[LB] fetch failed:', e); return []; });
+  }
 
   // =============================================
   //  SKINS
@@ -1497,6 +1585,8 @@
       document.getElementById("medal-display").textContent=medal;
       document.getElementById("btn-revive").style.display="none";
       document.getElementById("btn-revive-ad").style.display="none";
+      // Submit score to leaderboard
+      if(playerNick && score > 0) submitScore(playerNick, score);
       setTimeout(()=>goPanel.classList.add("show"), 50);
     };
 
@@ -1723,7 +1813,13 @@
     resetGame(); state=STATE.PLAYING; isThrusting=false;
     lastTime=0; accumulator=0;
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
+    nickOverlay.classList.remove("active"); nickPanel.classList.remove("show");
+    lbOverlay.classList.remove("active"); lbPanel.classList.remove("show");
     scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
+  }
+  function startGameWithNick() {
+    if(!playerNick) { showNickInput(() => startGame()); return; }
+    startGame();
   }
 
   // Start music on first user interaction (menu, game, anywhere)
@@ -1738,7 +1834,7 @@
     }, { once: true });
   });
 
-  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGameWithNick(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   // Global tap handler for DYING skip (catches taps even if canvas doesn't get them)
   document.addEventListener("pointerdown", e => { if(state===STATE.DYING && !adActive) { e.preventDefault(); state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } });
   canvas.addEventListener("pointerup", () => thrustStop());
@@ -1757,7 +1853,7 @@
       e.preventDefault();
       if(state===STATE.PLAYING) thrustStart();
       else if(state===STATE.PAUSED) { state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; }
-      else if(state===STATE.MENU) startGame();
+      else if(state===STATE.MENU) startGameWithNick();
       else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
       else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); }
     }
@@ -1766,7 +1862,7 @@
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") thrustStop();
   });
 
-  document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGame(); });
+  document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGameWithNick(); });
   document.getElementById("btn-resume").addEventListener("click", e => { e.stopPropagation(); state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; });
   document.getElementById("btn-menu-pause").addEventListener("click", e => { e.stopPropagation(); goToMenu(); });
   document.getElementById("btn-menu-go").addEventListener("click", e => { e.stopPropagation(); goToMenu(); });
@@ -1817,16 +1913,92 @@
   document.getElementById("btn-share").addEventListener("click", e => {
     e.stopPropagation();
     const text = `NEON DRIFT \u2014 ${score} pkt! ${maxCombo>3?'Combo x'+maxCombo+'! ':''}Pokonaj mnie! \ud83d\ude80`;
-    const url = 'https://public-delta-umber.vercel.app';
+    const url = 'https://flappy-neon-one.vercel.app';
     if(navigator.share) {
       navigator.share({title:'Neon Drift',text,url}).catch(()=>{});
     } else {
       navigator.clipboard.writeText(text+' '+url).then(()=>{
         const btn=document.getElementById('btn-share');
         btn.textContent='\u2705 Skopiowano!';
-        setTimeout(()=>btn.textContent='\ud83d\udce4 Udost\u0119pnij',1500);
+        setTimeout(()=>btn.textContent='\ud83d\udce4 Wy\u015blij',1500);
       }).catch(()=>{});
     }
+  });
+
+  // =============================================
+  //  NICKNAME & LEADERBOARD UI
+  // =============================================
+  const nickOverlay = document.getElementById('nick-overlay');
+  const nickPanel = document.getElementById('nick-panel');
+  const nickInput = document.getElementById('nick-input');
+  const lbOverlay = document.getElementById('lb-overlay');
+  const lbPanel = document.getElementById('lb-panel');
+  const lbBody = document.getElementById('lb-body');
+  const lbTable = document.getElementById('lb-table');
+  const lbLoading = document.getElementById('lb-loading');
+  let nickCallback = null;
+
+  function showNickInput(cb) {
+    nickCallback = cb || null;
+    nickInput.value = playerNick;
+    nickOverlay.classList.add('active');
+    setTimeout(() => { nickPanel.classList.add('show'); nickInput.focus(); }, 50);
+  }
+
+  function saveNick() {
+    const raw = nickInput.value.replace(/[<>&"'/\\]/g, '').trim();
+    if(raw.length < 1 || raw.length > 16) return;
+    playerNick = raw;
+    STORAGE.set('nick', playerNick);
+    nickPanel.classList.remove('show');
+    setTimeout(() => { nickOverlay.classList.remove('active'); if(nickCallback) { nickCallback(); nickCallback = null; } }, 300);
+  }
+
+  document.getElementById('btn-nick-save').addEventListener('click', e => { e.stopPropagation(); saveNick(); });
+  nickInput.addEventListener('keydown', e => { if(e.key === 'Enter') { e.preventDefault(); saveNick(); } });
+
+  function ensureNick(cb) {
+    if(playerNick) { cb(); return; }
+    showNickInput(cb);
+  }
+
+  function openLeaderboard() {
+    document.getElementById('lb-nick').textContent = playerNick || '(brak nicku)';
+    lbLoading.style.display = 'block';
+    lbTable.style.display = 'none';
+    lbOverlay.classList.add('active');
+    setTimeout(() => lbPanel.classList.add('show'), 50);
+    fetchLeaderboard(50).then(rows => {
+      lbBody.innerHTML = '';
+      if(!rows.length) { lbLoading.textContent = 'Brak wyników'; return; }
+      const medals = ['🥇','🥈','🥉'];
+      rows.forEach((r, i) => {
+        const isMe = playerNick && r.nickname === playerNick;
+        const medal = i < 3 ? '<span class="lb-medal">' + medals[i] + '</span>' : '';
+        const tr = document.createElement('tr');
+        if(isMe) tr.className = 'lb-me';
+        const safeName = r.nickname.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        tr.innerHTML = '<td class="lb-rank">' + medal + (i+1) + '</td><td class="lb-name">' + safeName + '</td><td class="lb-score">' + r.score + '</td>';
+        lbBody.appendChild(tr);
+      });
+      lbLoading.style.display = 'none';
+      lbTable.style.display = 'table';
+    });
+  }
+
+  document.getElementById('btn-leaderboard').addEventListener('click', e => { e.stopPropagation(); openLeaderboard(); });
+  document.getElementById('btn-lb-go').addEventListener('click', e => {
+    e.stopPropagation();
+    goPanel.classList.remove('show');
+    setTimeout(() => { goOverlay.classList.remove('active'); openLeaderboard(); }, 200);
+  });
+  document.getElementById('btn-lb-close').addEventListener('click', () => {
+    lbPanel.classList.remove('show'); setTimeout(() => lbOverlay.classList.remove('active'), 300);
+  });
+  document.getElementById('btn-nick-edit').addEventListener('click', e => {
+    e.stopPropagation();
+    lbPanel.classList.remove('show');
+    setTimeout(() => { lbOverlay.classList.remove('active'); showNickInput(() => openLeaderboard()); }, 300);
   });
 
   // =============================================
