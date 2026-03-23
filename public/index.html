@@ -514,7 +514,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v38-realsky-20260323";
+  const _BUILD = "v39-cleanhole-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2738,10 +2738,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         const PANEL_EX=10; // extend beyond panel
         const lx=px-PANEL_EX, lw=PANEL_W+PANEL_EX*2;
 
-        // 1) Sky background — clip to hole and redraw real background
+        // 1) Punch through pipe — show real background behind
         ctx.save();
         ctx.beginPath();
-        // Build clip region: jagged top edge → right side → jagged bottom edge → left side
         const jStep=lw/8;
         ctx.moveTo(lx, hy+h.jagTop[0]);
         for(let j=1;j<=8;j++) ctx.lineTo(lx+j*jStep, hy+h.jagTop[j]);
@@ -2750,40 +2749,22 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         ctx.closePath();
         ctx.clip();
 
-        // Draw real sky gradient (full canvas gradient, clip limits it)
+        // Redraw the real background that's behind the pipe
         ctx.fillStyle=_gradCache.bg;
         ctx.fillRect(lx-2, hy-10, lw+4, hh+20);
 
-        // Draw real stars visible through the hole
+        // Redraw real stars that fall in this area
         for(const s of starParticles) {
           if(s.x>lx-2 && s.x<lx+lw+2 && s.y>hy-2 && s.y<hy+hh+2) {
-            ctx.globalAlpha=0.5+Math.sin(s.flicker)*0.3;
+            ctx.globalAlpha=0.3+Math.sin(s.flicker)*0.3;
             ctx.fillStyle='#fff';
-            ctx.beginPath(); ctx.arc(s.x,s.y,s.size*1.3,0,Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(s.x,s.y,s.size,0,Math.PI*2); ctx.fill();
           }
         }
         ctx.globalAlpha=1;
+        ctx.restore();
 
-        // Nebula glow visible through hole
-        const z=currentZone;
-        const nebCx=lx+lw/2, nebCy=hy+hh/2;
-        const nebR=Math.max(lw,hh)*0.6;
-        const nebGrad=ctx.createRadialGradient(nebCx,nebCy,0,nebCx,nebCy,nebR);
-        nebGrad.addColorStop(0,z.accent+'30'); nebGrad.addColorStop(0.5,z.laser+'18'); nebGrad.addColorStop(1,'transparent');
-        ctx.globalAlpha=0.4;
-        ctx.fillStyle=nebGrad;
-        ctx.fillRect(lx-2, hy-10, lw+4, hh+20);
-        ctx.globalAlpha=1;
-
-        // Depth vignette — darker at edges of hole for contrast with pipe
-        const vigGradT=ctx.createLinearGradient(lx,hy,lx,hy+hh);
-        vigGradT.addColorStop(0,'rgba(0,0,0,0.35)'); vigGradT.addColorStop(0.15,'transparent');
-        vigGradT.addColorStop(0.85,'transparent'); vigGradT.addColorStop(1,'rgba(0,0,0,0.35)');
-        ctx.fillStyle=vigGradT; ctx.fillRect(lx-2,hy-10,lw+4,hh+20);
-
-        ctx.restore(); // end clip
-
-        // 2) Jagged edge glow (top) — drawn OUTSIDE clip for crisp lines
+        // 2) Orange jagged edge glow (top)
         ctx.beginPath();
         for(let j=0;j<=8;j++) {
           const jxp=lx+j*jStep;
@@ -2793,7 +2774,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         ctx.strokeStyle='#ffcc44'; ctx.lineWidth=1; ctx.globalAlpha=0.5; ctx.stroke();
         ctx.globalAlpha=1;
 
-        // 3) Jagged edge glow (bottom)
+        // 3) Orange jagged edge glow (bottom)
         ctx.beginPath();
         for(let j=0;j<=8;j++) {
           const jxp=lx+j*jStep;
@@ -2803,27 +2784,19 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         ctx.strokeStyle='#ffcc44'; ctx.lineWidth=1; ctx.globalAlpha=0.5; ctx.stroke();
         ctx.globalAlpha=1;
 
-        // 4) Inner heat glow on edges (fades over time)
-        const heatAlpha=Math.max(0, 0.3-age*0.05);
-        if(heatAlpha>0) {
-          const hGrad=ctx.createLinearGradient(lx,hy,lx,hy+hh);
-          hGrad.addColorStop(0,'#ff440066'); hGrad.addColorStop(0.15,'transparent');
-          hGrad.addColorStop(0.85,'transparent'); hGrad.addColorStop(1,'#ff440066');
-          ctx.globalAlpha=heatAlpha;
-          ctx.fillStyle=hGrad; ctx.fillRect(lx,hy,lw,hh);
-          ctx.globalAlpha=1;
-        }
-
-        // 5) PERMANENT FLAMES on edges
+        // 4) Flames growing INWARD from orange edges
         if(h.flames) {
           for(const f of h.flames) {
             const fx=lx+f.x*lw;
-            const baseY=f.edge===0 ? hy : hy+hh;
-            const dir=f.edge===0 ? -1 : 1;
+            const isTop=f.edge===0;
+            // Anchor on the jagged edge
+            const jagIdx=Math.min(8,Math.max(0,Math.round(f.x*8)));
+            const baseY=isTop ? hy+(h.jagTop[jagIdx]||0) : hy+hh+(h.jagBot[jagIdx]||0);
+            // Flames grow INTO the hole (top edge → downward, bottom edge → upward)
+            const dir=isTop ? 1 : -1;
             const t=_now*0.006*f.speed+f.phase;
             const flameH=f.size*(0.6+Math.sin(t)*0.4);
             const flicker=Math.sin(t*2.3)*0.3+0.7;
-            // Flame body (3 layers: red core, orange mid, yellow tip)
             // Outer red
             ctx.globalAlpha=0.35*flicker;
             ctx.fillStyle='#ff2200';
@@ -2852,11 +2825,11 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           ctx.globalAlpha=1;
         }
 
-        // 6) Ember sparks along edges (animated)
+        // 5) Ember sparks along edges
         const emberCount=5;
         for(let e=0;e<emberCount;e++) {
           const et=(_now*0.003+e*1.3+h.y)%3;
-          if(et>1) continue; // only some visible at a time
+          if(et>1) continue;
           const ex=lx+Math.abs(Math.sin(e*2.7+_now*0.002))*lw;
           const ey=Math.random()>0.5 ? hy+h.jagTop[e%8]*0.5 : hy+hh+h.jagBot[e%8]*0.5;
           ctx.fillStyle='#ffaa44'; ctx.globalAlpha=0.6*(1-et);
