@@ -455,7 +455,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v21-faststart-20260323";
+  const _BUILD = "v22-nicktop10-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -496,6 +496,13 @@
     return supaFetch('leaderboard?select=nickname,score&order=score.desc&limit=' + limit, {
       headers: { ...SUPA_HEADERS, 'Prefer': 'return=representation' }
     }).then(r => r.json()).catch(e => { console.warn('[LB] fetch failed:', e); return []; });
+  }
+
+  function checkTop10(sc) {
+    return fetchLeaderboard(10).then(rows => {
+      if(rows.length < 10) return true;
+      return sc > rows[rows.length - 1].score;
+    }).catch(() => false);
   }
 
   // =============================================
@@ -1588,8 +1595,17 @@
       document.getElementById("medal-display").textContent=medal;
       document.getElementById("btn-revive").style.display="none";
       document.getElementById("btn-revive-ad").style.display="none";
-      // Submit score to leaderboard
-      if(playerNick && score > 0) submitScore(playerNick, score);
+      // Submit score or prompt for nick if top 10
+      const finalScore = score;
+      if(finalScore > 0) {
+        if(playerNick) {
+          submitScore(playerNick, finalScore);
+        } else {
+          checkTop10(finalScore).then(qualifies => {
+            if(qualifies) showNickInput(() => submitScore(playerNick, finalScore));
+          });
+        }
+      }
       setTimeout(()=>goPanel.classList.add("show"), 50);
     };
 
@@ -1820,10 +1836,7 @@
     lbOverlay.classList.remove("active"); lbPanel.classList.remove("show");
     scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
   }
-  function startGameWithNick() {
-    if(!playerNick) { showNickInput(() => startGame()); return; }
-    startGame();
-  }
+  function startGameWithNick() { startGame(); }
 
   // Start music on first user interaction (menu, game, anywhere)
   function ensureMusic() {
