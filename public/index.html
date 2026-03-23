@@ -464,7 +464,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <div id="shop-overlay" class="overlay">
   <div class="panel" id="shop-panel" style="max-width:380px">
     <h2 style="color:#00f0ff">🛒 SKLEP</h2>
-    <div style="color:#ffee00;font-size:14px;margin-bottom:8px">🪙 <span id="shop-coins">0</span> <span data-t="coinsWord">coins</span></div>
+    <div style="color:#ffee00;font-size:14px;margin-bottom:8px">💰 <span id="shop-coins">0</span> <span data-t="coinsWord">coins</span></div>
     <div class="shop-grid" id="shop-grid"></div>
     <button class="btn btn-small" id="btn-shop-close" style="margin-top:12px" data-t="close">Close</button>
   </div>
@@ -949,7 +949,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       STORAGE.set("coins", coins); STORAGE.set("daily_ts", lastDaily); STORAGE.set("daily_streak", dailyStreak);
       updateCoinHud();
       document.getElementById("daily-content").innerHTML =
-        `<div style="font-size:48px;margin:8px 0">🪙</div>
+        `<div style="font-size:48px;margin:8px 0">💰</div>
          <div style="font-size:22px;color:#ffee00;font-weight:700">+${bonus} ${t('coinsWord','coins')}!</div>
          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:8px">
            ${t('streak','Streak:')} ${dailyStreak} ${dailyStreak===1?t('day','day'):t('days','days')} — ${t('comeBackDaily','come back daily!')}
@@ -1596,7 +1596,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     combo++; comboTimer=COMBO_DECAY;
     comboMultiplier=1+Math.floor(combo/3)*0.5; // x1, x1.5, x2, x2.5...
     if(combo>maxCombo) maxCombo=combo;
-    comboText.textContent=`x${combo} 🪙×${comboMultiplier.toFixed(1)}`;
+    comboText.textContent=`x${combo} 💰×${comboMultiplier.toFixed(1)}`;
     comboFill.style.width='100%';
     comboHud.classList.add('visible','bump');
     setTimeout(()=>comboHud.classList.remove('bump'),150);
@@ -1705,7 +1705,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   function showCoinPopup(x,y,amount) {
     const el = _coinPopupPool[_coinPopupIdx];
     _coinPopupIdx = (_coinPopupIdx + 1) % COIN_POPUP_POOL_SIZE;
-    el.textContent = `+${amount} 🪙`;
+    el.textContent = `+${amount} 💰`;
     el.style.left = x+"px"; el.style.top = y+"px";
     el.style.display = "";
     el.classList.remove("fade");
@@ -1783,7 +1783,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       const bestEl=document.getElementById("best-score");
       bestEl.textContent=bestScore;
       bestEl.className="stat-value"+(isNewBest&&score>0?" new-best":"");
-      document.getElementById("coins-earned").textContent=`+${sessionCoins} 🪙`;
+      document.getElementById("coins-earned").textContent=`+${sessionCoins} 💰`;
       document.getElementById('go-taunt').textContent=getTaunt(score);
       let medal="";
       if(score>=50)medal="👑"; else if(score>=30)medal="💎"; else if(score>=20)medal="🏆"; else if(score>=10)medal="🥇"; else if(score>=5)medal="🥈";
@@ -2352,8 +2352,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           const distTop=Math.abs(bird.y-p.topH),distBot=Math.abs(bird.y-(p.topH+p.gap));
           const nearDist=Math.min(distTop,distBot);
           if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
-          else if(nearDist<25){driftCount++;const driftCoins=Math.ceil(3*comboMultiplier*(activePowerUp&&activePowerUp.id==='x2'?2:1));addCoins(driftCoins);showStreak(`⚡ DRIFT +${driftCoins}🪙`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
-          else if(pipeCoins>1){showStreak(`+${pipeCoins} 🪙`);}
+          else if(nearDist<25){driftCount++;const driftCoins=Math.ceil(3*comboMultiplier*(activePowerUp&&activePowerUp.id==='x2'?2:1));addCoins(driftCoins);showStreak(`⚡ DRIFT +${driftCoins}💰`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
+          else if(pipeCoins>1){showStreak(`+${pipeCoins} 💰`);}
           const speedMax = hasPerk('speed_cap') ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
           gameSpeed=Math.min(speedMax, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
