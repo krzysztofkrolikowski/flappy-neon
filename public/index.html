@@ -401,8 +401,10 @@
       <button class="btn btn-small" id="btn-revive-ad" style="display:none"></button>
       <button class="btn btn-primary" id="btn-restart" style="width:100%;font-size:16px;padding:14px 0">🔄 Zagraj ponownie</button>
       <div style="display:flex;gap:8px;width:100%">
-        <button class="btn btn-small" id="btn-shop-go" style="flex:1;font-size:12px">🛒 Sklep</button>
         <button class="btn btn-small" id="btn-lb-go" style="flex:1;font-size:12px">🏆 Ranking</button>
+        <button class="btn btn-small" id="btn-shop-go" style="flex:1;font-size:12px">🛒 Sklep</button>
+      </div>
+      <div style="display:flex;gap:8px;width:100%">
         <button class="btn btn-small" id="btn-menu-go" style="flex:1;font-size:12px">🏠 Menu</button>
         <button class="btn btn-small" id="btn-share" style="flex:1;font-size:12px">📤 Wyślij</button>
       </div>
@@ -453,7 +455,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v19-lb-fix-20260323";
+  const _BUILD = "v20-fixes-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2165,8 +2167,8 @@
       if(deathFreezeFrames>0){deathFreezeFrames--;} else {
       isThrusting=false;
       // Classic fall: accelerate down, spin
-      bird.vy+=DRIFT_GRAV*2.5;
-      if(bird.vy>MAX_VY*1.5) bird.vy=MAX_VY*1.5;
+      bird.vy+=DRIFT_GRAV*3.5;
+      if(bird.vy>MAX_VY*2) bird.vy=MAX_VY*2;
       bird.y+=bird.vy;
       bird.angle+=0.15;
       if(bird.angle>Math.PI*2) bird.angle-=Math.PI*2;
@@ -2179,7 +2181,7 @@
       if(Math.random()>0.6) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.5,decay:0.04,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
       // End: hit ground or timeout → show game over
       const groundY = H - GROUND_HEIGHT;
-      if(bird.y > groundY || dyingTimer > 90) {
+      if(bird.y > groundY || dyingTimer > 50) {
         bird.y = Math.min(bird.y, groundY);
         state=STATE.DEAD; timeScale=1; timeScaleTarget=1; chromAb=0;
         showGameOver();
