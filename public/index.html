@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -9,8 +9,8 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Neon Drift</title>
-<!-- Google AdSense — zamień ca-pub-8654195531699282 na swoje ID z https://adsense.google.com -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8654195531699282" crossorigin="anonymous"></script>
+<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js" async></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -326,20 +326,20 @@
 
 <!-- PAUSE -->
 <div id="pause-overlay" class="overlay">
-  <div class="menu-title" style="font-size:2rem">⏸ PAUZA</div>
-  <div class="menu-sub">ESC lub Space — kontynuuj</div>
-  <button class="btn btn-primary" id="btn-resume">▶ KONTYNUUJ</button>
-  <button class="btn btn-small" id="btn-menu-pause" style="margin-top:8px;font-size:12px">🏠 Menu główne</button>
+  <div class="menu-title" style="font-size:2rem" data-t="paused">⏸ PAUSED</div>
+  <div class="menu-sub" data-t="pauseSub">ESC or Space — resume</div>
+  <button class="btn btn-primary" id="btn-resume" data-t="resume">▶ RESUME</button>
+  <button class="btn btn-small" id="btn-menu-pause" style="margin-top:8px;font-size:12px" data-t="mainMenu">🏠 Main Menu</button>
 </div>
 
 <!-- NICKNAME -->
 <div id="nick-overlay" class="overlay">
   <div class="panel" id="nick-panel">
-    <h2 style="color:#00f0ff">✏️ NICK</h2>
-    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px">Wybierz nick do rankingu (1-16 znaków)</div>
-    <input type="text" id="nick-input" class="nick-input" maxlength="16" placeholder="TwójNick" autocomplete="off" spellcheck="false">
+    <h2 style="color:#00f0ff" data-t="nickTitle">✏️ NICKNAME</h2>
+    <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:16px" data-t="nickDesc">Choose a nickname for the leaderboard (1-16 chars)</div>
+    <input type="text" id="nick-input" class="nick-input" maxlength="16" placeholder="YourName" autocomplete="off" spellcheck="false">
     <div style="margin-top:16px">
-      <button class="btn btn-primary btn-small" id="btn-nick-save">✅ Zapisz</button>
+      <button class="btn btn-primary btn-small" id="btn-nick-save" data-t="save">✅ Save</button>
     </div>
   </div>
 </div>
@@ -353,26 +353,26 @@
       <button class="nick-edit-btn" id="btn-nick-edit">✏️</button>
     </div>
     <div class="lb-scroll" id="lb-scroll">
-      <div class="lb-loading" id="lb-loading">Ładowanie...</div>
+      <div class="lb-loading" id="lb-loading" data-t="loading">Loading...</div>
       <table class="lb-table" id="lb-table" style="display:none">
-        <thead><tr><th>#</th><th>Gracz</th><th style="text-align:right">Wynik</th></tr></thead>
+        <thead><tr><th>#</th><th data-t="player">Player</th><th style="text-align:right" data-t="score">Score</th></tr></thead>
         <tbody id="lb-body"></tbody>
       </table>
     </div>
-    <button class="btn btn-small" id="btn-lb-close" style="margin-top:12px">Zamknij</button>
+    <button class="btn btn-small" id="btn-lb-close" style="margin-top:12px" data-t="close">Close</button>
   </div>
 </div>
 
 <!-- MENU -->
 <div id="menu-overlay" class="overlay active">
   <div class="menu-title">NEON DRIFT</div>
-  <div class="menu-sub">Przytrzymaj ▲ Puść ▼</div>
+  <div class="menu-sub" data-t="menuSub">Hold ▲ Release ▼</div>
   <div class="menu-buttons">
-    <button class="btn btn-primary" id="btn-play">▶ GRAJ</button>
-    <button class="btn" id="btn-leaderboard">🏆 RANKING</button>
-    <button class="btn" id="btn-shop">🛒 SKLEP</button>
+    <button class="btn btn-primary" id="btn-play" data-t="play">▶ PLAY</button>
+    <button class="btn" id="btn-leaderboard" data-t="ranking">🏆 RANKING</button>
+    <button class="btn" id="btn-shop" data-t="shop">🛒 SHOP</button>
     <div style="position:relative;display:inline-block">
-      <button class="btn btn-gold btn-small" id="btn-daily">🎁 Bonus dzienny</button>
+      <button class="btn btn-gold btn-small" id="btn-daily" data-t="dailyBonus">🎁 Daily Bonus</button>
       <span class="daily-badge" id="daily-badge" style="display:none">!</span>
     </div>
   </div>
@@ -384,29 +384,29 @@
     <h2 style="color:#ff4466">GAME OVER</h2>
     <div id="medal-display" class="medal"></div>
     <div class="stat-row">
-      <span class="stat-label">Wynik</span>
+      <span class="stat-label" data-t="score">Score</span>
       <span class="stat-value" id="final-score">0</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Najlepszy</span>
+      <span class="stat-label" data-t="best">Best</span>
       <span class="stat-value" id="best-score">0</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">Monety</span>
+      <span class="stat-label" data-t="coins">Coins</span>
       <span class="stat-value coins-earned" id="coins-earned">+0</span>
     </div>
     <div id="go-taunt" style="color:rgba(255,255,255,0.35);font-size:12px;margin:6px 0;font-style:italic"></div>
     <div class="go-buttons" style="flex-direction:column;gap:8px">
       <button class="btn btn-gold btn-small" id="btn-revive" style="display:none"></button>
       <button class="btn btn-small" id="btn-revive-ad" style="display:none"></button>
-      <button class="btn btn-primary" id="btn-restart" style="width:100%;font-size:16px;padding:14px 0">🔄 Zagraj ponownie</button>
+      <button class="btn btn-primary" id="btn-restart" style="width:100%;font-size:16px;padding:14px 0" data-t="playAgain">🔄 Play Again</button>
       <div style="display:flex;gap:8px;width:100%">
         <button class="btn btn-small" id="btn-lb-go" style="flex:1;font-size:12px">🏆 Ranking</button>
-        <button class="btn btn-small" id="btn-shop-go" style="flex:1;font-size:12px">🛒 Sklep</button>
+        <button class="btn btn-small" id="btn-shop-go" style="flex:1;font-size:12px" data-t="shopShort">🛒 Shop</button>
       </div>
       <div style="display:flex;gap:8px;width:100%">
         <button class="btn btn-small" id="btn-menu-go" style="flex:1;font-size:12px">🏠 Menu</button>
-        <button class="btn btn-small" id="btn-share" style="flex:1;font-size:12px">📤 Wyślij</button>
+        <button class="btn btn-small" id="btn-share" style="flex:1;font-size:12px" data-t="share">📤 Share</button>
       </div>
     </div>
   </div>
@@ -416,16 +416,16 @@
 <div id="shop-overlay" class="overlay">
   <div class="panel" id="shop-panel" style="max-width:380px">
     <h2 style="color:#00f0ff">🛒 SKLEP</h2>
-    <div style="color:#ffee00;font-size:14px;margin-bottom:8px">🪙 <span id="shop-coins">0</span> monet</div>
+    <div style="color:#ffee00;font-size:14px;margin-bottom:8px">🪙 <span id="shop-coins">0</span> <span data-t="coinsWord">coins</span></div>
     <div class="shop-grid" id="shop-grid"></div>
-    <button class="btn btn-small" id="btn-shop-close" style="margin-top:12px">Zamknij</button>
+    <button class="btn btn-small" id="btn-shop-close" style="margin-top:12px" data-t="close">Close</button>
   </div>
 </div>
 
 <!-- DAILY BONUS -->
 <div id="daily-overlay" class="overlay">
   <div class="panel" id="daily-panel">
-    <h2 style="color:#ffee00">🎁 BONUS DZIENNY</h2>
+    <h2 style="color:#ffee00" data-t="dailyTitle">🎁 DAILY BONUS</h2>
     <div id="daily-content"></div>
     <button class="btn btn-small" id="btn-daily-close" style="margin-top:16px">OK</button>
   </div>
@@ -434,29 +434,56 @@
 <!-- INTERSTITIAL AD -->
 <div id="ad-interstitial" class="ad-overlay">
   <div class="ad-box" id="ad-interstitial-slot">
-    <div class="ad-label">REKLAMA</div>
-    <!-- AdSense display ad (web) — zamieni się automatycznie -->
-    <ins class="adsbygoogle" style="display:block;width:300px;height:250px" data-ad-client="ca-pub-8654195531699282" data-ad-slot="INTERSTITIAL_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <div class="ad-label">AD</div>
+    <ins class="adsbygoogle" style="display:block;width:300px;height:250px" data-ad-client="ca-pub-8654195531699282" data-ad-slot="auto" data-ad-format="auto" data-full-width-responsive="true"></ins>
   </div>
-  <div class="ad-skip" id="ad-skip">Pomiń za <span class="ad-timer" id="ad-timer">5</span>s</div>
+  <div class="ad-skip" id="ad-skip">Skip in <span class="ad-timer" id="ad-timer">5</span>s</div>
 </div>
 
 <!-- REWARDED AD -->
 <div id="ad-rewarded" class="ad-overlay">
   <div class="rewarded-box">
-    <div class="ad-label">REKLAMA Z NAGRODĄ</div>
+    <div class="ad-label">REWARDED AD</div>
     <div style="font-size:32px;margin:8px 0">🎬</div>
-    <div id="rewarded-status">Ładowanie reklamy...</div>
+    <div id="rewarded-status">Loading ad...</div>
     <div class="rewarded-progress"><div class="rewarded-fill" id="rewarded-fill"></div></div>
-    <div style="font-size:11px;color:rgba(255,255,255,0.3)" id="rewarded-hint">Oglądaj do końca aby otrzymać nagrodę</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3)" id="rewarded-hint">Watch until the end to receive reward</div>
   </div>
 </div>
 
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v24-shopsort-20260323";
+  const _BUILD = "v31-perf-fps-20260323";
   console.log('[NeonDrift]', _BUILD);
+
+  // =============================================
+  //  i18n — English default, Polish if detected
+  // =============================================
+  const _lang = (() => {
+    try { return (navigator.language || navigator.userLanguage || 'en').slice(0, 2).toLowerCase(); }
+    catch { return 'en'; }
+  })();
+  const _PL = {
+    menuSub:'Przytrzymaj ▲ Puść ▼', play:'▶ GRAJ', ranking:'🏆 RANKING',
+    shop:'🛒 SKLEP', dailyBonus:'🎁 Bonus dzienny', paused:'⏸ PAUZA',
+    pauseSub:'ESC lub Space — kontynuuj', resume:'▶ KONTYNUUJ',
+    mainMenu:'🏠 Menu główne', nickTitle:'✏️ NICK',
+    nickDesc:'Wybierz nick do rankingu (1-16 znaków)',
+    save:'✅ Zapisz', loading:'Ładowanie...',
+    player:'Gracz', score:'Wynik', close:'Zamknij', best:'Najlepszy',
+    coins:'Monety', playAgain:'🔄 Zagraj ponownie',
+    shopShort:'🛒 Sklep', share:'📤 Wyślij',
+    coinsWord:'monet', dailyTitle:'🎁 BONUS DZIENNY',
+  };
+  function t(key, en) { return (_lang === 'pl' && _PL[key]) ? _PL[key] : en; }
+  function applyI18n() {
+    if (_lang !== 'pl') return;
+    document.querySelectorAll('[data-t]').forEach(el => {
+      const k = el.getAttribute('data-t');
+      if (_PL[k]) el.textContent = _PL[k];
+    });
+  }
 
   // =============================================
   //  PERSISTENCE
@@ -509,22 +536,22 @@
   //  SKINS
   // =============================================
   const SKINS = [
-    // === ORYGINALNE 9 ===
-    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff", fx: "none", desc: "Dron rekonesansowy", perk: null, perkDesc: null },
-    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00", fx: "plasma", desc: "Myśliwiec delta V-wing", perk: "thrust_boost", perkDesc: "🔥 +15% siła thrustu" },
-    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88", fx: "acid", desc: "Bio-pasożyt z mackami", perk: "combo_slow", perkDesc: "🧪 Combo spada 30% wolniej" },
-    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Słoneczny skarabeusz", perk: "coin_magnet", perkDesc: "☀️ Zasięg magnesu +40%" },
-    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff", fx: "void", desc: "Czarna dziura + dysk", perk: "gap_widen", perkDesc: "🕳️ Rury +8% szersze" },
-    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88", fx: "aurum", desc: "Imperialny krążownik", perk: "coin_bonus", perkDesc: "👑 +25% monet" },
-    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff", fx: "prism", desc: "Kryształowy pryzmat", perk: "powerup_luck", perkDesc: "🌈 2× szansa na power-up" },
-    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)", fx: "phantom", desc: "Widmowy wraith", perk: "small_hitbox", perkDesc: "👻 Hitbox -15%" },
-    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41", fx: "glitch", desc: "Wireframe sześcian 3D", perk: "powerup_extend", perkDesc: "⚡ Power-upy +30% dłużej" },
-    // === 5 NOWYCH BRUTALNYCH ===
-    { id: "cerberus", name: "CERBERUS", price: 1500, body: "#cc1100", glow: "#ff2200", ring: "#881100", thrust: "#ff6600", fx: "hellfire", desc: "Trójgłowy piekielny pies. Gryziesz — płoniesz.", perk: "second_chance", perkDesc: "🔥 1 darmowe zderzenie na grę" },
-    { id: "plague",   name: "PLAGUE",   price: 2000, body: "#aacc22", glow: "#88aa00", ring: "#667700", thrust: "#ccff44", fx: "disease", desc: "Zaraza. Trucizna. Rozkład. Bez leku.", perk: "combo_floor", perkDesc: "☠️ Combo nie spada poniżej 3" },
-    { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "Z dna oceanu. 8 macek. Miażdży kadłuby.", perk: "gravity_reduce", perkDesc: "🐙 -12% grawitacji" },
-    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "Krzyk zabija. Fala uderzeniowa łamie kości.", perk: "speed_cap", perkDesc: "👻 Max prędkość rur -8%" },
-    { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon z Otchłani. Rogi. Ogień piekielny. Koniec.", perk: "demon_aura", perkDesc: "😈 Hitbox -10%, combo -20% wolniej, +15% monet" },
+    // === ORIGINAL 9 ===
+    { id: "neon",    name: "Cyan",      price: 0,    body: "#00d4ff", glow: "#00f0ff", ring: "#0090cc", thrust: "#00aaff", fx: "none", desc: "Recon drone", perk: null, perkDesc: null },
+    { id: "fire",    name: "Plasma",    price: 100,  body: "#ff5533", glow: "#ff4400", ring: "#cc3300", thrust: "#ffaa00", fx: "plasma", desc: "Delta V-wing fighter", perk: "thrust_boost", perkDesc: "🔥 +15% thrust power" },
+    { id: "toxic",   name: "Acid",      price: 150,  body: "#44ff44", glow: "#00ff44", ring: "#22aa22", thrust: "#88ff88", fx: "acid", desc: "Bio-parasite with tentacles", perk: "combo_slow", perkDesc: "🧪 Combo decays 30% slower" },
+    { id: "sunset",  name: "Solar",     price: 200,  body: "#ff8844", glow: "#ff6600", ring: "#cc5500", thrust: "#ffcc44", fx: "solar", desc: "Solar scarab", perk: "coin_magnet", perkDesc: "☀️ Magnet range +40%" },
+    { id: "purple",  name: "Void",      price: 300,  body: "#bb44ff", glow: "#aa00ff", ring: "#8822cc", thrust: "#dd88ff", fx: "void", desc: "Black hole + accretion disk", perk: "gap_widen", perkDesc: "🕳️ Pipes +8% wider" },
+    { id: "golden",  name: "Aurum",     price: 500,  body: "#ffd700", glow: "#ffaa00", ring: "#cc9900", thrust: "#ffee88", fx: "aurum", desc: "Imperial battlecruiser", perk: "coin_bonus", perkDesc: "👑 +25% coins" },
+    { id: "rainbow", name: "Prism",     price: 1000, body: "rainbow", glow: "#ff00e6", ring: "#8822cc", thrust: "#ffffff", fx: "prism", desc: "Crystalline prism", perk: "powerup_luck", perkDesc: "🌈 2× power-up chance" },
+    { id: "ghost",   name: "Phantom",   price: 750,  body: "rgba(200,200,255,0.5)", glow: "rgba(200,200,255,0.3)", ring: "rgba(150,150,220,0.4)", thrust: "rgba(180,180,255,0.5)", fx: "phantom", desc: "Spectral wraith", perk: "small_hitbox", perkDesc: "👻 Hitbox -15%" },
+    { id: "matrix",  name: "Glitch",    price: 400,  body: "#00ff41", glow: "#00ff41", ring: "#008f11", thrust: "#00ff41", fx: "glitch", desc: "3D wireframe data construct", perk: "powerup_extend", perkDesc: "⚡ Power-ups last 30% longer" },
+    // === 5 BRUTAL SKINS ===
+    { id: "cerberus", name: "CERBERUS", price: 1500, body: "#cc1100", glow: "#ff2200", ring: "#881100", thrust: "#ff6600", fx: "hellfire", desc: "Three-headed hellhound. Bite — burn.", perk: "second_chance", perkDesc: "🔥 1 free hit per game" },
+    { id: "plague",   name: "PLAGUE",   price: 2000, body: "#aacc22", glow: "#88aa00", ring: "#667700", thrust: "#ccff44", fx: "disease", desc: "Plague. Poison. Decay. No cure.", perk: "combo_floor", perkDesc: "☠️ Combo can't drop below 3" },
+    { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "From the ocean depths. 8 tentacles.", perk: "gravity_reduce", perkDesc: "🐙 -12% gravity" },
+    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "The scream kills. Shockwave breaks bones.", perk: "speed_cap", perkDesc: "👻 Max pipe speed -8%" },
+    { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon from the Abyss. Horns. Hellfire.", perk: "demon_aura", perkDesc: "😈 Hitbox -10%, combo -20% slower, +15% coins" },
   ];
 
   // =============================================
@@ -557,6 +584,7 @@
   let starParticles = [], particles = [], speedLines = [];
   // === SLOW-MO / BULLET TIME ===
   let timeScale = 1, timeScaleTarget = 1;
+  let _now = 0; // cached Date.now() per frame
   let chromAb = 0; // chromatic aberration intensity
   let screenPulse = 0; // bass drop pulse
   let deathFreezeFrames = 0; // freeze before slow-mo
@@ -571,10 +599,10 @@
 
   // === POWER-UPS ===
   const POWERUP_TYPES = [
-    { id:'shield', icon:'🛡️', color:'#00ffaa', dur:300, desc:'Tarcza' },
-    { id:'magnet', icon:'🧲', color:'#ff00e6', dur:360, desc:'Magnes' },
+    { id:'shield', icon:'🛡️', color:'#00ffaa', dur:300, desc:'Shield' },
+    { id:'magnet', icon:'🧲', color:'#ff00e6', dur:360, desc:'Magnet' },
     { id:'slowmo', icon:'⏳', color:'#00aaff', dur:240, desc:'Slow-Mo' },
-    { id:'x2',     icon:'×2', color:'#ffee00', dur:300, desc:'x2 Monety' },
+    { id:'x2',     icon:'×2', color:'#ffee00', dur:300, desc:'x2 Coins' },
   ];
   let activePowerUp = null, powerUpTimer = 0, powerUpOrbs = [];
   let shieldHits = 0;
@@ -623,10 +651,10 @@
 
   // === TAUNTS ===
   const TAUNTS = [
-    ['Serio?','No dawaj, spróbuj jeszcze raz...','Nie poddawaj się!','Prawie!'],
-    ['Niezły start!','Widzisz? Idzie!','Lepiej niż ostatnio!'],
-    ['Wow, talent!','Niezatrzymany!','Szacun!','Giga chad!'],
-    ['CO?! Legenda!','Niemożliwe!','Jesteś bogiem?!'],
+    ['Seriously?','Come on, try again...','Don\'t give up!','Almost!'],
+    ['Nice start!','See? Getting there!','Better than last time!'],
+    ['Wow, talent!','Unstoppable!','Respect!','Giga chad!'],
+    ['WHAT?! Legend!','Impossible!','Are you a god?!'],
   ];
 
   function getTaunt(s) {
@@ -644,6 +672,30 @@
   const fxCtx = fxCanvas.getContext("2d");
   const bassPulse = document.getElementById("bass-pulse");
   let W, H, dpr = 1;
+
+  // === GRADIENT CACHE (rebuilt on resize or zone change) ===
+  let _gradCache = {};
+  let _gradZone = null;
+  let _gradW = 0, _gradH = 0;
+  function rebuildGradients() {
+    const z = currentZone;
+    _gradZone = z; _gradW = W; _gradH = H;
+    // Background gradient
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,z.bg1); bg.addColorStop(0.4,z.bg2);
+    bg.addColorStop(0.7,z.bg3); bg.addColorStop(1,z.bg1);
+    // Ground gradient
+    const gy = H - GROUND_HEIGHT;
+    const gg = ctx.createLinearGradient(0,gy,0,H);
+    gg.addColorStop(0,z.ground); gg.addColorStop(0.15,z.bg1); gg.addColorStop(1,'#020008');
+    // Pipe panel gradient (horizontal, 56px wide, will be translated)
+    const pg = ctx.createLinearGradient(0,0,56,0);
+    pg.addColorStop(0,'#080c14'); pg.addColorStop(0.12,'#0e1a2a');
+    pg.addColorStop(0.5,'#142840'); pg.addColorStop(0.88,'#0e1a2a');
+    pg.addColorStop(1,'#080c14');
+    _gradCache = { bg, ground: gg, pipe: pg };
+  }
+
   function resize() {
     dpr = Math.min(window.devicePixelRatio||1, 2);
     W = window.innerWidth; H = window.innerHeight;
@@ -651,6 +703,7 @@
     ctx.setTransform(dpr,0,0,dpr,0,0);
     fxCanvas.width = W*dpr; fxCanvas.height = H*dpr;
     fxCtx.setTransform(dpr,0,0,dpr,0,0);
+    rebuildGradients();
   }
   resize();
   window.addEventListener("resize", resize);
@@ -810,7 +863,7 @@
       const next = new Date(lastDaily + 86400000);
       document.getElementById("daily-content").innerHTML =
         `<div style="font-size:14px;color:rgba(255,255,255,0.6);margin:12px 0">
-          Już odebrano!<br>Następny bonus: <span style="color:#ffee00">${next.getHours().toString().padStart(2,"0")}:${next.getMinutes().toString().padStart(2,"0")}</span>
+          ${t('alreadyClaimed','Already claimed!')}<br>${t('nextBonus','Next bonus:')} <span style="color:#ffee00">${next.getHours().toString().padStart(2,"0")}:${next.getMinutes().toString().padStart(2,"0")}</span>
         </div>`;
     } else {
       if ((Date.now() - lastDaily) > 172800000) dailyStreak = 0;
@@ -822,9 +875,9 @@
       updateCoinHud();
       document.getElementById("daily-content").innerHTML =
         `<div style="font-size:48px;margin:8px 0">🪙</div>
-         <div style="font-size:22px;color:#ffee00;font-weight:700">+${bonus} monet!</div>
+         <div style="font-size:22px;color:#ffee00;font-weight:700">+${bonus} ${t('coinsWord','coins')}!</div>
          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:8px">
-           Seria: ${dailyStreak} ${dailyStreak===1?"dzień":"dni"} — wracaj codziennie!
+           ${t('streak','Streak:')} ${dailyStreak} ${dailyStreak===1?t('day','day'):t('days','days')} — ${t('comeBackDaily','come back daily!')}
          </div>`;
     }
     dailyOverlay.classList.add("active");
@@ -836,7 +889,7 @@
   //  SHOP
   // =============================================
   function drawShopDrone(cvs, s) {
-    const c=cvs.getContext('2d'), W=cvs.width, H=cvs.height, cx=W/2, cy=H/2, t=Date.now()*0.001;
+    const c=cvs.getContext('2d'), W=cvs.width, H=cvs.height, cx=W/2, cy=H/2, t=_now*0.001;
     c.clearRect(0,0,W,H);
     const sk={body:s.body==='rainbow'?'#ff00e6':s.body, glow:s.glow, ring:s.ring, thrust:s.thrust};
     c.save(); c.translate(cx,cy);
@@ -931,7 +984,7 @@
       c.closePath(); c.fill();
     } else if(s.id==='rainbow'){
       // Rotating hex crystal
-      const hue=(Date.now()*0.12)%360;
+      const hue=(_now*0.12)%360;
       c.save(); c.rotate(t*0.9);
       for(let i=0;i<6;i++){const a1=i*(Math.PI*2/6),a2=(i+1)*(Math.PI*2/6); const fhue=(hue+i*60)%360;
         c.fillStyle='hsl('+fhue+',100%,55%)'; c.globalAlpha=0.8; c.shadowColor='hsl('+fhue+',100%,70%)'; c.shadowBlur=8;
@@ -1163,9 +1216,9 @@
       const info = document.createElement("div");
       info.innerHTML = `<div class="skin-name">${s.name}</div>
         <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:2px">${s.desc}</div>
-        ${s.perkDesc ? '<div style="font-size:9px;color:#ffee00;margin-bottom:3px;font-weight:700">'+s.perkDesc+'</div>' : '<div style="font-size:9px;color:rgba(255,255,255,0.2);margin-bottom:3px">Brak perku</div>'}
+        ${s.perkDesc ? '<div style="font-size:9px;color:#ffee00;margin-bottom:3px;font-weight:700">'+s.perkDesc+'</div>' : '<div style="font-size:9px;color:rgba(255,255,255,0.2);margin-bottom:3px">'+t('noPerk','No perk')+'</div>'}
         <div class="skin-price ${s.price===0?'free':''}">
-          ${equipped?'✓ Aktywny':owned?'Wybierz':s.price===0?'Darmowy':s.price+' 🪙'}
+          ${equipped?t('active','\u2713 Active'):owned?t('select','Select'):s.price===0?t('free','Free'):s.price+' \ud83e\ude99'}
         </div>`;
       card.appendChild(cvs);
       card.appendChild(info);
@@ -1336,14 +1389,14 @@
     let done = false;
     const finish = () => { if(done) return; done=true; clearInterval(iv); clearTimeout(safetyTimer); adRewarded.classList.remove("active"); fill.style.width="0"; adActive=false; onReward(); };
     const safetyTimer = setTimeout(finish, AD_TIMEOUT_MS);
-    status.textContent = "Oglądasz reklamę...";
+    status.textContent = "Watching ad...";
     let progress = 0;
     const iv = setInterval(() => {
       progress += 2;
       fill.style.width = progress + "%";
       if (progress >= 100) {
         clearInterval(iv);
-        status.textContent = "Nagroda odebrana!";
+        status.textContent = "Reward claimed!";
         setTimeout(finish, 300);
       }
     }, 60);
@@ -1479,6 +1532,7 @@
     for(let i=ZONES.length-1;i>=0;i--) { if(score>=ZONES[i].from){zi=i;break;} }
     if(zi!==lastZoneIdx) {
       lastZoneIdx=zi; currentZone=ZONES[zi];
+      rebuildGradients();
       zoneBanner.textContent=currentZone.name;
       zoneBanner.style.color=currentZone.accent;
       zoneBanner.style.textShadow=`0 0 30px ${currentZone.accent}`;
@@ -1527,13 +1581,29 @@
     }
   }
 
-  function showCoinPopup(x,y,amount) {
-    const el=document.createElement("div");
-    el.className="coin-popup"; el.textContent=`+${amount} 🪙`;
-    el.style.left=x+"px"; el.style.top=y+"px";
+  // === COIN POPUP POOL ===
+  const _coinPopupPool = [];
+  const COIN_POPUP_POOL_SIZE = 8;
+  for(let i=0; i<COIN_POPUP_POOL_SIZE; i++) {
+    const el = document.createElement("div");
+    el.className = "coin-popup";
+    el.style.display = "none";
     document.body.appendChild(el);
-    requestAnimationFrame(()=>el.classList.add("fade"));
-    setTimeout(()=>el.remove(), 700);
+    _coinPopupPool.push(el);
+  }
+  let _coinPopupIdx = 0;
+
+  function showCoinPopup(x,y,amount) {
+    const el = _coinPopupPool[_coinPopupIdx];
+    _coinPopupIdx = (_coinPopupIdx + 1) % COIN_POPUP_POOL_SIZE;
+    el.textContent = `+${amount} 🪙`;
+    el.style.left = x+"px"; el.style.top = y+"px";
+    el.style.display = "";
+    el.classList.remove("fade");
+    el.style.opacity = "1";
+    el.style.transform = "";
+    requestAnimationFrame(() => el.classList.add("fade"));
+    setTimeout(() => { el.style.display = "none"; }, 700);
   }
 
   function addCoins(n) {
@@ -1654,6 +1724,13 @@
     let nextLoop = audioCtx.currentTime + 0.05;
     const fade = 0.04; // 40ms crossfade to avoid clicks
 
+    // Pre-compute noise buffer once (reused every bar)
+    const maxBarLen = barLen; // all bars same length
+    const washLen = Math.ceil(audioCtx.sampleRate * maxBarLen);
+    const _noiseBuf = audioCtx.createBuffer(1, washLen, audioCtx.sampleRate);
+    const _nd = _noiseBuf.getChannelData(0);
+    for(let i=0; i<washLen; i++) _nd[i] = (Math.random()*2-1);
+
     function scheduleLoop() {
       if(!musicPlaying) return;
       const start = nextLoop;
@@ -1732,14 +1809,10 @@
         }
 
         // ── SPACE WASH: bandpass noise sweep, gentle, once per bar ──
-        const washLen = Math.ceil(audioCtx.sampleRate * barLen);
-        const washBuf = audioCtx.createBuffer(1, washLen, audioCtx.sampleRate);
-        const wd = washBuf.getChannelData(0);
-        for(let i=0; i<washLen; i++) wd[i] = (Math.random()*2-1);
         const ws = audioCtx.createBufferSource();
         const wg = audioCtx.createGain();
         const wf = audioCtx.createBiquadFilter();
-        ws.buffer = washBuf;
+        ws.buffer = _noiseBuf;
         wf.type = 'bandpass'; wf.Q.value = 8;
         wf.frequency.setValueAtTime(300, t0);
         wf.frequency.linearRampToValueAtTime(1200, t0 + barLen * 0.5);
@@ -1928,15 +2001,15 @@
   });
   document.getElementById("btn-share").addEventListener("click", e => {
     e.stopPropagation();
-    const text = `NEON DRIFT \u2014 ${score} pkt! ${maxCombo>3?'Combo x'+maxCombo+'! ':''}Pokonaj mnie! \ud83d\ude80`;
+    const text = `NEON DRIFT \u2014 ${score} pts! ${maxCombo>3?'Combo x'+maxCombo+'! ':''}Beat me! \ud83d\ude80`;
     const url = 'https://flappy-neon-one.vercel.app';
     if(navigator.share) {
       navigator.share({title:'Neon Drift',text,url}).catch(()=>{});
     } else {
       navigator.clipboard.writeText(text+' '+url).then(()=>{
         const btn=document.getElementById('btn-share');
-        btn.textContent='\u2705 Skopiowano!';
-        setTimeout(()=>btn.textContent='\ud83d\udce4 Wy\u015blij',1500);
+        btn.textContent='\u2705 Copied!';
+        setTimeout(()=>btn.textContent='\ud83d\udce4 Share',1500);
       }).catch(()=>{});
     }
   });
@@ -1979,14 +2052,14 @@
   }
 
   function openLeaderboard() {
-    document.getElementById('lb-nick').textContent = playerNick || '(brak nicku)';
+    document.getElementById('lb-nick').textContent = playerNick || '(no nickname)';
     lbLoading.style.display = 'block';
     lbTable.style.display = 'none';
     lbOverlay.classList.add('active');
     setTimeout(() => lbPanel.classList.add('show'), 50);
     fetchLeaderboard(50).then(rows => {
       lbBody.innerHTML = '';
-      if(!rows.length) { lbLoading.textContent = 'Brak wyników'; return; }
+      if(!rows.length) { lbLoading.textContent = 'No scores yet'; return; }
       const medals = ['🥇','🥈','🥉'];
       rows.forEach((r, i) => {
         const isMe = playerNick && r.nickname === playerNick;
@@ -2029,8 +2102,8 @@
     if(streakTimer>0){ streakTimer--; if(streakTimer===0)streakPopup.classList.remove("show"); }
 
     if (state===STATE.MENU) {
-      bird.x=W*0.22; bird.y=H*0.42+Math.sin(Date.now()/400)*12;
-      bird.angle=Math.sin(Date.now()/500)*0.1; bird.wingPhase+=0.15; return;
+      bird.x=W*0.22; bird.y=H*0.42+Math.sin(_now/400)*12;
+      bird.angle=Math.sin(_now/500)*0.1; bird.wingPhase+=0.15; return;
     }
     if (state===STATE.PLAYING) {
       const thrustMod=hasPerk('thrust_boost')?1.15:1;
@@ -2057,10 +2130,10 @@
       for(let i=powerUpOrbs.length-1;i>=0;i--) {
         const pu=powerUpOrbs[i];
         pu.x-=gameSpeed; pu.wobble+=0.06;
-        if(pu.collected || pu.x < -30) { powerUpOrbs.splice(i,1); continue; }
+        if(pu.collected || pu.x < -30) { powerUpOrbs[i]=powerUpOrbs[powerUpOrbs.length-1];powerUpOrbs.pop(); continue; }
         const dx=bird.x-pu.x, dy=bird.y-pu.y;
         if(dx*dx+dy*dy < 22*22) {
-          pu.collected=true; powerUpOrbs.splice(i,1);
+          pu.collected=true; powerUpOrbs[i]=powerUpOrbs[powerUpOrbs.length-1];powerUpOrbs.pop();
           const durMod = hasPerk('powerup_extend') ? 1.3 : 1;
           activePowerUp=pu.type; powerUpTimer=Math.round(pu.type.dur * durMod);
           powerupHud.textContent=`${pu.type.icon} ${pu.type.desc}`;
@@ -2099,7 +2172,7 @@
         const c=floatingCoins[i];
         c.x-=gameSpeed;
         c.wobble+=0.05;
-        if(c.x < -20) { floatingCoins.splice(i,1); continue; }
+        if(c.x < -20) { floatingCoins[i]=floatingCoins[floatingCoins.length-1];floatingCoins.pop(); continue; }
         if(c.collected) continue;
         // Magnet radius already handled above
         const dx=bird.x-c.x, dy=bird.y-c.y;
@@ -2109,7 +2182,7 @@
           addCoins(amt); playSound("coin"); addCombo();
           showCoinPopup(c.x, c.y-15, amt);
           burst(c.x, c.y, "#ffee00", 8);
-          floatingCoins.splice(i,1);
+          floatingCoins[i]=floatingCoins[floatingCoins.length-1];floatingCoins.pop();
         }
       }
 
@@ -2134,7 +2207,7 @@
           gameSpeed=Math.min(speedMax, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
-        if(p.x+56<-10) pipes.splice(i,1);
+        if(p.x+56<-10){pipes[i]=pipes[pipes.length-1];pipes.pop();}
       }
       if(checkCollision()) {
         // Shield power-up save
@@ -2143,14 +2216,14 @@
           shieldHits++; playSound('shield'); haptic(); shakeMag=6; flash=0.5;
           burst(bird.x,bird.y,'#00ffaa',20);
           bird.vy=bird.vy>0?-3:3; // bounce away from danger
-          showStreak('🛡️ TARCZA!');
+          showStreak('🛡️ SHIELD!');
         } else if(hasPerk('second_chance') && !secondChanceUsed) {
           // CERBERUS perk: one free hit per game
           secondChanceUsed=true;
           playSound('shield'); haptic(); shakeMag=8; flash=0.6;
           burst(bird.x,bird.y,'#ff2200',25);
           bird.vy=bird.vy>0?-4:4;
-          showStreak('🔥 CERBERUS — DRUGA SZANSA!');
+          showStreak('🔥 CERBERUS — SECOND CHANCE!');
         } else {
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=14; flash=1;
           chromAb=8; screenPulse=1; deathFreezeFrames=4;
@@ -2174,7 +2247,7 @@
     // Env debris
     for(let i=envDebris.length-1;i>=0;i--) {
       const d=envDebris[i]; d.x+=d.vx; d.y+=d.vy; d.vy+=0.15; d.rot+=d.rotV; d.life-=0.012;
-      if(d.life<=0) envDebris.splice(i,1);
+      if(d.life<=0){envDebris[i]=envDebris[envDebris.length-1];envDebris.pop();}
     }
     if (state===STATE.DYING) {
       if(deathFreezeFrames>0){deathFreezeFrames--;} else {
@@ -2203,12 +2276,12 @@
     }
     for(let i=particles.length-1;i>=0;i--) {
       const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life-=p.decay;
-      if(p.life<=0) particles.splice(i,1);
+      if(p.life<=0){particles[i]=particles[particles.length-1];particles.pop();}
     }
     // Speed lines
     for(let i=speedLines.length-1;i>=0;i--) {
       const sl=speedLines[i]; sl.x-=gameSpeed*3; sl.life-=0.03;
-      if(sl.life<=0||sl.x+sl.len<0) speedLines.splice(i,1);
+      if(sl.life<=0||sl.x+sl.len<0){speedLines[i]=speedLines[speedLines.length-1];speedLines.pop();}
     }
     checkAchievements();
   }
@@ -2218,10 +2291,7 @@
   // =============================================
   function drawBackground() {
     const z=currentZone;
-    const grad=ctx.createLinearGradient(0,0,0,H);
-    grad.addColorStop(0,z.bg1); grad.addColorStop(0.4,z.bg2);
-    grad.addColorStop(0.7,z.bg3); grad.addColorStop(1,z.bg1);
-    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=_gradCache.bg; ctx.fillRect(0,0,W,H);
     // Stars
     for(const s of starParticles) {
       ctx.globalAlpha=0.3+Math.sin(s.flicker)*0.3; ctx.fillStyle="#fff";
@@ -2229,7 +2299,7 @@
     }
     ctx.globalAlpha=1;
     // === FAR LAYER: Nebula clouds ===
-    const nebulaT=Date.now()*0.0001;
+    const nebulaT=_now*0.0001;
     for(let i=0;i<4;i++) {
       const nx=(nebulaT*20+i*W*0.4)%(W*1.5)-W*0.25;
       const ny=H*0.2+Math.sin(nebulaT+i*2)*H*0.15;
@@ -2242,7 +2312,7 @@
     }
     ctx.globalAlpha=1;
     // === MID LAYER: Industrial structures (parallax 0.3x) ===
-    const midOff=state===STATE.PLAYING?groundX*0.3:Date.now()*0.005;
+    const midOff=state===STATE.PLAYING?groundX*0.3:_now*0.005;
     ctx.globalAlpha=0.15;
     for(let i=0;i<5;i++) {
       const sx=((midOff+i*W*0.28)%(W*1.4))-W*0.2;
@@ -2251,10 +2321,11 @@
       ctx.fillStyle=z.bg3; ctx.fillRect(sx,sBaseY-th,tw,th);
       ctx.strokeStyle=z.accent; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(sx+tw/2,sBaseY-th); ctx.lineTo(sx+tw/2,sBaseY-th-15); ctx.stroke();
-      if(Math.sin(Date.now()*0.003+i*1.5)>0.5) {
-        ctx.fillStyle=z.accent; ctx.shadowColor=z.accent; ctx.shadowBlur=8;
+      if(Math.sin(_now*0.003+i*1.5)>0.5) {
+        ctx.fillStyle=z.accent; ctx.globalAlpha=0.3;
+        ctx.beginPath(); ctx.arc(sx+tw/2,sBaseY-th-15,5,0,Math.PI*2); ctx.fill();
+        ctx.globalAlpha=0.15; ctx.fillStyle=z.accent;
         ctx.beginPath(); ctx.arc(sx+tw/2,sBaseY-th-15,2,0,Math.PI*2); ctx.fill();
-        ctx.shadowBlur=0;
       }
       ctx.strokeStyle=z.bg2;
       for(let by=sBaseY-th+15;by<sBaseY;by+=20) {
@@ -2263,7 +2334,7 @@
     }
     ctx.globalAlpha=1;
     // === NEAR LAYER: City skyline (parallax 0.6x) ===
-    const cityOff=state===STATE.PLAYING?groundX*0.6:Date.now()*0.008;
+    const cityOff=state===STATE.PLAYING?groundX*0.6:_now*0.008;
     const cityY=H-GROUND_HEIGHT-50;
     for(let x=0;x<W+30;x+=25+Math.sin(x*0.08)*15) {
       const bx=((x+cityOff)%(W+60))-30;
@@ -2279,7 +2350,7 @@
     }
     // Floating hologram rings
     ctx.strokeStyle=z.accent; ctx.lineWidth=1;
-    const holoOff=Date.now()*0.008;
+    const holoOff=_now*0.008;
     for(let i=0;i<3;i++) {
       const hx=(holoOff*25+i*W/3)%W, hy=H*0.25+Math.sin(holoOff*0.5+i)*40;
       ctx.globalAlpha=0.025+Math.sin(holoOff+i*2)*0.01;
@@ -2287,7 +2358,7 @@
     }
     ctx.globalAlpha=1;
     // === DATA STREAM LINES ===
-    const dsOff=Date.now()*0.05;
+    const dsOff=_now*0.05;
     for(let i=0;i<6;i++) {
       const dy=H*0.15+i*H*0.12, dx=(dsOff+i*200)%(W+300)-150, dLen=40+i*15;
       ctx.globalAlpha=0.06;
@@ -2305,7 +2376,7 @@
     const PANEL_W=56;
     const px=p.x-(PANEL_W-PIPE_WIDTH)/2; // center visual around hitbox
     const cx=px+PANEL_W/2; // center x
-    const beamFlicker=0.7+Math.sin(Date.now()/80+p.x)*0.3;
+    const beamFlicker=0.7+Math.sin(_now/80+p.x)*0.3;
     // === TOP WALL PANEL ===
     const tGrad=ctx.createLinearGradient(px,0,px+PANEL_W,0);
     tGrad.addColorStop(0,'#080c14'); tGrad.addColorStop(0.12,'#0e1a2a');
@@ -2319,7 +2390,7 @@
     ctx.strokeStyle='rgba(0,140,220,0.07)'; ctx.lineWidth=1;
     for(let y=18;y<topH-8;y+=24) {
       ctx.beginPath(); ctx.moveTo(px+8,y); ctx.lineTo(px+PANEL_W-8,y); ctx.stroke();
-      if(Math.sin(y*0.12+Date.now()*0.003)>0.3) {
+      if(Math.sin(y*0.12+_now*0.003)>0.3) {
         ctx.fillStyle=z.accent+'44';
         ctx.beginPath(); ctx.arc(px+8+(y%3)*14,y,1.5,0,Math.PI*2); ctx.fill();
       }
@@ -2338,27 +2409,24 @@
     const emH=12;
     ctx.fillStyle='#0c1e30'; ctx.fillRect(px-6,topH-emH,PANEL_W+12,emH);
     ctx.fillStyle=z.laser+'66'; ctx.fillRect(px-2,topH-emH+2,PANEL_W+4,emH-4);
-    ctx.shadowColor=z.laser; ctx.shadowBlur=12;
+    ctx.fillStyle=z.laser; ctx.globalAlpha=0.3;
+    ctx.fillRect(px-2,topH-7,PANEL_W+4,10);
+    ctx.globalAlpha=1;
     ctx.fillStyle=z.laser; ctx.fillRect(px+2,topH-3,PANEL_W-4,2);
-    ctx.shadowBlur=0;
     // Status LEDs
     for(let lx=px+8;lx<px+PANEL_W-4;lx+=10) {
-      ctx.fillStyle=Math.sin(Date.now()*0.005+lx)>0?z.accent:'#0a0a1a';
+      ctx.fillStyle=Math.sin(_now*0.005+lx)>0?z.accent:'#0a0a1a';
       ctx.beginPath(); ctx.arc(lx,topH-emH+5,1.2,0,Math.PI*2); ctx.fill();
     }
     // === BOTTOM WALL PANEL ===
-    const bGrad=ctx.createLinearGradient(px,botY,px+PANEL_W,botY);
-    bGrad.addColorStop(0,'#080c14'); bGrad.addColorStop(0.12,'#0e1a2a');
-    bGrad.addColorStop(0.5,'#142840'); bGrad.addColorStop(0.88,'#0e1a2a');
-    bGrad.addColorStop(1,'#080c14');
-    ctx.fillStyle=bGrad; ctx.fillRect(px,botY,PANEL_W,H-botY-GROUND_HEIGHT);
+    ctx.fillStyle=tGrad; ctx.fillRect(px,botY,PANEL_W,H-botY-GROUND_HEIGHT);
     ctx.strokeStyle='rgba(0,180,255,0.18)'; ctx.lineWidth=1;
     ctx.strokeRect(px+1,botY,PANEL_W-2,H-botY-GROUND_HEIGHT);
     // Horizontal circuit traces (bottom)
     ctx.strokeStyle='rgba(0,140,220,0.07)'; ctx.lineWidth=1;
     for(let y=botY+18;y<H-GROUND_HEIGHT-8;y+=24) {
       ctx.beginPath(); ctx.moveTo(px+8,y); ctx.lineTo(px+PANEL_W-8,y); ctx.stroke();
-      if(Math.sin(y*0.12+Date.now()*0.003)>0.3) {
+      if(Math.sin(y*0.12+_now*0.003)>0.3) {
         ctx.fillStyle=z.accent+'44';
         ctx.beginPath(); ctx.arc(px+PANEL_W-8-(y%3)*14,y,1.5,0,Math.PI*2); ctx.fill();
       }
@@ -2376,11 +2444,12 @@
     // BOTTOM EMITTER
     ctx.fillStyle='#0c1e30'; ctx.fillRect(px-6,botY,PANEL_W+12,emH);
     ctx.fillStyle=z.laser+'66'; ctx.fillRect(px-2,botY+2,PANEL_W+4,emH-4);
-    ctx.shadowColor=z.laser; ctx.shadowBlur=12;
+    ctx.fillStyle=z.laser; ctx.globalAlpha=0.3;
+    ctx.fillRect(px-2,botY-3,PANEL_W+4,10);
+    ctx.globalAlpha=1;
     ctx.fillStyle=z.laser; ctx.fillRect(px+2,botY+1,PANEL_W-4,2);
-    ctx.shadowBlur=0;
     for(let lx=px+8;lx<px+PANEL_W-4;lx+=10) {
-      ctx.fillStyle=Math.sin(Date.now()*0.005+lx+1)>0?z.accent:'#0a0a1a';
+      ctx.fillStyle=Math.sin(_now*0.005+lx+1)>0?z.accent:'#0a0a1a';
       ctx.beginPath(); ctx.arc(lx,botY+emH-5,1.2,0,Math.PI*2); ctx.fill();
     }
     // === ENERGY FIELD IN GAP ===
@@ -2390,18 +2459,17 @@
     ctx.fillStyle=eGrad; ctx.fillRect(px,topH,PANEL_W,p.gap);
     ctx.globalAlpha=1;
     // Horizontal scan line in gap
-    const scanY=topH+(Date.now()*0.05+p.x)%(p.gap);
+    const scanY=topH+(_now*0.05+p.x)%(p.gap);
     ctx.globalAlpha=0.15; ctx.strokeStyle=z.laser; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(px+4,scanY); ctx.lineTo(px+PANEL_W-4,scanY); ctx.stroke();
     ctx.globalAlpha=1;
     // === GATE FRAME (corner brackets) ===
     const cLen=14;
-    ctx.strokeStyle=z.accent; ctx.lineWidth=2.5; ctx.shadowColor=z.accent; ctx.shadowBlur=8;
+    ctx.strokeStyle=z.accent; ctx.lineWidth=2.5;
     ctx.beginPath(); ctx.moveTo(px-3,topH+cLen); ctx.lineTo(px-3,topH); ctx.lineTo(px+cLen,topH); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(px+PANEL_W+3,topH+cLen); ctx.lineTo(px+PANEL_W+3,topH); ctx.lineTo(px+PANEL_W-cLen,topH); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(px-3,botY-cLen); ctx.lineTo(px-3,botY); ctx.lineTo(px+cLen,botY); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(px+PANEL_W+3,botY-cLen); ctx.lineTo(px+PANEL_W+3,botY); ctx.lineTo(px+PANEL_W-cLen,botY); ctx.stroke();
-    ctx.shadowBlur=0;
     // Gate center crosshair
     const gapMid=topH+p.gap/2;
     ctx.globalAlpha=0.12; ctx.strokeStyle=z.accent; ctx.lineWidth=1;
@@ -2421,30 +2489,33 @@
       if(c.collected) continue;
       const wobble=Math.sin(c.wobble)*3;
       const r = c.bonus ? 10 : 8;
-      ctx.save();
-      ctx.shadowColor=c.bonus?"#ff00e6":"#ffee00"; ctx.shadowBlur=12;
+      const cy = c.y+wobble;
+      // Glow layer (replaces shadowBlur)
+      ctx.globalAlpha=0.25;
+      ctx.fillStyle=c.bonus?"#ff00e6":"#ffee00";
+      ctx.beginPath(); ctx.arc(c.x,cy,r*2,0,Math.PI*2); ctx.fill();
+      // Main coin
+      ctx.globalAlpha=1;
       ctx.fillStyle=c.bonus?"#ff66ff":"#ffee00";
-      ctx.beginPath(); ctx.arc(c.x,c.y+wobble,r,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(c.x,cy,r,0,Math.PI*2); ctx.fill();
       ctx.fillStyle=c.bonus?"#cc44cc":"#ffaa00";
-      ctx.beginPath(); ctx.arc(c.x,c.y+wobble,r*0.6,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(c.x,cy,r*0.6,0,Math.PI*2); ctx.fill();
       ctx.fillStyle=c.bonus?"#ff88ff":"#ffee00";
       ctx.font=`bold ${r-1}px sans-serif`; ctx.textAlign="center";
-      ctx.fillText(c.bonus?"$":"$",c.x,c.y+wobble+3);
-      ctx.restore();
+      ctx.fillText(c.bonus?"$":"$",c.x,cy+3);
     }
+    ctx.globalAlpha=1;
   }
 
   function drawGround() {
     const gy=H-GROUND_HEIGHT;
     const z=currentZone;
-    const gGrad=ctx.createLinearGradient(0,gy,0,H);
-    gGrad.addColorStop(0,z.ground); gGrad.addColorStop(0.15,z.bg1); gGrad.addColorStop(1,'#020008');
-    ctx.fillStyle=gGrad; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
+    ctx.fillStyle=_gradCache.ground; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
     // Horizon glow line
-    ctx.shadowColor=z.accent; ctx.shadowBlur=18;
-    ctx.strokeStyle=z.accent; ctx.lineWidth=2;
+    ctx.strokeStyle=z.accent; ctx.lineWidth=6; ctx.globalAlpha=0.2;
     ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
-    ctx.shadowBlur=0;
+    ctx.lineWidth=2; ctx.globalAlpha=1;
+    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
     // Secondary glow
     ctx.strokeStyle="rgba(0,200,255,0.1)"; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(0,gy+1); ctx.lineTo(W,gy+1); ctx.stroke();
@@ -2457,7 +2528,7 @@
       ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
     }
     // === FLOWING LIGHT DOTS (data highway) ===
-    const dotOff=Date.now()*0.06;
+    const dotOff=_now*0.06;
     ctx.fillStyle=z.accent;
     for(let lane=0;lane<3;lane++) {
       const ly=gy+8+lane*16;
@@ -2488,7 +2559,7 @@
   function getSkinColors() {
     const s=SKINS.find(sk=>sk.id===equippedSkin)||SKINS[0];
     if(s.body==="rainbow") {
-      const hue=(Date.now()/10)%360;
+      const hue=(_now/10)%360;
       return { body:`hsl(${hue},100%,60%)`, glow:`hsl(${hue},100%,50%)`, ring:`hsl(${(hue+120)%360},80%,40%)`, thrust:`hsl(${(hue+60)%360},100%,70%)` };
     }
     return { body:s.body, glow:s.glow, ring:s.ring, thrust:s.thrust };
@@ -2498,7 +2569,7 @@
     if(state===STATE.DEAD) return; // don't draw after explosion
     const sk=getSkinColors();
     ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.angle);
-    const t=Date.now()*0.001;
+    const t=_now*0.001;
     // Trail
     for(const tr of bird.trail) {
       if(tr.life<=0) continue;
@@ -3022,7 +3093,7 @@
       const tB=isThrusting?1:0.25, tL=isThrusting?(18+Math.sin(t*30)*7):3;
       // RAINBOW EXHAUST (spectral split)
       for(let i=0;i<6;i++){
-        const hue2=(i*60+Date.now()*0.3)%360;
+        const hue2=(i*60+_now*0.3)%360;
         ctx.fillStyle='hsl('+hue2+',100%,60%)'; ctx.globalAlpha=tB*0.35;
         ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,i*1.8-4.5);
         ctx.lineTo(-BIRD_SIZE*0.4-tL*(0.7+i*0.06),i*3-7.5);
@@ -3035,7 +3106,7 @@
       }
       ctx.globalAlpha=1;
       // ROTATING HEXAGONAL CRYSTAL (layered, refracting light)
-      const hue=(Date.now()*0.12)%360;
+      const hue=(_now*0.12)%360;
       ctx.save(); ctx.rotate(t*0.9);
       const crystR=coreR*1.4;
       // Crystal facets with depth illusion
@@ -3073,7 +3144,7 @@
       // LIGHT REFRACTION BEAMS (longer, more dramatic)
       for(let i=0;i<8;i++){
         const ba=t*0.9+i*(Math.PI/4);
-        const bhue=(hue+i*45+Date.now()*0.25)%360;
+        const bhue=(hue+i*45+_now*0.25)%360;
         const bLen=BIRD_SIZE*(1.1+Math.sin(t*3+i)*0.45);
         ctx.strokeStyle='hsl('+bhue+',100%,65%)'; ctx.lineWidth=2.5; ctx.globalAlpha=0.35;
         ctx.shadowColor='hsl('+bhue+',100%,70%)'; ctx.shadowBlur=8;
@@ -3104,7 +3175,7 @@
       for(let i=0;i<6;i++){
         const rta=t*1.8+i*1.05;
         const rtd=BIRD_SIZE*(0.3+i*0.08);
-        const rthue=(Date.now()*0.3+i*60)%360;
+        const rthue=(_now*0.3+i*60)%360;
         ctx.fillStyle='hsl('+rthue+',100%,65%)'; ctx.globalAlpha=0.3;
         ctx.beginPath(); ctx.arc(-rtd-Math.sin(rta)*3,Math.sin(rta+i)*rtd*0.3,1.5,0,Math.PI*2); ctx.fill();
       }
@@ -3870,20 +3941,24 @@
     for(const pu of powerUpOrbs) {
       if(pu.collected) continue;
       const w=Math.sin(pu.wobble)*4;
-      ctx.save();
-      ctx.shadowColor=pu.type.color; ctx.shadowBlur=18;
-      // Outer glow ring
-      ctx.strokeStyle=pu.type.color; ctx.lineWidth=2; ctx.globalAlpha=0.5+Math.sin(pu.wobble*2)*0.3;
-      ctx.beginPath(); ctx.arc(pu.x,pu.y+w,14,0,Math.PI*2); ctx.stroke();
-      // Inner
+      const px=pu.x, py=pu.y+w;
+      // Glow layer (replaces shadowBlur=18)
+      ctx.globalAlpha=0.15;
+      ctx.fillStyle=pu.type.color;
+      ctx.beginPath(); ctx.arc(px,py,22,0,Math.PI*2); ctx.fill();
+      // Outer ring
+      ctx.globalAlpha=0.5+Math.sin(pu.wobble*2)*0.3;
+      ctx.strokeStyle=pu.type.color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(px,py,14,0,Math.PI*2); ctx.stroke();
+      // Inner fill
       ctx.globalAlpha=1;
       ctx.fillStyle=pu.type.color;
-      ctx.beginPath(); ctx.arc(pu.x,pu.y+w,9,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px,py,9,0,Math.PI*2); ctx.fill();
       // Icon
       ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#fff';
-      ctx.fillText(pu.type.icon,pu.x,pu.y+w+4);
-      ctx.restore();
+      ctx.fillText(pu.type.icon,px,py+4);
     }
+    ctx.globalAlpha=1;
   }
 
   function drawSpeedLines() {
@@ -3898,19 +3973,28 @@
   // Shield bubble around drone
   function drawShieldBubble() {
     if(!activePowerUp || activePowerUp.id!=='shield') return;
-    const pulse=0.7+Math.sin(Date.now()/150)*0.3;
-    ctx.save(); ctx.globalAlpha=pulse*0.3;
-    ctx.strokeStyle='#00ffaa'; ctx.lineWidth=2; ctx.shadowColor='#00ffaa'; ctx.shadowBlur=15;
+    const pulse=0.7+Math.sin(_now/150)*0.3;
+    // Glow layer
+    ctx.globalAlpha=pulse*0.12;
+    ctx.fillStyle='#00ffaa';
+    ctx.beginPath(); ctx.arc(bird.x,bird.y,BIRD_SIZE*1.0,0,Math.PI*2); ctx.fill();
+    // Ring
+    ctx.globalAlpha=pulse*0.3;
+    ctx.strokeStyle='#00ffaa'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(bird.x,bird.y,BIRD_SIZE*0.7,0,Math.PI*2); ctx.stroke();
-    ctx.restore();
+    ctx.globalAlpha=1;
   }
 
   function drawParticles() {
+    ctx.shadowBlur=0;
     for(const p of particles) {
-      ctx.globalAlpha=p.life; ctx.fillStyle=p.color; ctx.shadowColor=p.color; ctx.shadowBlur=6;
+      ctx.globalAlpha=p.life*0.18;
+      ctx.fillStyle=p.color;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life*2.5,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=p.life;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill();
     }
-    ctx.globalAlpha=1; ctx.shadowBlur=0;
+    ctx.globalAlpha=1;
   }
 
   function drawFlash() {
@@ -3927,11 +4011,13 @@
   function drawEnvDebris() {
     for(const d of envDebris) {
       ctx.save(); ctx.translate(d.x,d.y); ctx.rotate(d.rot);
-      ctx.globalAlpha=d.life; ctx.fillStyle=d.color; ctx.shadowColor=d.color; ctx.shadowBlur=4;
+      ctx.globalAlpha=d.life*0.3; ctx.fillStyle=d.color;
+      ctx.fillRect(-d.size,-d.size*0.7,d.size*2,d.size*1.2);
+      ctx.globalAlpha=d.life; ctx.fillStyle=d.color;
       ctx.fillRect(-d.size/2,-d.size/2,d.size,d.size*0.4);
       ctx.restore();
     }
-    ctx.globalAlpha=1; ctx.shadowBlur=0;
+    ctx.globalAlpha=1;
   }
 
   // === POST-PROCESSING: Chromatic Aberration ===
@@ -3961,8 +4047,12 @@
   //  GAME LOOP (fixed timestep — 60 ticks/s)
   // =============================================
   let _lastError = '';
+  let _fpsFrames = 0, _fpsLast = 0, _fpsDisplay = 0;
   function frame(now) {
     if(state===STATE.PAUSED) { lastTime=0; requestAnimationFrame(frame); return; }
+    _now = Date.now();
+    _fpsFrames++;
+    if(_now - _fpsLast >= 500) { _fpsDisplay = Math.round(_fpsFrames * 1000 / (_now - _fpsLast)); _fpsFrames = 0; _fpsLast = _now; }
     if (!lastTime) lastTime = now;
     const rawDt = Math.min(now - lastTime, 100);
     lastTime = now;
@@ -3985,12 +4075,12 @@
     drawFloatingCoins(); drawPowerUpOrbs();
     drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
     if(state===STATE.DYING){
-      const hAlpha=0.4+Math.sin(Date.now()*0.008)*0.3;
+      const hAlpha=0.4+Math.sin(_now*0.008)*0.3;
       ctx.globalAlpha=hAlpha;
       ctx.font='bold 14px sans-serif';
       ctx.textAlign='center'; ctx.fillStyle='#fff';
       ctx.shadowColor='#ff4466'; ctx.shadowBlur=12;
-      ctx.fillText('DOTKNIJ ABY POMINĄĆ',W/2,H*0.78);
+      ctx.fillText('TAP TO SKIP',W/2,H*0.78);
       ctx.shadowBlur=0; ctx.globalAlpha=1;
     }
     ctx.restore();
@@ -4000,7 +4090,7 @@
     ctx.save();
     ctx.font='10px monospace'; ctx.textAlign='left';
     ctx.fillStyle='#ffffff';
-    ctx.fillText(_BUILD+' s='+state, 4, H-4);
+    ctx.fillText(_BUILD+' s='+state+' fps='+_fpsDisplay+' p='+particles.length, 4, H-4);
     if(_lastError) {
       ctx.fillStyle='#ff0000'; ctx.font='bold 11px monospace';
       ctx.fillText('ERR: '+_lastError, 4, H-18);
