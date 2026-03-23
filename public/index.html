@@ -502,7 +502,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v33-laser-fx-20260323";
+  const _BUILD = "v34-rshift-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2095,7 +2095,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   }
   laserBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fireLaser(); });
   document.addEventListener('keydown', e => {
-    if(e.code==='KeyX' && state===STATE.PLAYING) fireLaser();
+    if(e.code==='ShiftRight' && state===STATE.PLAYING) { e.preventDefault(); fireLaser(); }
   });
 
   document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGameWithNick(); });
