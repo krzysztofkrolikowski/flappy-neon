@@ -455,7 +455,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v20-fixes-20260323";
+  const _BUILD = "v21-faststart-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -1357,7 +1357,7 @@
   // =============================================
   function resetGame() {
     bird.x=W*0.22; bird.y=H*0.42; bird.vy=0; bird.angle=0; bird.wingPhase=0; bird.trail=[];
-    pipes=[]; pipeTimer=PIPE_SPACING; score=0; sessionCoins=0; reviveUsed=false; floatingCoins=[];
+    pipes=[]; pipeTimer=120; score=0; sessionCoins=0; reviveUsed=false; floatingCoins=[];
     gameSpeed=PIPE_SPEED_START; pipeGap=PIPE_GAP_START;
     groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[]; speedLines=[]; isThrusting=false;
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
