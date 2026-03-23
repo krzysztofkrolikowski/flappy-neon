@@ -1,4 +1,4 @@
-const CACHE_NAME = "neon-drift-v9";
+const CACHE_NAME = "neon-drift-v10";
 const ASSETS = [
   "/",
   "/manifest.json"
@@ -25,6 +25,13 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  // Always go to network for HTML (navigation) — never serve stale game code
+  if (e.request.mode === "navigate" || e.request.destination === "document") {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
   e.respondWith(
     fetch(e.request)
       .then((res) => {

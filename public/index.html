@@ -190,8 +190,8 @@
     color: rgba(255,255,255,0.3); font-size: 13px;
   }
   .ad-box .ad-label { font-size: 10px; color: rgba(255,255,255,0.2); margin-bottom: 8px; }
-  .ad-skip { margin-top: 16px; font-size: 14px; color: rgba(255,255,255,0.4); cursor: pointer; }
-  .ad-skip.ready { color: #fff; }
+  .ad-skip { margin-top: 16px; font-size: 16px; color: rgba(255,255,255,0.4); cursor: pointer; padding: 12px 32px; -webkit-tap-highlight-color: transparent; }
+  .ad-skip.ready { color: #fff; background: rgba(255,255,255,0.1); border-radius: 8px; }
   .ad-timer { color: #ffee00; font-weight: 700; }
   .rewarded-box {
     width: 300px; height: 200px;
@@ -1721,8 +1721,9 @@
     resetGame();
   }
   function startGame() {
-    if(adActive) return;
-    restartPending=false;
+    adActive=false; restartPending=false;
+    adInterstitial.classList.remove('active');
+    adRewarded.classList.remove('active');
     initAudio();
     if(!muted && !musicPlaying) startMusic();
     resetGame(); state=STATE.PLAYING; isThrusting=false;
@@ -1796,17 +1797,21 @@
     dailyPanel.classList.remove("show"); setTimeout(()=>dailyOverlay.classList.remove("active"), 300);
     updateDailyBadge();
   });
-  document.getElementById("btn-restart").addEventListener("click", e => {
-    e.stopPropagation(); if(restartPending) return; restartPending=true;
-    goPanel.classList.remove("show");
-    setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200);
-  });
+  function doRestart() {
+    if(restartPending) return;
+    restartPending=true;
+    // Force-close any stuck ad overlays and reset adActive
+    adActive=false;
+    adInterstitial.classList.remove('active');
+    adRewarded.classList.remove('active');
+    goPanel.classList.remove('show');
+    setTimeout(()=>{ goOverlay.classList.remove('active'); startGame(); }, 200);
+  }
+  document.getElementById("btn-restart").addEventListener("click", e => { e.stopPropagation(); doRestart(); });
+  document.getElementById("btn-restart").addEventListener("pointerdown", e => { e.stopPropagation(); doRestart(); });
   // Mobile: tap anywhere on game-over overlay background to restart
   goOverlay.addEventListener("pointerdown", e => {
-    if(e.target===goOverlay && state===STATE.DEAD && !adActive && !restartPending) {
-      restartPending=true; goPanel.classList.remove("show");
-      setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200);
-    }
+    if(e.target===goOverlay && state===STATE.DEAD && !restartPending) { doRestart(); }
   });
   document.getElementById("btn-revive").addEventListener("click", e => {
     e.stopPropagation(); coins-=REVIVE_COST; STORAGE.set("coins",coins); updateCoinHud(); doRevive();
