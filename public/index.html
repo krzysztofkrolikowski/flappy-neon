@@ -455,7 +455,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v23-lbfix-20260323";
+  const _BUILD = "v24-shopsort-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -1152,7 +1152,7 @@
     const grid = document.getElementById("shop-grid");
     grid.innerHTML = "";
     if(shopAnimFrame){cancelAnimationFrame(shopAnimFrame);shopAnimFrame=0;}
-    for (const s of SKINS) {
+    for (const s of [...SKINS].sort((a,b) => a.price - b.price)) {
       const owned = ownedSkins.includes(s.id);
       const equipped = equippedSkin === s.id;
       const canBuy = coins >= s.price;
