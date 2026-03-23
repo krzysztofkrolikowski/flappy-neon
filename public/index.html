@@ -327,6 +327,26 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     opacity: 0; transition: opacity 0.15s ease-out;
   }
   #zone-flash.show { opacity: 1; }
+  /* === Laser button === */
+  #laser-btn {
+    position: fixed; bottom: 20px; right: 20px; z-index: 25;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(20,20,40,0.85); border: 2px solid #ccccff;
+    color: #fff; font-size: 24px; display: none; align-items: center; justify-content: center;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 0 15px rgba(200,200,255,0.3);
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  #laser-btn.visible { display: flex; }
+  #laser-btn.ready { border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.6); animation: laser-pulse 1.5s infinite; }
+  #laser-btn.cooling { opacity: 0.4; border-color: #666; }
+  #laser-btn:active { transform: scale(0.9); }
+  #laser-btn .laser-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(200,200,255,0.25); border-radius: 0 0 50% 50%;
+    transition: height 0.1s linear;
+  }
+  @keyframes laser-pulse { 0%,100% { box-shadow: 0 0 15px rgba(255,255,255,0.4); } 50% { box-shadow: 0 0 30px rgba(255,255,255,0.8); } }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
@@ -349,6 +369,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <div id="powerup-hud" id="powerup-hud"></div>
 <div id="achievement-toast"></div>
 <div id="zone-banner"><div class="zone-num"></div><div class="zone-name"></div><div class="zone-sub"></div></div>
+<button id="laser-btn" aria-label="Laser shot"><span style="position:relative;z-index:1">💀</span><div class="laser-fill"></div></button>
 <div id="zone-flash"></div>
 
 <!-- PAUSE -->
@@ -577,7 +598,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     { id: "cerberus", name: "CERBERUS", price: 1500, body: "#cc1100", glow: "#ff2200", ring: "#881100", thrust: "#ff6600", fx: "hellfire", desc: "Three-headed hellhound. Bite — burn.", perk: "second_chance", perkDesc: "🔥 1 free hit per game" },
     { id: "plague",   name: "PLAGUE",   price: 2000, body: "#aacc22", glow: "#88aa00", ring: "#667700", thrust: "#ccff44", fx: "disease", desc: "Plague. Poison. Decay. No cure.", perk: "combo_floor", perkDesc: "☠️ Combo can't drop below 3" },
     { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "From the ocean depths. 8 tentacles.", perk: "gravity_reduce", perkDesc: "🐙 -12% gravity" },
-    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "The scream kills. Shockwave breaks bones.", perk: "speed_cap", perkDesc: "👻 Max pipe speed -8%" },
+    { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "The scream kills. Shockwave breaks bones.", perk: "laser_shot", perkDesc: "💀 Sonic blast co 10s — dziura w rurze" },
     { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon from the Abyss. Horns. Hellfire.", perk: "demon_aura", perkDesc: "😈 Hitbox -10%, combo -20% slower, +15% coins" },
   ];
 
@@ -618,6 +639,13 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   let dyingTimer = 0; // ticks since death started
   let envDebris = []; // flying debris particles
   const streakMilestones = [5,10,15,20,25,30,40,50,75,100];
+
+  // === LASER SHOT (Banshee perk) ===
+  const LASER_COOLDOWN = 600; // 10s at 60fps
+  const LASER_HOLE_SIZE = 90; // hole height in pipe
+  let laserCharge = LASER_COOLDOWN; // starts ready
+  let laserProjectile = null; // {x, y, active}
+  let laserReady = true;
   let streakTimer = 0;
 
   // === COMBO SYSTEM ===
@@ -847,6 +875,22 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     } else if (type === "shield") {
       // Soft tap
       synth('triangle', 350, 180, 0.08, 0.03, 700);
+
+    } else if (type === "laser") {
+      // Aggressive sonic blast — sawtooth sweep + noise burst
+      synth('sawtooth', 800, 120, 0.3, 0.04, 2000);
+      synth('square', 200, 80, 0.15, 0.03, 600);
+      const bufLen = audioCtx.sampleRate * 0.1;
+      const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bufLen; i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/bufLen,3);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const filt = audioCtx.createBiquadFilter();
+      filt.type='bandpass'; filt.frequency.setValueAtTime(2000,t); filt.Q.setValueAtTime(3,t);
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.05,t); g.gain.linearRampToValueAtTime(0,t+0.1);
+      src.connect(filt); filt.connect(g); g.connect(dest);
+      src.start(t); src.stop(t+0.1);
     }
   }
 
@@ -879,6 +923,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   const achievementToast = document.getElementById('achievement-toast');
   const zoneBanner = document.getElementById('zone-banner');
   const zoneFlash = document.getElementById('zone-flash');
+  const laserBtn = document.getElementById('laser-btn');
+  const laserFill = laserBtn.querySelector('.laser-fill');
 
   // =============================================
   //  DAILY BONUS
@@ -1468,6 +1514,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
     secondChanceUsed=false; invincibleFrames=0; // reset per game
+    laserCharge=LASER_COOLDOWN; laserProjectile=null; laserReady=true;
     pipesPassed=0; currentZone=ZONES[0]; lastZoneIdx=0;
     timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; dyingTimer=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
@@ -1681,8 +1728,19 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     const PANEL_W=56;
     for (const p of pipes) {
       const px=p.x-(PANEL_W-PIPE_WIDTH)/2; // visual panel left edge
-      if (bx+br>px && bx-br<px+PANEL_W)
-        if (by-br<p.topH || by+br>p.topH+p.gap) return true;
+      if (bx+br>px && bx-br<px+PANEL_W) {
+        if (by-br<p.topH || by+br>p.topH+p.gap) {
+          // Check if bird is inside a laser hole
+          if(p.holes) {
+            let inHole=false;
+            for(const h of p.holes) {
+              if(by+br > h.y-h.size/2 && by-br < h.y+h.size/2) { inHole=true; break; }
+            }
+            if(inHole) continue;
+          }
+          return true;
+        }
+      }
     }
     return false;
   }
@@ -1956,6 +2014,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     document.getElementById('pause-overlay').classList.remove('active');
     goPanel.classList.remove('show'); goOverlay.classList.remove('active');
     scoreDisplay.classList.remove('visible');
+    laserBtn.classList.remove('visible','ready','cooling');
     menuOverlay.classList.add('active');
     resetGame();
   }
@@ -1967,6 +2026,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     if(!muted && !musicPlaying) startMusic();
     resetGame(); state=STATE.PLAYING; isThrusting=false;
     lastTime=0; accumulator=0;
+    if(hasPerk('laser_shot')) { laserBtn.classList.add('visible','ready'); laserBtn.classList.remove('cooling'); } else { laserBtn.classList.remove('visible'); }
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
     nickOverlay.classList.remove("active"); nickPanel.classList.remove("show");
     lbOverlay.classList.remove("active"); lbPanel.classList.remove("show");
@@ -2013,6 +2073,25 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   });
   document.addEventListener("keyup", e => {
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") thrustStop();
+  });
+
+  // === LASER SHOT CONTROLS ===
+  function fireLaser() {
+    if(!hasPerk('laser_shot') || !laserReady || state!==STATE.PLAYING) return;
+    laserReady=false; laserCharge=0;
+    laserProjectile={x:bird.x+15, y:bird.y, active:true};
+    playSound('laser'); haptic(); shakeMag=3; chromAb=2;
+    // Muzzle flash particles
+    for(let i=0;i<12;i++){
+      const a=(Math.random()-0.5)*0.6;
+      particles.push({x:bird.x+15,y:bird.y,vx:8+Math.random()*6,vy:Math.sin(a)*3,life:0.6,decay:0.05,size:2+Math.random()*2,color:'#ccccff'});
+    }
+    laserBtn.classList.remove('ready');
+    laserBtn.classList.add('cooling');
+  }
+  laserBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); fireLaser(); });
+  document.addEventListener('keydown', e => {
+    if(e.code==='KeyX' && state===STATE.PLAYING) fireLaser();
   });
 
   document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGameWithNick(); });
@@ -2275,6 +2354,44 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         }
         if(p.x+56<-10){pipes[i]=pipes[pipes.length-1];pipes.pop();}
       }
+
+      // === LASER SHOT UPDATE ===
+      if(hasPerk('laser_shot')) {
+        if(!laserReady) {
+          laserCharge++;
+          if(laserCharge>=LASER_COOLDOWN) { laserReady=true; laserCharge=LASER_COOLDOWN; laserBtn.classList.remove('cooling'); laserBtn.classList.add('ready'); }
+        }
+        const pct=Math.round(laserCharge/LASER_COOLDOWN*100);
+        laserFill.style.height=pct+'%';
+        // Update projectile
+        if(laserProjectile && laserProjectile.active) {
+          laserProjectile.x+=18; // fast projectile
+          // Check hit against pipes
+          let hit=false;
+          for(const p of pipes) {
+            const PANEL_W=56;
+            const px=p.x-(PANEL_W-PIPE_WIDTH)/2;
+            if(laserProjectile.x>=px && laserProjectile.x<=px+PANEL_W) {
+              // Hit this pipe — create hole at projectile Y
+              const ly=laserProjectile.y;
+              // Determine if hitting top or bottom section
+              if(ly < p.topH || ly > p.topH+p.gap) {
+                if(!p.holes) p.holes=[];
+                p.holes.push({y:ly, size:LASER_HOLE_SIZE});
+                // Explosion at impact
+                burst(laserProjectile.x, ly, '#ccccff', 15);
+                burst(laserProjectile.x, ly, currentZone.accent, 10);
+                shakeMag=2;
+                hit=true;
+                break;
+              }
+            }
+          }
+          // Off screen or hit
+          if(hit || laserProjectile.x > W+50) { laserProjectile=null; }
+        }
+      }
+
       if(invincibleFrames>0) invincibleFrames--;
       if(invincibleFrames<=0 && checkCollision()) {
         // Shield power-up save
@@ -2294,7 +2411,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         } else {
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=14; flash=1;
           chromAb=8; screenPulse=1; deathFreezeFrames=4;
-          dyingTimer=0;
+          dyingTimer=0; laserBtn.classList.remove('visible');
           timeScaleTarget=0.35; // brief bullet-time
           triggerBassPulse('hit');
           burst(bird.x,bird.y,"#ff4466",18); burst(bird.x,bird.y,"#ffee00",10);
@@ -2547,6 +2664,25 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     if(p.glow>0) {
       ctx.fillStyle=`rgba(0,255,200,${p.glow*0.2})`;
       ctx.fillRect(px-6,topH,PANEL_W+12,p.gap);
+    }
+    // === LASER HOLES ===
+    if(p.holes) {
+      for(const h of p.holes) {
+        const hy=h.y-h.size/2, hh=h.size;
+        // Clear hole area (dark void with energy edges)
+        ctx.fillStyle='#020208';
+        ctx.fillRect(px-4, hy, PANEL_W+8, hh);
+        // Energy edges (top and bottom of hole)
+        ctx.strokeStyle='#ccccff'; ctx.lineWidth=2; ctx.globalAlpha=0.6;
+        ctx.beginPath(); ctx.moveTo(px-4,hy); ctx.lineTo(px+PANEL_W+4,hy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(px-4,hy+hh); ctx.lineTo(px+PANEL_W+4,hy+hh); ctx.stroke();
+        ctx.globalAlpha=1;
+        // Sparking edges
+        const spark=Math.sin(_now*0.01+h.y)*0.5+0.5;
+        ctx.fillStyle=`rgba(200,200,255,${spark*0.3})`;
+        ctx.fillRect(px-2, hy+2, PANEL_W+4, 3);
+        ctx.fillRect(px-2, hy+hh-5, PANEL_W+4, 3);
+      }
     }
 
   }
@@ -4064,6 +4200,26 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     ctx.globalAlpha=1;
   }
 
+  function drawLaser() {
+    if(!laserProjectile || !laserProjectile.active) return;
+    const lx=laserProjectile.x, ly=laserProjectile.y;
+    // Beam trail
+    ctx.globalAlpha=0.3;
+    ctx.strokeStyle='#ccccff'; ctx.lineWidth=6;
+    ctx.beginPath(); ctx.moveTo(lx-60,ly); ctx.lineTo(lx,ly); ctx.stroke();
+    ctx.globalAlpha=0.6;
+    ctx.strokeStyle='#ffffff'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(lx-40,ly); ctx.lineTo(lx,ly); ctx.stroke();
+    // Head glow
+    ctx.globalAlpha=0.5;
+    ctx.fillStyle='#ccccff';
+    ctx.beginPath(); ctx.arc(lx,ly,8,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#ffffff';
+    ctx.beginPath(); ctx.arc(lx,ly,3,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
   function drawFlash() {
     if(flash>0.01){ ctx.fillStyle=`rgba(255,68,102,${flash*0.3})`; ctx.fillRect(0,0,W,H); }
     // Screen pulse (bass drop glow from edges)
@@ -4140,7 +4296,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     drawSpeedLines();
     for(const p of pipes) drawPipe(p);
     drawFloatingCoins(); drawPowerUpOrbs();
-    drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
+    drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawLaser(); drawFlash();
     if(state===STATE.DYING){
       const hAlpha=0.4+Math.sin(_now*0.008)*0.3;
       ctx.globalAlpha=hAlpha;
