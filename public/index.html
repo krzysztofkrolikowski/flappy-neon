@@ -637,7 +637,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     { name:'VOID RIM', from:75, bg1:'#0a0510', bg2:'#150a25', bg3:'#20103a', ground:'#1a0040', accent:'#aa00ff', laser:'#bb44ff' },
     { name:'SINGULARITY', from:110, bg1:'#020208', bg2:'#050515', bg3:'#080828', ground:'#0a0020', accent:'#ffffff', laser:'#ffffff' },
   ];
-  let currentZone = ZONES[0], lastZoneIdx = 0;
+  let currentZone = ZONES[0], lastZoneIdx = 0, pipesPassed = 0;
 
   // === ACHIEVEMENTS ===
   let unlockedAchievements = STORAGE.get('achievements', []);
@@ -1448,7 +1448,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
     secondChanceUsed=false; invincibleFrames=0; // reset per game
-    currentZone=ZONES[0]; lastZoneIdx=0;
+    pipesPassed=0; currentZone=ZONES[0]; lastZoneIdx=0;
     timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; dyingTimer=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
     scoreDisplay.textContent="0";
@@ -1554,7 +1554,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   // === ZONE CHECK ===
   function checkZone() {
     let zi=0;
-    for(let i=ZONES.length-1;i>=0;i--) { if(score>=ZONES[i].from){zi=i;break;} }
+    for(let i=ZONES.length-1;i>=0;i--) { if(pipesPassed>=ZONES[i].from){zi=i;break;} }
     if(zi!==lastZoneIdx) {
       lastZoneIdx=zi; currentZone=ZONES[zi];
       rebuildGradients();
@@ -2222,7 +2222,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         if(p.glow>0) p.glow-=0.03;
         const pRight=p.x-(56-PIPE_WIDTH)/2+56; // right edge of visual panel
         if(!p.scored && pRight<bird.x) {
-          p.scored=true; p.glow=1;
+          p.scored=true; p.glow=1; pipesPassed++;
           const pts=Math.max(1,Math.floor(comboMultiplier));
           score+=pts;
           scoreDisplay.textContent=score;
