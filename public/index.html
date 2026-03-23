@@ -514,7 +514,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v36-ring-20260323";
+  const _BUILD = "v37-skyhole-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2735,8 +2735,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         const PANEL_EX=10; // extend beyond panel
         const lx=px-PANEL_EX, lw=PANEL_W+PANEL_EX*2;
 
-        // 1) Dark void background
-        ctx.fillStyle='#020208';
+        // 1) Sky background (see-through hole)
+        ctx.fillStyle=_gradCache.bg;
         ctx.fillRect(lx, hy, lw, hh);
 
         // 2) Jagged torn edges (top)
@@ -2748,7 +2748,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         }
         ctx.lineTo(lx+lw, hy-6);
         ctx.closePath();
-        ctx.fillStyle='#020208'; ctx.fill();
+        ctx.fillStyle=_gradCache.bg; ctx.fill();
         // Top edge glow
         ctx.beginPath();
         for(let j=0;j<=8;j++) {
@@ -2768,7 +2768,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         }
         ctx.lineTo(lx+lw, hy+hh+6);
         ctx.closePath();
-        ctx.fillStyle='#020208'; ctx.fill();
+        ctx.fillStyle=_gradCache.bg; ctx.fill();
         // Bottom edge glow
         ctx.beginPath();
         for(let j=0;j<=8;j++) {
@@ -2840,18 +2840,13 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         }
         ctx.globalAlpha=1;
 
-        // 6) Exposed wires/sparks inside hole
-        ctx.strokeStyle='#334'; ctx.lineWidth=1; ctx.globalAlpha=0.3;
-        for(let w=0;w<3;w++) {
-          const wy=hy+10+w*(hh-20)/2;
-          const sag=Math.sin(_now*0.004+w*2)*6;
-          ctx.beginPath(); ctx.moveTo(lx+4,wy); ctx.quadraticCurveTo(lx+lw/2,wy+sag,lx+lw-4,wy); ctx.stroke();
-          // Spark at random wire point
-          if(Math.sin(_now*0.008+w*3)>0.7) {
-            const sx=lx+lw*(0.3+w*0.2);
-            ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.8;
-            ctx.beginPath(); ctx.arc(sx,wy+sag*0.5,1.5,0,Math.PI*2); ctx.fill();
-          }
+        // 6) Faint stars visible through hole
+        ctx.globalAlpha=0.2;
+        for(let s=0;s<4;s++) {
+          const sx=lx+10+((s*37+h.y*7)%(lw-20));
+          const sy=hy+8+((s*23+h.y*3)%(hh-16));
+          ctx.fillStyle='#fff';
+          ctx.beginPath(); ctx.arc(sx,sy,0.8+Math.sin(_now*0.003+s)*0.4,0,Math.PI*2); ctx.fill();
         }
         ctx.globalAlpha=1;
       }
