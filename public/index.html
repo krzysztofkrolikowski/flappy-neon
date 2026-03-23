@@ -540,9 +540,9 @@
   const fxCanvas = document.getElementById("fx-canvas");
   const fxCtx = fxCanvas.getContext("2d");
   const bassPulse = document.getElementById("bass-pulse");
-  let W, H;
+  let W, H, dpr = 1;
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    dpr = Math.min(window.devicePixelRatio||1, 2);
     W = window.innerWidth; H = window.innerHeight;
     canvas.width = W*dpr; canvas.height = H*dpr;
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -3768,6 +3768,7 @@
   //  GAME LOOP (fixed timestep — 60 ticks/s)
   // =============================================
   function frame(now) {
+   try {
     if(state===STATE.PAUSED) { lastTime=0; requestAnimationFrame(frame); return; }
     if (!lastTime) lastTime = now;
     const rawDt = Math.min(now - lastTime, 100);
@@ -3799,6 +3800,7 @@
     ctx.restore();
     // Post-processing pass
     postProcess();
+   } catch(e) { console.error('[frame error]', e); }
     requestAnimationFrame(frame);
   }
 
