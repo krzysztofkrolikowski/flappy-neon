@@ -393,6 +393,8 @@
 <script>
 (() => {
   "use strict";
+  const _BUILD = "v12-debug-20260323";
+  console.log('[NeonDrift]', _BUILD);
 
   // =============================================
   //  PERSISTENCE
@@ -3781,19 +3783,23 @@
   // =============================================
   //  GAME LOOP (fixed timestep — 60 ticks/s)
   // =============================================
+  let _lastError = '';
   function frame(now) {
-   try {
     if(state===STATE.PAUSED) { lastTime=0; requestAnimationFrame(frame); return; }
     if (!lastTime) lastTime = now;
     const rawDt = Math.min(now - lastTime, 100);
     lastTime = now;
-    // Apply slow-mo time scale
     const dt = rawDt * timeScale;
     accumulator += dt;
     while (accumulator >= TICK_MS) {
-      update();
+      try { update(); } catch(e) {
+        if(_lastError!==e.message){ _lastError=e.message; console.error('[update crash]',e); }
+        // Force death on crash so game doesn't freeze
+        if(state===STATE.PLAYING) { state=STATE.DEAD; showGameOver(); }
+      }
       accumulator -= TICK_MS;
     }
+    try {
     ctx.save();
     if(shakeMag>0.5) ctx.translate(shakeX,shakeY);
     drawBackground();
@@ -3801,7 +3807,6 @@
     for(const p of pipes) drawPipe(p);
     drawFloatingCoins(); drawPowerUpOrbs();
     drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
-    // "TAP TO SKIP" hint during DYING
     if(state===STATE.DYING){
       const hAlpha=0.4+Math.sin(Date.now()*0.008)*0.3;
       ctx.globalAlpha=hAlpha;
@@ -3812,9 +3817,18 @@
       ctx.shadowBlur=0; ctx.globalAlpha=1;
     }
     ctx.restore();
-    // Post-processing pass
     postProcess();
-   } catch(e) { console.error('[frame error]', e); }
+    } catch(e) { console.error('[render error]',e); _lastError=_lastError||e.message; }
+    // Debug overlay: version + errors
+    ctx.save();
+    ctx.font='10px monospace'; ctx.textAlign='left';
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.fillText(_BUILD+' s='+state, 4, H-4);
+    if(_lastError) {
+      ctx.fillStyle='#ff0000'; ctx.font='bold 11px monospace';
+      ctx.fillText('ERR: '+_lastError, 4, H-18);
+    }
+    ctx.restore();
     requestAnimationFrame(frame);
   }
 
