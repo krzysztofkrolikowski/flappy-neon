@@ -633,18 +633,18 @@
   // === ACHIEVEMENTS ===
   let unlockedAchievements = STORAGE.get('achievements', []);
   const ACHIEVEMENTS = [
-    { id:'first_game', name:'🎮 Początek', cond:()=>totalGames>=1 },
-    { id:'score_10', name:'🌟 Debiutant', cond:()=>score>=10 },
-    { id:'score_25', name:'🔥 Weteran', cond:()=>score>=25 },
-    { id:'score_50', name:'💀 Legenda', cond:()=>score>=50 },
+    { id:'first_game', name:'🎮 First Flight', cond:()=>totalGames>=1 },
+    { id:'score_10', name:'🌟 Rookie', cond:()=>score>=10 },
+    { id:'score_25', name:'🔥 Veteran', cond:()=>score>=25 },
+    { id:'score_50', name:'💀 Legend', cond:()=>score>=50 },
     { id:'combo_5', name:'⚡ Combo x5', cond:()=>maxCombo>=5 },
     { id:'combo_10', name:'🌊 Combo x10', cond:()=>maxCombo>=10 },
     { id:'drift_3', name:'🎯 Drift Master', cond:()=>driftCount>=3 },
-    { id:'coins_100', name:'💰 Bogacz', cond:()=>coins>=100 },
-    { id:'coins_500', name:'💎 Milioner', cond:()=>coins>=500 },
-    { id:'shield_save', name:'🛡️ Życie z Tarczy', cond:()=>shieldHits>=1 },
-    { id:'games_10', name:'🔁 Uzależniony', cond:()=>totalGames>=10 },
-    { id:'games_50', name:'🎰 Niezatrzymany', cond:()=>totalGames>=50 },
+    { id:'coins_100', name:'💰 Rich', cond:()=>coins>=100 },
+    { id:'coins_500', name:'💎 Millionaire', cond:()=>coins>=500 },
+    { id:'shield_save', name:'🛡️ Shield Save', cond:()=>shieldHits>=1 },
+    { id:'games_10', name:'🔁 Addicted', cond:()=>totalGames>=10 },
+    { id:'games_50', name:'🎰 Unstoppable', cond:()=>totalGames>=50 },
   ];
   let driftCount = 0;
   let achievementQueue = [], achievementShowing = false;
@@ -1330,17 +1330,17 @@
     const skipEl = document.getElementById("ad-skip");
     skipEl.classList.remove("ready");
     skipEl.style.pointerEvents = "none";
-    skipEl.innerHTML = 'Pomiń za <span class="ad-timer">' + sec + '</span>s';
+    skipEl.innerHTML = 'Skip in <span class="ad-timer">' + sec + '</span>s';
     const iv = setInterval(() => {
       sec--;
       if (sec <= 0) {
         clearInterval(iv);
-        skipEl.innerHTML = "Pomiń ✕";
+        skipEl.innerHTML = "Skip ✕";
         skipEl.classList.add("ready");
         skipEl.style.pointerEvents = "auto";
         skipEl.onclick = () => { skipEl.onclick=null; finish(); };
       } else {
-        skipEl.innerHTML = 'Pomiń za <span class="ad-timer">' + sec + '</span>s';
+        skipEl.innerHTML = 'Skip in <span class="ad-timer">' + sec + '</span>s';
       }
     }, 1000);
   }
@@ -2061,8 +2061,10 @@
       lbBody.innerHTML = '';
       if(!rows.length) { lbLoading.textContent = 'No scores yet'; return; }
       const medals = ['🥇','🥈','🥉'];
+      let meHighlighted = false;
       rows.forEach((r, i) => {
-        const isMe = playerNick && r.nickname === playerNick;
+        const isMe = !meHighlighted && playerNick && r.nickname === playerNick;
+        if(isMe) meHighlighted = true;
         const medal = i < 3 ? '<span class="lb-medal">' + medals[i] + '</span>' : '';
         const tr = document.createElement('tr');
         if(isMe) tr.className = 'lb-me';
