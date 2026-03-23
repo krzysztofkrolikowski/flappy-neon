@@ -393,7 +393,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v14-music-20260323";
+  const _BUILD = "v15-music-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -1510,21 +1510,23 @@
   //  SPACE AMBIENT MUSIC
   // =============================================
   let musicPlaying = false, musicNodes = [], musicTimer = 0;
-  const MUSIC_VOL = 0.055;
+  const MUSIC_VOL = 0.06;
 
-  // Upbeat neon synthwave — G major: G - D - Em - C
-  const M_CHORDS = [
-    [196.00, 246.94, 293.66],  // G  (G3, B3, D4)
-    [146.83, 220.00, 293.66],  // D  (D3, A3, D4)
-    [164.81, 196.00, 246.94],  // Em (E3, G3, B3)
-    [130.81, 196.00, 261.63],  // C  (C3, G3, C4)
+  // Bright upbeat synthwave — G major: G - D - Em - C
+  // Clean voicings, octave 4 range
+  const M_PAD = [
+    [392.00, 493.88, 587.33],  // G  (G4, B4, D5)
+    [293.66, 369.99, 440.00],  // D  (D4, F#4, A4)
+    [329.63, 392.00, 493.88],  // Em (E4, G4, B4)
+    [261.63, 329.63, 392.00],  // C  (C4, E4, G4)
   ];
-  const M_BASS  = [98.00, 73.42, 82.41, 65.41];        // G2, D2, E2, C2
-  const M_ARPS  = [
-    [392.00, 493.88, 587.33, 493.88, 587.33, 783.99, 587.33, 493.88],
-    [293.66, 440.00, 587.33, 440.00, 587.33, 698.46, 587.33, 440.00],
-    [329.63, 392.00, 493.88, 392.00, 493.88, 659.26, 493.88, 392.00],
-    [261.63, 392.00, 523.25, 392.00, 523.25, 659.26, 523.25, 392.00],
+  const M_BASS = [98.00, 73.42, 82.41, 65.41]; // G2, D2, E2, C2
+  // Simple ascending arp patterns per chord (pentatonic feel)
+  const M_ARP = [
+    [587.33, 659.26, 783.99, 880.00],  // G: D5 E5 G5 A5
+    [440.00, 587.33, 659.26, 740.00],  // D: A4 D5 E5 F#5
+    [493.88, 587.33, 659.26, 783.99],  // Em: B4 D5 E5 G5
+    [523.25, 587.33, 659.26, 783.99],  // C: C5 D5 E5 G5
   ];
 
   function startMusic() {
@@ -1539,121 +1541,83 @@
     master.connect(limiter); limiter.connect(audioCtx.destination);
     musicNodes.push(master, limiter);
 
-    const BPM = 120, beatLen = 60/BPM, barLen = beatLen*4;
-    const loopLen = barLen * 4;            // 4 bars = 1 cycle (8 sec)
+    const BPM = 115, beatLen = 60/BPM, barLen = beatLen*4;
+    const loopLen = barLen * 4;
     let nextLoop = audioCtx.currentTime + 0.05;
-
-    // Pre-create noise buffer (reused every cycle)
-    const hatLen = Math.ceil(audioCtx.sampleRate * 0.025);
-    const hatBuf = audioCtx.createBuffer(1, hatLen, audioCtx.sampleRate);
-    const hd = hatBuf.getChannelData(0);
-    for(let i=0; i<hatLen; i++) hd[i] = (Math.random()*2-1)*Math.exp(-i/(hatLen*0.15));
+    const fade = 0.04; // 40ms crossfade to avoid clicks
 
     function scheduleLoop() {
       if(!musicPlaying) return;
       const start = nextLoop;
 
       for(let bar=0; bar<4; bar++) {
-        const bStart = start + bar * barLen;
-        const chord = M_CHORDS[bar];
-        const nextChord = M_CHORDS[(bar+1)%4];
+        const t0 = start + bar * barLen;
+        const chord = M_PAD[bar];
 
-        // ── PAD: continuous triangle+saw, crossfade between chords ──
-        for(let ci=0; ci<chord.length; ci++) {
-          const freq = chord[ci];
-          const nfreq = nextChord[ci];
-          // Triangle — warm body (continuous across bar, no fade to 0)
-          const o1 = audioCtx.createOscillator();
-          const g1 = audioCtx.createGain();
-          o1.type = 'triangle'; o1.frequency.value = freq;
-          o1.frequency.setValueAtTime(freq, bStart);
-          o1.frequency.linearRampToValueAtTime(nfreq, bStart + barLen);
-          o1.connect(g1); g1.connect(master);
-          g1.gain.setValueAtTime(0.045, bStart);
-          g1.gain.setValueAtTime(0.045, bStart + barLen);
-          o1.start(bStart); o1.stop(bStart + barLen + 0.05);
-          // Detuned saw — shimmer
-          const o2 = audioCtx.createOscillator();
-          const g2 = audioCtx.createGain();
-          const lp = audioCtx.createBiquadFilter();
-          o2.type = 'sawtooth';
-          o2.frequency.value = freq * 1.003;
-          o2.frequency.setValueAtTime(freq*1.003, bStart);
-          o2.frequency.linearRampToValueAtTime(nfreq*1.003, bStart + barLen);
-          lp.type = 'lowpass'; lp.frequency.value = 700; lp.Q.value = 0.7;
-          o2.connect(lp); lp.connect(g2); g2.connect(master);
-          g2.gain.setValueAtTime(0.018, bStart);
-          g2.gain.setValueAtTime(0.018, bStart + barLen);
-          o2.start(bStart); o2.stop(bStart + barLen + 0.05);
+        // ── PAD: triangle, stable frequency, fade in/out edges only ──
+        for(const freq of chord) {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = 'triangle'; o.frequency.value = freq;
+          o.connect(g); g.connect(master);
+          g.gain.setValueAtTime(0, t0);
+          g.gain.linearRampToValueAtTime(0.035, t0 + fade);
+          g.gain.setValueAtTime(0.035, t0 + barLen - fade);
+          g.gain.linearRampToValueAtTime(0, t0 + barLen);
+          o.start(t0); o.stop(t0 + barLen + 0.01);
         }
 
-        // ── BASS: smooth pulse, gentle swell per bar ──
-        const bassFreq = M_BASS[bar];
+        // ── BASS: sine, one note per bar, gentle pulse on beats ──
         const bo = audioCtx.createOscillator();
         const bg = audioCtx.createGain();
-        bo.type = 'sine'; bo.frequency.value = bassFreq;
+        bo.type = 'sine'; bo.frequency.value = M_BASS[bar];
         bo.connect(bg); bg.connect(master);
-        bg.gain.setValueAtTime(0.13, bStart);
+        bg.gain.setValueAtTime(0, t0);
+        bg.gain.linearRampToValueAtTime(0.14, t0 + fade);
         for(let b=0; b<4; b++) {
-          const bt = bStart + b*beatLen;
-          bg.gain.setValueAtTime(0.17, bt);
-          bg.gain.linearRampToValueAtTime(0.10, bt + beatLen*0.7);
+          const bt = t0 + b * beatLen;
+          if(b > 0) bg.gain.setValueAtTime(0.16, bt);
+          bg.gain.linearRampToValueAtTime(0.11, bt + beatLen * 0.6);
         }
-        bo.start(bStart); bo.stop(bStart + barLen + 0.02);
-        // Sub
-        const so = audioCtx.createOscillator();
-        const sg = audioCtx.createGain();
-        so.type = 'sine'; so.frequency.value = bassFreq * 0.5;
-        so.connect(sg); sg.connect(master);
-        sg.gain.setValueAtTime(0.08, bStart);
-        sg.gain.setValueAtTime(0.08, bStart + barLen);
-        so.start(bStart); so.stop(bStart + barLen + 0.02);
+        bg.gain.setValueAtTime(0.11, t0 + barLen - fade);
+        bg.gain.linearRampToValueAtTime(0, t0 + barLen);
+        bo.start(t0); bo.stop(t0 + barLen + 0.01);
 
-        // ── ARPEGGIOS: 8th notes, triangle wave, smooth ──
-        const arpNotes = M_ARPS[bar];
-        const eighth = beatLen / 2;
-        for(let i=0; i<8; i++) {
-          const nt = bStart + i * eighth;
-          const freq = arpNotes[i];
+        // ── ARP: plucky triangle, one note per beat ──
+        const arp = M_ARP[bar];
+        for(let b=0; b<4; b++) {
+          const nt = t0 + b * beatLen;
           const ao = audioCtx.createOscillator();
           const ag = audioCtx.createGain();
-          const af = audioCtx.createBiquadFilter();
-          ao.type = 'triangle'; ao.frequency.value = freq;
-          af.type = 'lowpass'; af.frequency.value = 2400; af.Q.value = 1.5;
-          ao.connect(af); af.connect(ag); ag.connect(master);
-          ag.gain.setValueAtTime(0.04, nt);
-          ag.gain.exponentialRampToValueAtTime(0.004, nt + eighth*0.85);
-          ao.start(nt); ao.stop(nt + eighth + 0.01);
+          ao.type = 'triangle'; ao.frequency.value = arp[b];
+          ao.connect(ag); ag.connect(master);
+          ag.gain.setValueAtTime(0.06, nt);
+          ag.gain.exponentialRampToValueAtTime(0.003, nt + beatLen * 0.75);
+          ao.start(nt); ao.stop(nt + beatLen);
         }
 
-        // ── HIHATS: 8th notes, soft shuffle feel ──
-        for(let h=0; h<8; h++) {
-          const ht = bStart + h * eighth;
-          const accent = h%4===0;
-          const src = audioCtx.createBufferSource();
-          const hg = audioCtx.createGain();
-          const hp = audioCtx.createBiquadFilter();
-          src.buffer = hatBuf;
-          hp.type = 'highpass'; hp.frequency.value = accent ? 7500 : 9500;
-          src.connect(hp); hp.connect(hg); hg.connect(master);
-          hg.gain.setValueAtTime(accent ? 0.045 : 0.02, ht);
-          hg.gain.exponentialRampToValueAtTime(0.001, ht + 0.02);
-          src.start(ht); src.stop(ht + 0.025);
+        // ── OFFBEAT PLINK: soft high octave on the "and" ──
+        for(let b=0; b<4; b++) {
+          const nt = t0 + b * beatLen + beatLen * 0.5;
+          if(nt >= t0 + barLen) continue;
+          const po = audioCtx.createOscillator();
+          const pg = audioCtx.createGain();
+          po.type = 'sine'; po.frequency.value = arp[b] * 2; // octave up
+          po.connect(pg); pg.connect(master);
+          pg.gain.setValueAtTime(0.02, nt);
+          pg.gain.exponentialRampToValueAtTime(0.001, nt + beatLen * 0.4);
+          po.start(nt); po.stop(nt + beatLen * 0.5);
         }
       }
 
       nextLoop = start + loopLen;
-      // Schedule next loop well before current one ends
       const ahead = (nextLoop - audioCtx.currentTime) * 1000 - 800;
       musicTimer = setTimeout(scheduleLoop, Math.max(ahead, 100));
     }
 
-    // Pre-schedule 2 loops so there's never a gap
+    // Double-buffer: schedule 2 cycles ahead
     scheduleLoop();
-    const firstEnd = nextLoop;
     scheduleLoop();
-    // Reset nextLoop tracker to keep double-buffering
-    nextLoop = firstEnd + loopLen;
   }
 
   function stopMusic() {
