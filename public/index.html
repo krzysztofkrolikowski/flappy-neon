@@ -393,7 +393,7 @@
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v16-cosmic-20260323";
+  const _BUILD = "v17-cosmic-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -1512,21 +1512,20 @@
   let musicPlaying = false, musicNodes = [], musicTimer = 0;
   const MUSIC_VOL = 0.06;
 
-  // Bright upbeat synthwave — G major: G - D - Em - C
-  // Clean voicings, octave 4 range
+  // Neon cyberpunk — Em - C - G - D (cool, not sad, not cheesy)
   const M_PAD = [
-    [392.00, 493.88, 587.33],  // G  (G4, B4, D5)
-    [293.66, 369.99, 440.00],  // D  (D4, F#4, A4)
     [329.63, 392.00, 493.88],  // Em (E4, G4, B4)
     [261.63, 329.63, 392.00],  // C  (C4, E4, G4)
+    [392.00, 493.88, 587.33],  // G  (G4, B4, D5)
+    [293.66, 369.99, 440.00],  // D  (D4, F#4, A4)
   ];
-  const M_BASS = [98.00, 73.42, 82.41, 65.41]; // G2, D2, E2, C2
-  // Simple ascending arp patterns per chord (pentatonic feel)
+  const M_BASS = [82.41, 65.41, 98.00, 73.42]; // E2, C2, G2, D2
+  // Arp patterns — minor-flavored, ascending with tension
   const M_ARP = [
-    [587.33, 659.26, 783.99, 880.00],  // G: D5 E5 G5 A5
-    [440.00, 587.33, 659.26, 740.00],  // D: A4 D5 E5 F#5
     [493.88, 587.33, 659.26, 783.99],  // Em: B4 D5 E5 G5
-    [523.25, 587.33, 659.26, 783.99],  // C: C5 D5 E5 G5
+    [523.25, 587.33, 659.26, 783.99],  // C:  C5 D5 E5 G5
+    [587.33, 659.26, 783.99, 880.00],  // G:  D5 E5 G5 A5
+    [440.00, 587.33, 659.26, 740.00],  // D:  A4 D5 E5 F#5
   ];
 
   function startMusic() {
