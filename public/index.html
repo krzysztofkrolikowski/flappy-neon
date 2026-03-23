@@ -502,7 +502,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v34-rshift-20260323";
+  const _BUILD = "v35-flames-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2383,23 +2383,54 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
               // Determine if hitting top or bottom section
               if(ly < p.topH || ly > p.topH+p.gap) {
                 if(!p.holes) p.holes=[];
+                // Clamp hole to pipe section bounds
+                const hSize=LASER_HOLE_SIZE;
+                let hTop, hBot;
+                if(ly < p.topH) {
+                  // Hit top pipe section (0 to p.topH)
+                  hTop=Math.max(0, ly-hSize/2);
+                  hBot=Math.min(p.topH, ly+hSize/2);
+                } else {
+                  // Hit bottom pipe section (p.topH+p.gap to H-GROUND_HEIGHT)
+                  hTop=Math.max(p.topH+p.gap, ly-hSize/2);
+                  hBot=Math.min(H-GROUND_HEIGHT, ly+hSize/2);
+                }
+                const clampedY=(hTop+hBot)/2;
+                const clampedSize=hBot-hTop;
                 // Generate jagged edge points on creation
                 const jagTop=[], jagBot=[];
                 for(let jx=0;jx<=8;jx++) {
                   jagTop.push((Math.random()-0.5)*18);
                   jagBot.push((Math.random()-0.5)*18);
                 }
-                p.holes.push({y:ly, size:LASER_HOLE_SIZE, jagTop, jagBot, birth:_now});
-                // Bigger explosion at impact
-                burst(laserProjectile.x, ly, '#ccccff', 25);
-                burst(laserProjectile.x, ly, '#ff6600', 15);
-                burst(laserProjectile.x, ly, currentZone.accent, 12);
+                // Flame seed data (permanent)
+                const flames=[];
+                for(let fi=0;fi<12;fi++) flames.push({x:Math.random(),edge:fi<6?0:1,speed:0.5+Math.random()*1.5,phase:Math.random()*Math.PI*2,size:4+Math.random()*8});
+                p.holes.push({y:clampedY, size:clampedSize, jagTop, jagBot, birth:_now, flames});
+                // Edge hit detection — bigger explosion if near emitter (edge of pipe)
+                const nearEmitterTop=Math.abs(ly-p.topH)<35;
+                const nearEmitterBot=Math.abs(ly-(p.topH+p.gap))<35;
+                const isEdgeHit=nearEmitterTop||nearEmitterBot;
+                // Explosion at impact
+                const burstMult=isEdgeHit?1.8:1;
+                burst(laserProjectile.x, ly, '#ccccff', Math.round(25*burstMult));
+                burst(laserProjectile.x, ly, '#ff6600', Math.round(15*burstMult));
+                burst(laserProjectile.x, ly, '#ff2200', Math.round(8*burstMult));
+                burst(laserProjectile.x, ly, currentZone.accent, Math.round(12*burstMult));
                 // Flying debris chunks
-                for(let d=0;d<8;d++){
-                  const a=Math.random()*Math.PI*2, sp=2+Math.random()*4;
-                  particles.push({x:laserProjectile.x+(Math.random()-0.5)*30,y:ly+(Math.random()-0.5)*40,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.2,decay:0.015,size:3+Math.random()*4,color:'#ff8844'});
+                const debrisCount=isEdgeHit?14:8;
+                for(let d=0;d<debrisCount;d++){
+                  const a=Math.random()*Math.PI*2, sp=2+Math.random()*(isEdgeHit?7:4);
+                  particles.push({x:laserProjectile.x+(Math.random()-0.5)*30,y:ly+(Math.random()-0.5)*40,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.2,decay:0.015,size:3+Math.random()*4,color:isEdgeHit?'#ff4400':'#ff8844'});
                 }
-                shakeMag=5; chromAb=3;
+                // Edge hit: extra sparks flying outward from emitter
+                if(isEdgeHit) {
+                  for(let s=0;s<10;s++){
+                    const sy=nearEmitterTop?p.topH:p.topH+p.gap;
+                    particles.push({x:laserProjectile.x+(Math.random()-0.5)*40,y:sy,vx:(Math.random()-0.5)*8,vy:(nearEmitterTop?-1:1)*(2+Math.random()*5),life:1,decay:0.02,size:2+Math.random()*2,color:'#ffee44'});
+                  }
+                }
+                shakeMag=isEdgeHit?8:5; chromAb=isEdgeHit?5:3;
                 hit=true;
                 break;
               }
@@ -2746,7 +2777,45 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           ctx.globalAlpha=1;
         }
 
-        // 5) Ember sparks along edges (animated)
+        // 5) PERMANENT FLAMES on edges
+        if(h.flames) {
+          for(const f of h.flames) {
+            const fx=lx+f.x*lw;
+            const baseY=f.edge===0 ? hy : hy+hh;
+            const dir=f.edge===0 ? -1 : 1;
+            const t=_now*0.006*f.speed+f.phase;
+            const flameH=f.size*(0.6+Math.sin(t)*0.4);
+            const flicker=Math.sin(t*2.3)*0.3+0.7;
+            // Flame body (3 layers: red core, orange mid, yellow tip)
+            // Outer red
+            ctx.globalAlpha=0.35*flicker;
+            ctx.fillStyle='#ff2200';
+            ctx.beginPath();
+            ctx.moveTo(fx-4,baseY);
+            ctx.quadraticCurveTo(fx-2+Math.sin(t*1.7)*2,baseY+dir*flameH*0.7,fx,baseY+dir*flameH);
+            ctx.quadraticCurveTo(fx+2+Math.sin(t*1.3)*2,baseY+dir*flameH*0.7,fx+4,baseY);
+            ctx.fill();
+            // Mid orange
+            ctx.globalAlpha=0.5*flicker;
+            ctx.fillStyle='#ff6600';
+            ctx.beginPath();
+            ctx.moveTo(fx-2.5,baseY);
+            ctx.quadraticCurveTo(fx-1+Math.sin(t*2)*1.5,baseY+dir*flameH*0.5,fx,baseY+dir*flameH*0.7);
+            ctx.quadraticCurveTo(fx+1+Math.sin(t*1.8)*1.5,baseY+dir*flameH*0.5,fx+2.5,baseY);
+            ctx.fill();
+            // Inner yellow tip
+            ctx.globalAlpha=0.6*flicker;
+            ctx.fillStyle='#ffee44';
+            ctx.beginPath();
+            ctx.moveTo(fx-1,baseY);
+            ctx.quadraticCurveTo(fx+Math.sin(t*2.5),baseY+dir*flameH*0.3,fx,baseY+dir*flameH*0.45);
+            ctx.quadraticCurveTo(fx+Math.sin(t*2.1),baseY+dir*flameH*0.3,fx+1,baseY);
+            ctx.fill();
+          }
+          ctx.globalAlpha=1;
+        }
+
+        // 6) Ember sparks along edges (animated)
         const emberCount=5;
         for(let e=0;e<emberCount;e++) {
           const et=(_now*0.003+e*1.3+h.y)%3;
