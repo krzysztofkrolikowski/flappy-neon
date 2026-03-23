@@ -514,7 +514,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v37-skyhole-20260323";
+  const _BUILD = "v37b-movhole-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -1747,7 +1747,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           if(p.holes) {
             let inHole=false;
             for(const h of p.holes) {
-              if(by+br > h.y-h.size/2 && by-br < h.y+h.size/2) { inHole=true; break; }
+              const hdy=p.topH-h.origTopH;
+              const hy=h.y+hdy;
+              if(by+br > hy-h.size/2 && by-br < hy+h.size/2) { inHole=true; break; }
             }
             if(inHole) continue;
           }
@@ -2419,7 +2421,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
                 // Flame seed data (permanent)
                 const flames=[];
                 for(let fi=0;fi<12;fi++) flames.push({x:Math.random(),edge:fi<6?0:1,speed:0.5+Math.random()*1.5,phase:Math.random()*Math.PI*2,size:4+Math.random()*8});
-                p.holes.push({y:clampedY, size:clampedSize, jagTop, jagBot, birth:_now, flames});
+                p.holes.push({y:clampedY, size:clampedSize, jagTop, jagBot, birth:_now, flames, origTopH:p.topH});
                 // Edge hit detection — bigger explosion if near emitter (edge of pipe)
                 const nearEmitterTop=Math.abs(ly-p.topH)<35;
                 const nearEmitterBot=Math.abs(ly-(p.topH+p.gap))<35;
@@ -2730,7 +2732,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     // === LASER HOLES ===
     if(p.holes) {
       for(const h of p.holes) {
-        const hy=h.y-h.size/2, hh=h.size;
+        const hdy=p.topH-h.origTopH;
+        const hy=h.y+hdy-h.size/2, hh=h.size;
         const age=(_now-h.birth)*0.001; // seconds since creation
         const PANEL_EX=10; // extend beyond panel
         const lx=px-PANEL_EX, lw=PANEL_W+PANEL_EX*2;
