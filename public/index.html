@@ -337,13 +337,15 @@
       <span class="stat-value coins-earned" id="coins-earned">+0</span>
     </div>
     <div id="go-taunt" style="color:rgba(255,255,255,0.35);font-size:12px;margin:6px 0;font-style:italic"></div>
-    <div class="go-buttons">
+    <div class="go-buttons" style="flex-direction:column;gap:8px">
       <button class="btn btn-gold btn-small" id="btn-revive" style="display:none"></button>
       <button class="btn btn-small" id="btn-revive-ad" style="display:none"></button>
-      <button class="btn btn-primary btn-small" id="btn-restart">🔄 Jeszcze raz</button>
-      <button class="btn btn-small" id="btn-shop-go" style="font-size:12px">🛒 Sklep</button>
-      <button class="btn btn-small" id="btn-menu-go" style="font-size:12px">🏠 Menu</button>
-      <button class="btn btn-small" id="btn-share" style="font-size:12px">📤 Udostępnij</button>
+      <button class="btn btn-primary" id="btn-restart" style="width:100%;font-size:16px;padding:14px 0">🔄 Zagraj ponownie</button>
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="btn btn-small" id="btn-shop-go" style="flex:1;font-size:12px">🛒 Sklep</button>
+        <button class="btn btn-small" id="btn-menu-go" style="flex:1;font-size:12px">🏠 Menu</button>
+        <button class="btn btn-small" id="btn-share" style="flex:1;font-size:12px">📤 Wyślij</button>
+      </div>
     </div>
   </div>
 </div>
@@ -458,6 +460,7 @@
   let chromAb = 0; // chromatic aberration intensity
   let screenPulse = 0; // bass drop pulse
   let deathFreezeFrames = 0; // freeze before slow-mo
+  let dyingTimer = 0; // ticks since death started
   let envDebris = []; // flying debris particles
   const streakMilestones = [5,10,15,20,25,30,40,50,75,100];
   let streakTimer = 0;
@@ -1268,7 +1271,7 @@
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
     secondChanceUsed=false; // reset per game
     currentZone=ZONES[0]; lastZoneIdx=0;
-    timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; envDebris=[];
+    timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; dyingTimer=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
     scoreDisplay.textContent="0";
   }
@@ -1971,12 +1974,12 @@
           showStreak('🔥 CERBERUS — DRUGA SZANSA!');
         } else {
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=14; flash=1;
-          chromAb=8; screenPulse=1; deathFreezeFrames=0;
-          dyingTimer=0; // safety counter
-          timeScaleTarget=0.55; // BULLET TIME (light, short)
+          chromAb=8; screenPulse=1; deathFreezeFrames=4;
+          dyingTimer=0;
+          timeScaleTarget=0.35; // brief bullet-time
           triggerBassPulse('hit');
           burst(bird.x,bird.y,"#ff4466",18); burst(bird.x,bird.y,"#ffee00",10);
-          burst(bird.x,bird.y,"#ffffff",6); // white sparks
+          burst(bird.x,bird.y,"#ffffff",6);
           // Explosion ring
           for(let i=0;i<12;i++){const a=i/12*Math.PI*2;particles.push({x:bird.x,y:bird.y,vx:Math.cos(a)*6,vy:Math.sin(a)*6,life:0.7,decay:0.03,size:3,color:'#ff0066'});}
           // Debris
@@ -1997,15 +2000,26 @@
     if (state===STATE.DYING) {
       if(deathFreezeFrames>0){deathFreezeFrames--;} else {
       isThrusting=false;
-      bird.vy+=DRIFT_GRAV*3; bird.y+=bird.vy; bird.angle+=0.18;
-      shakeMag*=0.88; shakeX=(Math.random()-0.5)*shakeMag; shakeY=(Math.random()-0.5)*shakeMag;
+      // Classic fall: accelerate down, spin
+      bird.vy+=DRIFT_GRAV*2.5;
+      if(bird.vy>MAX_VY*1.5) bird.vy=MAX_VY*1.5;
+      bird.y+=bird.vy;
+      bird.angle+=0.15;
+      if(bird.angle>Math.PI*2) bird.angle-=Math.PI*2;
+      shakeMag*=0.9; shakeX=(Math.random()-0.5)*shakeMag; shakeY=(Math.random()-0.5)*shakeMag;
       flash*=0.82;
-      dyingTimer=(dyingTimer||0)+1;
-      // Ramp timeScale back up faster after initial hit
-      if(dyingTimer>12) timeScaleTarget+=(1-timeScaleTarget)*0.12;
-      // Dying trail sparks (fewer)
-      if(Math.random()>0.7) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.5,decay:0.04,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
-      if(bird.y>H-GROUND_HEIGHT+20 || dyingTimer>45){ state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
+      dyingTimer++;
+      // Ramp timeScale back to normal quickly
+      if(dyingTimer>6) timeScaleTarget+=(1-timeScaleTarget)*0.2;
+      // Trail sparks while falling
+      if(Math.random()>0.6) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.5,decay:0.04,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
+      // End: hit ground or timeout → show game over
+      const groundY = H - GROUND_HEIGHT;
+      if(bird.y > groundY || dyingTimer > 90) {
+        bird.y = Math.min(bird.y, groundY);
+        state=STATE.DEAD; timeScale=1; timeScaleTarget=1; chromAb=0;
+        showGameOver();
+      }
       }
     }
     for(let i=particles.length-1;i>=0;i--) {
@@ -3791,10 +3805,10 @@
     if(state===STATE.DYING){
       const hAlpha=0.4+Math.sin(Date.now()*0.008)*0.3;
       ctx.globalAlpha=hAlpha;
-      ctx.font='bold '+Math.round(14*dpr)+'px sans-serif';
+      ctx.font='bold 14px sans-serif';
       ctx.textAlign='center'; ctx.fillStyle='#fff';
       ctx.shadowColor='#ff4466'; ctx.shadowBlur=12;
-      ctx.fillText('DOTKNIJ ABY POMINĄĆ',W*dpr/2,H*dpr*0.78);
+      ctx.fillText('DOTKNIJ ABY POMINĄĆ',W/2,H*0.78);
       ctx.shadowBlur=0; ctx.globalAlpha=1;
     }
     ctx.restore();

@@ -1,4 +1,4 @@
-const CACHE_NAME = "neon-drift-v10";
+const CACHE_NAME = "neon-drift-v11";
 const ASSETS = [
   "/",
   "/manifest.json"
