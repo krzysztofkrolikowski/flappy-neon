@@ -553,7 +553,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v40-10of10-20260323";
+  const _BUILD = "v41-opttrail-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2401,13 +2401,13 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       bird.vy*=0.98; bird.y+=bird.vy;
       bird.angle=Math.max(-0.5,Math.min(bird.vy*0.06,1.2));
       bird.wingPhase+=isThrusting?0.35:0.12;
-      bird.trail.push({x:bird.x,y:bird.y,life:1,vy:bird.vy,angle:bird.angle});
-      if(bird.trail.length>20)bird.trail.shift();
-      for(const t of bird.trail) t.life-=0.05;
+      bird.trail.push({x:bird.x,y:bird.y,life:1});
+      if(bird.trail.length>12)bird.trail.shift();
+      for(const t of bird.trail) t.life-=0.08;
       // Drift sparkle trail
       if(driftTrailTimer>0) {
         driftTrailTimer--;
-        for(let i=0;i<2;i++) particles.push({x:bird.x+(Math.random()-0.5)*16,y:bird.y+(Math.random()-0.5)*16,vx:-gameSpeed*0.5+(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:0.6,decay:0.03,size:1.5+Math.random()*2,color:Math.random()>0.5?'#00ffaa':'#ffee00'});
+        particles.push({x:bird.x+(Math.random()-0.5)*16,y:bird.y+(Math.random()-0.5)*16,vx:-gameSpeed*0.5+(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:0.6,decay:0.03,size:1.5+Math.random()*2,color:Math.random()>0.5?'#00ffaa':'#ffee00'});
       }
       if(isThrusting){
         // Double exhaust particles
@@ -2657,8 +2657,6 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       // Update death fragments
       for(let i=deathFragments.length-1;i>=0;i--){
         const f=deathFragments[i]; f.x+=f.vx*timeScale; f.y+=f.vy*timeScale; f.vy+=0.12; f.rot+=f.rotV; f.life-=0.01;
-        // Trail sparks from fragments
-        if(Math.random()>0.8) particles.push({x:f.x,y:f.y,vx:(Math.random()-0.5),vy:-Math.random(),life:0.3,decay:0.05,size:1,color:f.color});
         if(f.life<=0){deathFragments[i]=deathFragments[deathFragments.length-1];deathFragments.pop();}
       }
       if(bird.y > groundY || dyingTimer > 60) {
@@ -3080,8 +3078,6 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         if(f.shape===0) { ctx.fillRect(-f.size/2,-f.size/2,f.size,f.size); }
         else if(f.shape===1) { ctx.beginPath(); ctx.moveTo(0,-f.size/2); ctx.lineTo(f.size/2,f.size/2); ctx.lineTo(-f.size/2,f.size/2); ctx.closePath(); ctx.fill(); }
         else { ctx.beginPath(); ctx.arc(0,0,f.size/2,0,Math.PI*2); ctx.fill(); }
-        ctx.globalAlpha=f.life*0.3;
-        ctx.beginPath(); ctx.arc(0,0,f.size,0,Math.PI*2); ctx.fill();
         ctx.restore();
       }
     }
@@ -3089,25 +3085,28 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     const sk=getSkinColors();
     ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.angle);
     const t=_now*0.001;
-    // Neon trail — gradient line + afterimage glow
+    // Neon trail — single polyline + sparse halos
     if(bird.trail.length>=2) {
-      ctx.lineCap='round';
-      for(let i=1;i<bird.trail.length;i++) {
-        const tr=bird.trail[i], prev=bird.trail[i-1];
-        if(tr.life<=0||prev.life<=0) continue;
-        ctx.globalAlpha=tr.life*0.5;
-        ctx.strokeStyle=sk.glow;
-        ctx.lineWidth=4*tr.life;
-        ctx.beginPath();
-        ctx.moveTo(prev.x-bird.x,prev.y-bird.y);
-        ctx.lineTo(tr.x-bird.x,tr.y-bird.y);
-        ctx.stroke();
-      }
-      for(const tr of bird.trail) {
+      // One continuous stroke for the line
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=3;
+      ctx.globalAlpha=0.45;
+      ctx.beginPath();
+      let started=false;
+      for(let i=0;i<bird.trail.length;i++) {
+        const tr=bird.trail[i];
         if(tr.life<=0) continue;
-        ctx.globalAlpha=tr.life*0.2;
-        ctx.fillStyle=sk.thrust;
-        ctx.beginPath(); ctx.arc(tr.x-bird.x,tr.y-bird.y,BIRD_SIZE*0.3*tr.life,0,Math.PI*2); ctx.fill();
+        const rx=tr.x-bird.x, ry=tr.y-bird.y;
+        if(!started){ctx.moveTo(rx,ry);started=true;}else ctx.lineTo(rx,ry);
+      }
+      if(started) ctx.stroke();
+      // Sparse glow halos (every 3rd point)
+      ctx.fillStyle=sk.thrust;
+      for(let i=0;i<bird.trail.length;i+=3) {
+        const tr=bird.trail[i];
+        if(tr.life<=0) continue;
+        ctx.globalAlpha=tr.life*0.15;
+        ctx.beginPath(); ctx.arc(tr.x-bird.x,tr.y-bird.y,BIRD_SIZE*0.25*tr.life,0,Math.PI*2); ctx.fill();
       }
     }
     ctx.globalAlpha=1;
