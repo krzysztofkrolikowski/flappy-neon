@@ -53,6 +53,64 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   #bass-pulse.hit { border: 8px solid rgba(255,0,100,0.4); }
   #bass-pulse.combo { border: 6px solid rgba(255,0,230,0.3); }
   #bass-pulse.drift { border: 5px solid rgba(0,255,170,0.3); }
+  #bass-pulse.overdrive { border: 6px solid rgba(255,0,230,0.5); }
+
+  /* === OVERDRIVE METER === */
+  #overdrive-hud {
+    position: fixed; bottom: max(env(safe-area-inset-bottom),54px); left: 50%; transform: translateX(-50%);
+    width: 120px; pointer-events: none; z-index: 21;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  #overdrive-hud.visible { opacity: 1; }
+  #overdrive-label {
+    font-size: 9px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 2px; text-align: center; color: rgba(255,255,255,0.35);
+    margin-bottom: 2px; transition: color 0.3s, text-shadow 0.3s;
+  }
+  #overdrive-hud.ready #overdrive-label {
+    color: #ff00e6;
+    text-shadow: 0 0 8px rgba(255,0,230,0.6);
+    animation: pulse 0.6s ease-in-out infinite;
+  }
+  #overdrive-hud.active #overdrive-label {
+    color: #fff;
+    text-shadow: 0 0 12px #ff00e6, 0 0 24px #00f0ff;
+    font-size: 10px;
+  }
+  #overdrive-bar {
+    width: 100%; height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px; overflow: hidden;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+  }
+  #overdrive-fill {
+    height: 100%; width: 0; border-radius: 3px;
+    background: linear-gradient(90deg, #ff00e6, #00f0ff, #ffee00);
+    background-size: 200% 100%;
+    animation: odShimmer 1.5s linear infinite;
+    transition: width 0.15s;
+    box-shadow: 0 0 6px rgba(255,0,230,0.5);
+  }
+  #overdrive-hud.active #overdrive-bar { box-shadow: 0 0 12px rgba(255,0,230,0.6), inset 0 0 4px rgba(0,0,0,0.3); }
+  #overdrive-hud.active #overdrive-fill { background: linear-gradient(90deg, #ff00e6, #ffffff, #00f0ff); }
+  @keyframes odShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* Overdrive screen border glow */
+  #overdrive-border {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 14;
+    box-sizing: border-box; border: 0px solid transparent;
+    transition: border-width 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  #overdrive-border.active {
+    border: 3px solid rgba(255,0,230,0.35);
+    box-shadow: inset 0 0 60px rgba(255,0,230,0.15), inset 0 0 120px rgba(0,240,255,0.08);
+    animation: odBorder 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes odBorder {
+    0% { border-color: rgba(255,0,230,0.35); box-shadow: inset 0 0 60px rgba(255,0,230,0.15); }
+    100% { border-color: rgba(0,240,255,0.35); box-shadow: inset 0 0 60px rgba(0,240,255,0.15); }
+  }
 
   /* === HUD === */
   #score-display {
@@ -399,6 +457,10 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 </button>
 <div id="zone-flash"></div>
 
+<!-- OVERDRIVE METER -->
+<div id="overdrive-hud"><div id="overdrive-label">OVERDRIVE</div><div id="overdrive-bar"><div id="overdrive-fill"></div></div></div>
+<div id="overdrive-border"></div>
+
 <!-- PAUSE -->
 <div id="pause-overlay" class="overlay">
   <div class="menu-title" style="font-size:2rem" data-t="paused">⏸ PAUSED</div>
@@ -553,7 +615,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v41-opttrail-20260323";
+  const _BUILD = "v42-perf-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -594,6 +656,17 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     },
     set(key, val) { try { localStorage.setItem("fn_" + key, JSON.stringify(val)); } catch {} }
   };
+
+  // === PERFORMANCE: localStorage debounce ===
+  const _origStorageSet = STORAGE.set.bind(STORAGE);
+  let _storeBuf = {}, _storeFlushId = 0;
+  STORAGE.set = function(k, v) {
+    _storeBuf[k] = v;
+    if (!_storeFlushId) _storeFlushId = setTimeout(_flushStore, 2000);
+  };
+  function _flushStore() { _storeFlushId = 0; for (const bk in _storeBuf) _origStorageSet(bk, _storeBuf[bk]); _storeBuf = {}; }
+  window.addEventListener('pagehide', _flushStore);
+  window.addEventListener('beforeunload', _flushStore);
 
   // =============================================
   //  SUPABASE LEADERBOARD
@@ -706,6 +779,18 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   let combo = 0, comboTimer = 0, comboMultiplier = 1, maxCombo = 0;
   const COMBO_DECAY = 180; // ticks before combo resets (~3s)
 
+  // === OVERDRIVE SYSTEM ===
+  // Meter charges from drifts + combo milestones → auto-activates at 100%
+  // During overdrive: invincible, coin rain, rainbow visuals, score x3
+  const OD_MAX = 600;         // ticks to fill (10s of constant feeding)
+  const OD_DURATION = 300;    // active duration (~5 seconds)
+  const OD_DRIFT_CHARGE = 80; // charge per drift
+  const OD_COMBO_CHARGE = 40; // charge per combo milestone (5,10,15...)
+  const OD_PIPE_CHARGE = 8;   // small charge per pipe passed
+  let odMeter = 0, odActive = false, odTimer = 0;
+  let odCoinTimer = 0; // rain coins during overdrive
+  let totalOverdrives = STORAGE.get('total_overdrives', 0);
+
   // === POWER-UPS ===
   const POWERUP_TYPES = [
     { id:'shield', icon:'🛡️', color:'#00ffaa', dur:300, desc:'Shield' },
@@ -778,6 +863,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     { id:'speed_max', name:'💨 Mach Speed', desc:'Reach max game speed', cond:()=>gameSpeed>=PIPE_SPEED_MAX*0.98 },
     { id:'skins_3', name:'👔 Collector', desc:'Own 3 skins', cond:()=>ownedSkins.length>=3 },
     { id:'skins_7', name:'👔 Fashionista', desc:'Own 7 skins', cond:()=>ownedSkins.length>=7 },
+    { id:'overdrive_1', name:'⚡ First Overdrive', desc:'Activate Overdrive', cond:()=>totalOverdrives>=1 },
+    { id:'overdrive_5', name:'⚡ Overcharged', desc:'Activate Overdrive 5 times', cond:()=>totalOverdrives>=5 },
+    { id:'overdrive_20', name:'⚡ Neon God', desc:'Activate Overdrive 20 times', cond:()=>totalOverdrives>=20 },
   ];
   let driftCount = 0;
   let achievementQueue = [], achievementShowing = false;
@@ -840,6 +928,19 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   }
   resize();
   window.addEventListener("resize", resize);
+
+  // === PERFORMANCE: Disable expensive shadowBlur globally ===
+  // Replaced by manual glow layers (larger shapes at low alpha) — saves 15-25% on mobile
+  const _origSBDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
+  Object.defineProperty(CanvasRenderingContext2D.prototype, 'shadowBlur', {
+    set(v) { _origSBDesc.set.call(this, 0); },
+    get() { return 0; },
+    configurable: true
+  });
+
+  // === PERFORMANCE: Particle & speed-line caps ===
+  const MAX_PARTICLES = 200;
+  const MAX_SPEED_LINES = 30;
 
   // =============================================
   //  AUDIO
@@ -968,6 +1069,31 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       g.gain.setValueAtTime(0.05,t); g.gain.linearRampToValueAtTime(0,t+0.1);
       src.connect(filt); filt.connect(g); g.connect(dest);
       src.start(t); src.stop(t+0.1);
+
+    } else if (type === "overdrive_start") {
+      // Epic power-up crescendo — rising sawtooth sweep + harmonic sparkle
+      synth('sawtooth', 80, 600, 0.5, 0.04, 1200);
+      synth('square', 160, 800, 0.4, 0.025, 1000);
+      // Sparkle layer — rapid triangle arpeggios
+      [600,800,1000,1200].forEach((freq, i) => {
+        const delay = i * 0.06;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(freq, t + delay);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.02, t + delay + 0.02);
+        g.gain.linearRampToValueAtTime(0, t + delay + 0.15);
+        o.connect(g); g.connect(dest);
+        o.start(t + delay); o.stop(t + delay + 0.15);
+      });
+
+    } else if (type === "overdrive_end") {
+      // Power-down — descending sweep
+      synth('sawtooth', 400, 60, 0.4, 0.03, 800);
+      synth('triangle', 300, 80, 0.3, 0.02, 500);
+
+    } else if (type === "overdrive_tick") {
+      // Subtle rhythmic pulse during overdrive — keeps energy feeling alive
+      synth('sine', 220, 180, 0.06, 0.012, 400);
     }
   }
 
@@ -1003,6 +1129,11 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   const laserBtn = document.getElementById('laser-btn');
   const laserRingFg = document.getElementById('laser-ring-fg');
   const LASER_RING_CIRCUM = 183; // 2*PI*29
+
+  const odHud = document.getElementById('overdrive-hud');
+  const odFill = document.getElementById('overdrive-fill');
+  const odLabel = document.getElementById('overdrive-label');
+  const odBorder = document.getElementById('overdrive-border');
 
   // =============================================
   //  DAILY BONUS
@@ -1346,10 +1477,12 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   }
 
   let shopAnimFrame=0;
+  let _shopFrameSkip=0;
   function animateShopPreviews(){
     const canvases=document.querySelectorAll('.skin-preview-canvas');
     if(!canvases.length){cancelAnimationFrame(shopAnimFrame);shopAnimFrame=0;return;}
-    canvases.forEach(function(cvs){const s=SKINS.find(function(sk){return sk.id===cvs.dataset.skinId;}); if(s) drawShopDrone(cvs,s);});
+    _shopFrameSkip++;
+    if(_shopFrameSkip%3===0) { canvases.forEach(function(cvs){const s=SKINS.find(function(sk){return sk.id===cvs.dataset.skinId;}); if(s) drawShopDrone(cvs,s);}); }
     shopAnimFrame=requestAnimationFrame(animateShopPreviews);
   }
 
@@ -1592,6 +1725,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     deathFragments=[]; driftTrailTimer=0;
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
+    odMeter=0; odActive=false; odTimer=0; odCoinTimer=0;
+    odHud.classList.remove('visible','ready','active'); odBorder.classList.remove('active');
+    odFill.style.width='0';
     secondChanceUsed=false; invincibleFrames=0; // reset per game
     laserCharge=LASER_COOLDOWN; laserProjectile=null; laserReady=true;
     pipesPassed=0; currentZone=ZONES[0]; lastZoneIdx=0;
@@ -1685,6 +1821,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       burst(bird.x,bird.y,'#ff00e6',15+combo);
       chromAb=4+combo*0.5; screenPulse=0.6; triggerBassPulse('combo');
       haptic();
+      // Overdrive charge from combo milestones
+      chargeOverdrive(OD_COMBO_CHARGE);
     }
   }
   function decayCombo() {
@@ -1698,6 +1836,57 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   }
 
   // === ZONE CHECK ===
+
+  // === OVERDRIVE LOGIC ===
+  // Charge meter from skilled play — drifts, combo milestones, pipe passes
+  function chargeOverdrive(amount) {
+    if (odActive || state !== STATE.PLAYING) return;
+    odMeter = Math.min(OD_MAX, odMeter + amount);
+    updateOdHud();
+    if (odMeter >= OD_MAX) activateOverdrive();
+  }
+  function updateOdHud() {
+    const pct = odActive ? (odTimer / OD_DURATION * 100) : (odMeter / OD_MAX * 100);
+    odFill.style.width = pct + '%';
+    if (!odActive && odMeter > 0) odHud.classList.add('visible');
+    if (!odActive && odMeter >= OD_MAX) odHud.classList.add('ready');
+  }
+  function activateOverdrive() {
+    odActive = true; odTimer = OD_DURATION; odCoinTimer = 0;
+    totalOverdrives++; STORAGE.set('total_overdrives', totalOverdrives);
+    odHud.classList.remove('ready');
+    odHud.classList.add('active');
+    odBorder.classList.add('active');
+    odLabel.textContent = '⚡ OVERDRIVE ⚡';
+    playSound('overdrive_start'); haptic();
+    showStreak('⚡ OVERDRIVE ACTIVATED! ⚡');
+    // Massive activation burst — rainbow explosion
+    for (let i = 0; i < 40; i++) {
+      const a = Math.random() * Math.PI * 2, sp = 3 + Math.random() * 6;
+      const hue = Math.floor(Math.random() * 360);
+      particles.push({x:bird.x,y:bird.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.2,decay:0.015,size:2+Math.random()*4,color:`hsl(${hue},100%,65%)`});
+    }
+    // Expansion ring
+    for (let i = 0; i < 20; i++) {
+      const a = i / 20 * Math.PI * 2;
+      particles.push({x:bird.x,y:bird.y,vx:Math.cos(a)*10,vy:Math.sin(a)*10,life:0.6,decay:0.03,size:3,color:'#ffffff'});
+    }
+    shakeMag = 10; chromAb = 8; screenPulse = 1;
+    triggerBassPulse('overdrive');
+  }
+  function endOverdrive() {
+    odActive = false; odMeter = 0; odTimer = 0;
+    odHud.classList.remove('active','ready');
+    odBorder.classList.remove('active');
+    odLabel.textContent = 'OVERDRIVE';
+    odFill.style.width = '0';
+    playSound('overdrive_end');
+    showStreak('💫 OVERDRIVE COMPLETE');
+    // Fade-out burst
+    burst(bird.x, bird.y, '#ff00e6', 20);
+    burst(bird.x, bird.y, '#00f0ff', 15);
+  }
+
   function checkZone() {
     let zi=0;
     for(let i=ZONES.length-1;i>=0;i--) { if(pipesPassed>=ZONES[i].from){zi=i;break;} }
@@ -1756,13 +1945,16 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   // === SPEED LINES ===
   function spawnSpeedLines() {
-    if(gameSpeed>3.5) {
-      const count=Math.floor((gameSpeed-3.5)*2);
+    if(gameSpeed>3.5 && speedLines.length<MAX_SPEED_LINES) {
+      const count=Math.min(Math.floor((gameSpeed-3.5)*2), MAX_SPEED_LINES-speedLines.length);
       for(let i=0;i<count;i++) speedLines.push({ x:W+10, y:Math.random()*H, len:20+Math.random()*40, life:1 });
     }
   }
 
   function burst(x,y,color,count) {
+    const space=MAX_PARTICLES-particles.length;
+    if(space<=0) return;
+    count=Math.min(count,space);
     for (let i=0;i<count;i++) {
       const a=Math.random()*Math.PI*2, sp=Math.random()*4+1;
       particles.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-2, life:1, decay:0.015+Math.random()*0.02, size:Math.random()*4+2, color });
@@ -1796,7 +1988,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   function addCoins(n) {
     const coinMod = hasPerk('coin_bonus') ? 1.25 : (hasPerk('demon_aura') ? 1.15 : 1);
-    const amt = Math.ceil(n * coinMod);
+    const odMod = odActive ? 3 : 1; // Overdrive = triple coins!
+    const amt = Math.ceil(n * coinMod * odMod);
     coins+=amt; sessionCoins+=amt; STORAGE.set("coins",coins); updateCoinHud();
   }
 
@@ -2119,7 +2312,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
     nickOverlay.classList.remove("active"); nickPanel.classList.remove("show");
     lbOverlay.classList.remove("active"); lbPanel.classList.remove("show");
-    scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
+    scoreDisplay.classList.add("visible"); odHud.classList.add('visible'); bird.vy=-4; playSound("flap");
     if (IS_POKI && pokiReady) PokiSDK.gameplayStart();
   }
   function startGameWithNick() { startGame(); }
@@ -2221,7 +2414,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ['Total Pipes',totalPipes],['Total Drifts',totalDrifts],
       ['Best Combo',bestCombo],['Best Drift Streak',bestDriftStreak],
       ['Laser Shots',totalLaserShots],['Total Coins Earned',totalCoinsEarned],
-      ['Skins Owned',ownedSkins.length],['Play Time',formatTime(totalPlayTime)],
+      ['Skins Owned',ownedSkins.length],['Overdrives',totalOverdrives],['Play Time',formatTime(totalPlayTime)],
     ];
     statsGrid.innerHTML=stats.map(([l,v])=>`<div class="sg-label">${l}</div><div class="sg-val">${v}</div>`).join('');
     achGrid.innerHTML=ACHIEVEMENTS.map(a=>{
@@ -2494,16 +2687,39 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           addCoins(pipeCoins);
           scoreDisplay.textContent=score;
           playSound("score"); addCombo(); checkZone(); spawnSpeedLines();
+          chargeOverdrive(OD_PIPE_CHARGE); // small overdrive charge per pipe
           const distTop=Math.abs(bird.y-p.topH),distBot=Math.abs(bird.y-(p.topH+p.gap));
           const nearDist=Math.min(distTop,distBot);
           if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
-          else if(nearDist<25){driftCount++;totalDrifts++;STORAGE.set('total_drifts',totalDrifts);driftTrailTimer=30;const driftCoins=Math.ceil(3*comboMultiplier*(activePowerUp&&activePowerUp.id==='x2'?2:1));addCoins(driftCoins);showStreak(`⚡ DRIFT +${driftCoins}💰`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
+          else if(nearDist<25){driftCount++;totalDrifts++;STORAGE.set('total_drifts',totalDrifts);driftTrailTimer=30;const driftCoins=Math.ceil(3*comboMultiplier*(activePowerUp&&activePowerUp.id==='x2'?2:1));addCoins(driftCoins);showStreak(`⚡ DRIFT +${driftCoins}💰`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');chargeOverdrive(OD_DRIFT_CHARGE);}
           else if(pipeCoins>1){showStreak(`+${pipeCoins} 💰`);}
           const speedMax = hasPerk('speed_cap') ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
           gameSpeed=Math.min(speedMax, PIPE_SPEED_START+score*0.025);
           pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-score*0.5);
         }
         if(p.x+56<-10){pipes[i]=pipes[pipes.length-1];pipes.pop();}
+      }
+
+      // === OVERDRIVE UPDATE ===
+      if (odActive) {
+        odTimer--;
+        updateOdHud();
+        // Rainbow particle trail behind bird — overdrive power fantasy
+        if (_now % 2 === 0) {
+          const hue = (_now * 2) % 360;
+          particles.push({x:bird.x+(Math.random()-0.5)*20,y:bird.y+(Math.random()-0.5)*20,vx:-gameSpeed*0.8+(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:0.8,decay:0.025,size:2+Math.random()*3,color:`hsl(${hue},100%,65%)`});
+        }
+        // Coin rain — spawn floating coins from top
+        odCoinTimer++;
+        if (odCoinTimer % 12 === 0) {
+          const rx = bird.x + (Math.random() - 0.5) * 200;
+          floatingCoins.push({x:Math.max(30,Math.min(W-30,rx)),y:20+Math.random()*60,collected:false,wobble:Math.random()*Math.PI*2,bonus:true});
+        }
+        // Rhythmic audio tick every ~30 ticks
+        if (odTimer % 30 === 0) playSound('overdrive_tick');
+        // Screen glow pulses
+        if (odTimer % 20 === 0) { chromAb = 2; triggerBassPulse('overdrive'); }
+        if (odTimer <= 0) endOverdrive();
       }
 
       // === LASER SHOT UPDATE ===
@@ -2587,7 +2803,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       }
 
       if(invincibleFrames>0) invincibleFrames--;
-      if(invincibleFrames<=0 && checkCollision()) {
+      // Overdrive = invincible — bird phases through pipes
+      if(invincibleFrames<=0 && !odActive && checkCollision()) {
         // Shield power-up save
         if(activePowerUp && activePowerUp.id==='shield') {
           activePowerUp=null; powerUpTimer=0; powerupHud.classList.remove('visible');
@@ -2692,17 +2909,18 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.beginPath(); ctx.arc(s.x,s.y,s.size,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
-    // === FAR LAYER: Nebula clouds ===
+    // === FAR LAYER: Nebula clouds (simplified — no per-frame gradient) ===
     const nebulaT=_now*0.0001;
     for(let i=0;i<4;i++) {
       const nx=(nebulaT*20+i*W*0.4)%(W*1.5)-W*0.25;
       const ny=H*0.2+Math.sin(nebulaT+i*2)*H*0.15;
       const nr=80+i*35;
-      ctx.globalAlpha=0.035;
-      const nebGrad=ctx.createRadialGradient(nx,ny,0,nx,ny,nr);
-      nebGrad.addColorStop(0,z.accent); nebGrad.addColorStop(0.5,z.laser+'30'); nebGrad.addColorStop(1,'transparent');
-      ctx.fillStyle=nebGrad;
+      ctx.globalAlpha=0.025;
+      ctx.fillStyle=z.accent;
       ctx.beginPath(); ctx.arc(nx,ny,nr,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=0.015;
+      ctx.fillStyle=z.accent;
+      ctx.beginPath(); ctx.arc(nx,ny,nr*0.5,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1;
     // === MID LAYER: Industrial structures (parallax 0.3x) ===
@@ -2751,14 +2969,12 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.beginPath(); ctx.ellipse(hx,hy,30+i*8,8+i*3,0.2+Math.sin(holoOff*0.3+i)*0.3,0,Math.PI*2); ctx.stroke();
     }
     ctx.globalAlpha=1;
-    // === DATA STREAM LINES ===
+    // === DATA STREAM LINES (simplified — no per-frame gradient) ===
     const dsOff=_now*0.05;
+    ctx.strokeStyle=z.accent; ctx.lineWidth=1;
     for(let i=0;i<6;i++) {
       const dy=H*0.15+i*H*0.12, dx=(dsOff+i*200)%(W+300)-150, dLen=40+i*15;
       ctx.globalAlpha=0.06;
-      const dsGrad=ctx.createLinearGradient(dx,dy,dx+dLen,dy);
-      dsGrad.addColorStop(0,'transparent'); dsGrad.addColorStop(0.5,z.accent); dsGrad.addColorStop(1,'transparent');
-      ctx.strokeStyle=dsGrad; ctx.lineWidth=1;
       ctx.beginPath(); ctx.moveTo(dx,dy); ctx.lineTo(dx+dLen,dy); ctx.stroke();
     }
     ctx.globalAlpha=1;
@@ -3333,10 +3549,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.shadowBlur=0;
 
     } else if(skinId==="sunset"){
-      // ═══ HELIOS — solar deity ═══
+      // ═══ HELIOS — solar deity (perf-optimized) ═══
       const tB=isThrusting?1:0.25, tL2=isThrusting?(26+Math.sin(t*25)*10):5;
-      // PLASMA JET ENGINE
-      ctx.shadowColor='#ffaa00'; ctx.shadowBlur=isThrusting?35:8;
+      // PLASMA JET ENGINE (no shadow)
       ctx.fillStyle=sk.thrust; ctx.globalAlpha=tB*0.5;
       ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,-5); ctx.lineTo(-BIRD_SIZE*0.4-tL2,-12);
       ctx.lineTo(-BIRD_SIZE*0.4-tL2,12); ctx.lineTo(-BIRD_SIZE*0.4,5); ctx.closePath(); ctx.fill();
@@ -3348,10 +3563,10 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.4,0); ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.25,-2);
         ctx.lineTo(-BIRD_SIZE*0.4-tL2*0.25,2); ctx.closePath(); ctx.fill();
       }
-      ctx.shadowBlur=0; ctx.globalAlpha=1;
-      // SCARAB WING PLATES (animated flap)
+      ctx.globalAlpha=1;
+      // SCARAB WING PLATES (no shadowBlur, batched strokes)
       const wingFlap=Math.sin(t*6)*0.05;
-      ctx.fillStyle=sk.body; ctx.shadowColor=sk.glow; ctx.shadowBlur=18;
+      ctx.fillStyle=sk.body;
       for(const side of[-1,1]){
         ctx.globalAlpha=0.88; ctx.save();
         ctx.rotate(side*wingFlap);
@@ -3360,38 +3575,37 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         ctx.quadraticCurveTo(BIRD_SIZE*0.08,side*BIRD_SIZE*0.6,-BIRD_SIZE*0.22,side*BIRD_SIZE*0.65);
         ctx.quadraticCurveTo(-BIRD_SIZE*0.48,side*BIRD_SIZE*0.55,-BIRD_SIZE*0.44,side*BIRD_SIZE*0.13);
         ctx.closePath(); ctx.fill();
-        // Wing hieroglyph lines
+        // Wing hieroglyphs — single batched path
         ctx.strokeStyle=sk.thrust; ctx.lineWidth=0.8; ctx.globalAlpha=0.35;
-        ctx.beginPath(); ctx.moveTo(0,side*BIRD_SIZE*0.24);
-        ctx.lineTo(-BIRD_SIZE*0.34,side*BIRD_SIZE*0.45); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(BIRD_SIZE*0.06,side*BIRD_SIZE*0.18);
-        ctx.quadraticCurveTo(-BIRD_SIZE*0.12,side*BIRD_SIZE*0.5,-BIRD_SIZE*0.3,side*BIRD_SIZE*0.55); ctx.stroke();
-        // Extra wing vein
-        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.1,side*BIRD_SIZE*0.15);
-        ctx.lineTo(-BIRD_SIZE*0.38,side*BIRD_SIZE*0.35); ctx.stroke();
-        // Wing tip fire
+        ctx.beginPath();
+        ctx.moveTo(0,side*BIRD_SIZE*0.24); ctx.lineTo(-BIRD_SIZE*0.34,side*BIRD_SIZE*0.45);
+        ctx.moveTo(-BIRD_SIZE*0.1,side*BIRD_SIZE*0.15); ctx.lineTo(-BIRD_SIZE*0.38,side*BIRD_SIZE*0.35);
+        ctx.stroke();
+        // Wing tip glow (simple circle, no shadow)
         ctx.fillStyle=sk.thrust; ctx.globalAlpha=0.45+Math.sin(t*5+side)*0.35;
-        ctx.shadowColor=sk.thrust; ctx.shadowBlur=10;
         ctx.beginPath(); ctx.arc(-BIRD_SIZE*0.22,side*BIRD_SIZE*0.65,3,0,Math.PI*2); ctx.fill();
-        ctx.shadowBlur=0;
         ctx.restore();
       }
-      // CENTRAL SUN DISK (layered gradients)
+      // CENTRAL SUN DISK
       ctx.globalAlpha=1;
-      // Outer sun haze
-      const hazeG=ctx.createRadialGradient(0,0,coreR*0.8,0,0,coreR*2);
-      hazeG.addColorStop(0,'rgba(255,150,50,0.2)'); hazeG.addColorStop(1,'transparent');
-      ctx.fillStyle=hazeG; ctx.beginPath(); ctx.arc(0,0,coreR*2,0,Math.PI*2); ctx.fill();
-      // Main sun
-      const sunG=ctx.createRadialGradient(-1,-1,coreR*0.15,0,0,coreR*1.2);
-      sunG.addColorStop(0,'#fffbe8'); sunG.addColorStop(0.2,'#ffe0a0'); sunG.addColorStop(0.5,sk.body);
-      sunG.addColorStop(0.75,sk.glow); sunG.addColorStop(1,'rgba(80,30,0,0.4)');
-      ctx.fillStyle=sunG; ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.fill();
-      // Sun surface texture (granulation)
-      for(let i=0;i<8;i++){
-        const ga=i*Math.PI*2/8+t*0.3;
+      // Main sun (single cached-style radial gradient)
+      if(!_gradCache._sunG){
+        _gradCache._sunG=ctx.createRadialGradient(-1,-1,coreR*0.15,0,0,coreR*1.2);
+        _gradCache._sunG.addColorStop(0,'#fffbe8'); _gradCache._sunG.addColorStop(0.2,'#ffe0a0');
+        _gradCache._sunG.addColorStop(0.5,'#cc6600'); _gradCache._sunG.addColorStop(0.75,'#ff6600');
+        _gradCache._sunG.addColorStop(1,'rgba(80,30,0,0.4)');
+      }
+      // Outer haze (simple alpha circle, no gradient)
+      ctx.fillStyle='rgba(255,150,50,0.12)';
+      ctx.beginPath(); ctx.arc(0,0,coreR*2,0,Math.PI*2); ctx.fill();
+      // Main sun disk
+      ctx.fillStyle=_gradCache._sunG;
+      ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.fill();
+      // Sun surface texture (4 instead of 8)
+      ctx.fillStyle='rgba(255,200,100,0.12)';
+      for(let i=0;i<4;i++){
+        const ga=i*Math.PI*0.5+t*0.3;
         const gr=coreR*(0.4+Math.sin(t*2+i)*0.3);
-        ctx.fillStyle='rgba(255,200,100,0.12)';
         ctx.beginPath(); ctx.arc(Math.cos(ga)*gr,Math.sin(ga)*gr,coreR*0.25,0,Math.PI*2); ctx.fill();
       }
       // Eye of Ra
@@ -3399,120 +3613,119 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.beginPath(); ctx.arc(0,0,coreR*0.5,0,Math.PI*2); ctx.stroke();
       ctx.fillStyle='#fffbe8'; ctx.globalAlpha=0.8;
       ctx.beginPath(); ctx.arc(0,0,coreR*0.22,0,Math.PI*2); ctx.fill();
-      // CORONA MEGA SPIKES (animated length)
-      ctx.shadowColor='#ff6600'; ctx.shadowBlur=20;
-      for(let i=0;i<16;i++){
-        const ra=t*0.7+i*(Math.PI/8);
-        const rLen=coreR*(1.8+Math.sin(t*4+i*0.85)*0.8+Math.sin(t*7+i*1.3)*0.3);
-        const thick=2.5-Math.abs(Math.sin(ra))*1;
-        ctx.strokeStyle=i%4===0?'#fff':sk.thrust; ctx.lineWidth=thick;
-        ctx.globalAlpha=0.3+Math.sin(t*5+i)*0.2;
-        ctx.beginPath(); ctx.moveTo(Math.cos(ra)*coreR,Math.sin(ra)*coreR);
-        ctx.lineTo(Math.cos(ra)*rLen,Math.sin(ra)*rLen); ctx.stroke();
+      // CORONA SPIKES (batched into single path per color, NO shadow)
+      ctx.globalAlpha=0.35; ctx.lineWidth=2;
+      ctx.strokeStyle=sk.thrust; ctx.beginPath();
+      for(let i=0;i<10;i++){
+        const ra=t*0.7+i*(Math.PI/5);
+        const rLen=coreR*(1.8+Math.sin(t*4+i*0.85)*0.8);
+        ctx.moveTo(Math.cos(ra)*coreR,Math.sin(ra)*coreR);
+        ctx.lineTo(Math.cos(ra)*rLen,Math.sin(ra)*rLen);
       }
-      // SOLAR FLARE ARCS (multiple orbits)
+      ctx.stroke();
+      // White accent spikes (fewer)
+      ctx.strokeStyle='#fff'; ctx.globalAlpha=0.3; ctx.beginPath();
+      for(let i=0;i<3;i++){
+        const ra=t*0.7+i*(Math.PI*2/3);
+        const rLen=coreR*(2.0+Math.sin(t*4+i*0.85)*0.6);
+        ctx.moveTo(Math.cos(ra)*coreR,Math.sin(ra)*coreR);
+        ctx.lineTo(Math.cos(ra)*rLen,Math.sin(ra)*rLen);
+      }
+      ctx.stroke();
+      // SOLAR FLARE ARCS (3 instead of 5, batched)
       ctx.strokeStyle='#ffcc44'; ctx.lineWidth=2; ctx.globalAlpha=0.22;
-      for(let i=0;i<5;i++){
-        const fa=t*0.3+i*Math.PI*0.4;
-        const fr=coreR*1.8+i*4;
-        ctx.beginPath(); ctx.arc(0,0,fr,fa,fa+Math.PI*(0.2+i*0.05)); ctx.stroke();
+      ctx.beginPath();
+      for(let i=0;i<3;i++){
+        const fa=t*0.3+i*Math.PI*0.67;
+        const fr=coreR*1.8+i*5;
+        ctx.moveTo(Math.cos(fa)*fr,Math.sin(fa)*fr);
+        ctx.arc(0,0,fr,fa,fa+Math.PI*(0.2+i*0.05));
       }
-      // ORBITING SOLAR PROMINENCES (flame streaks)
-      for(let i=0;i<6;i++){
-        const pa=t*1.2+i*1.05, pr=coreR*(1.5+Math.sin(t*3+i)*0.4);
-        ctx.fillStyle=i%2?'#ffdd44':'#ff8844'; ctx.globalAlpha=0.4+Math.sin(t*5+i)*0.25;
-        ctx.beginPath(); ctx.arc(Math.cos(pa)*pr,Math.sin(pa)*pr,2+Math.sin(t*8+i),0,Math.PI*2); ctx.fill();
+      ctx.stroke();
+      // ORBITING PROMINENCES (4 instead of 6)
+      for(let i=0;i<4;i++){
+        const pa=t*1.2+i*1.57, pr=coreR*(1.5+Math.sin(t*3+i)*0.4);
+        ctx.fillStyle=i%2?'#ffdd44':'#ff8844'; ctx.globalAlpha=0.5;
+        ctx.beginPath(); ctx.arc(Math.cos(pa)*pr,Math.sin(pa)*pr,2.5,0,Math.PI*2); ctx.fill();
       }
-      ctx.shadowBlur=0;
 
     } else if(skinId==="purple"){
-      // ═══ EVENT HORIZON — black hole singularity ═══
+      // ═══ EVENT HORIZON — black hole singularity (perf-opt) ═══
       const tB=isThrusting?1:0.2;
-      // VOID LIGHTNING EXHAUST
-      ctx.shadowColor=sk.glow; ctx.shadowBlur=isThrusting?22:5;
+      // VOID LIGHTNING EXHAUST (deterministic)
       ctx.strokeStyle=sk.thrust; ctx.lineWidth=1.8;
-      for(let i=0;i<(isThrusting?8:3);i++){
-        ctx.globalAlpha=tB*(0.25+Math.random()*0.35);
-        let vx=-BIRD_SIZE*0.4, vy=(Math.random()-0.5)*10;
-        ctx.beginPath(); ctx.moveTo(vx,vy);
+      const nBolts=isThrusting?5:2;
+      ctx.beginPath();
+      for(let i=0;i<nBolts;i++){
+        ctx.globalAlpha=tB*(0.35+Math.sin(t*13+i*7)*0.15);
+        let vx=-BIRD_SIZE*0.4, vy=Math.sin(t*11+i*3.7)*5;
+        ctx.moveTo(vx,vy);
         for(let j=0;j<3;j++){
-          vx-=4+Math.random()*6; vy+=(Math.random()-0.5)*8;
+          vx-=6+Math.sin(t*17+i*5+j*3)*3; vy+=Math.sin(t*13+i*7+j*5)*5;
           ctx.lineTo(vx,vy);
         }
-        ctx.stroke();
       }
-      ctx.shadowBlur=0; ctx.globalAlpha=1;
+      ctx.stroke();
+      ctx.globalAlpha=1;
       // ACCRETION DISK (tilted, multi-layer)
       ctx.save(); ctx.scale(1,0.35);
       const diskR=BIRD_SIZE*0.9;
-      // Outer gravitational lens glow
-      ctx.shadowColor=sk.glow; ctx.shadowBlur=35;
+      // Outer ring
       ctx.strokeStyle=sk.glow; ctx.lineWidth=5; ctx.globalAlpha=0.1;
       ctx.beginPath(); ctx.arc(0,0,diskR*1.4,0,Math.PI*2); ctx.stroke();
-      // Hot outer ring
-      ctx.strokeStyle=sk.thrust; ctx.lineWidth=3; ctx.globalAlpha=0.25;
-      ctx.beginPath(); ctx.arc(0,0,diskR*1.15,0,Math.PI*2); ctx.stroke();
-      // Main accretion disk gradient
-      const dG=ctx.createLinearGradient(-diskR,0,diskR,0);
-      dG.addColorStop(0,sk.thrust); dG.addColorStop(0.2,'#fff'); dG.addColorStop(0.4,sk.glow);
-      dG.addColorStop(0.6,'#fff'); dG.addColorStop(0.8,sk.body); dG.addColorStop(1,sk.thrust);
-      ctx.strokeStyle=dG; ctx.lineWidth=7; ctx.globalAlpha=0.6;
+      // Main accretion disk (cached gradient)
+      if(!_gradCache._bhDisk){
+        _gradCache._bhDisk=ctx.createLinearGradient(-diskR,0,diskR,0);
+        _gradCache._bhDisk.addColorStop(0,'#9933ff'); _gradCache._bhDisk.addColorStop(0.2,'#fff');
+        _gradCache._bhDisk.addColorStop(0.5,'#aa44ff'); _gradCache._bhDisk.addColorStop(0.8,'#fff');
+        _gradCache._bhDisk.addColorStop(1,'#9933ff');
+      }
+      ctx.strokeStyle=_gradCache._bhDisk; ctx.lineWidth=7; ctx.globalAlpha=0.6;
       ctx.beginPath(); ctx.arc(0,0,diskR,0,Math.PI*2); ctx.stroke();
       // Inner white-hot ring
       ctx.strokeStyle='#eeddff'; ctx.lineWidth=2.5; ctx.globalAlpha=0.75;
       ctx.beginPath(); ctx.arc(0,0,coreR*1.3,0,Math.PI*2); ctx.stroke();
       ctx.restore();
-      // SWIRLING MATTER PARTICLES (faster, more)
-      for(let i=0;i<12;i++){
-        const pa=t*2.2+i*0.52, pr=diskR*(0.55+i*0.04);
-        const px=Math.cos(pa)*pr, py=Math.sin(pa)*pr*0.35;
+      // SWIRLING MATTER PARTICLES
+      for(let i=0;i<8;i++){
+        const pa=t*2.2+i*0.79, pr=diskR*(0.55+i*0.05);
         ctx.fillStyle=i%3===0?'#fff':i%3===1?sk.glow:sk.thrust;
         ctx.globalAlpha=0.35+Math.sin(t*5+i)*0.3;
-        ctx.beginPath(); ctx.arc(px,py,1.2+Math.sin(t*3+i)*0.6,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(Math.cos(pa)*pr,Math.sin(pa)*pr*0.35,1.5,0,Math.PI*2); ctx.fill();
       }
-      // BLACK CORE (event horizon with light bending)
-      const bhGrad=ctx.createRadialGradient(0,0,0,0,0,coreR*0.8);
-      bhGrad.addColorStop(0,'#000'); bhGrad.addColorStop(0.6,'#050010'); bhGrad.addColorStop(1,'#1a0030');
-      ctx.fillStyle=bhGrad; ctx.globalAlpha=0.98;
+      // BLACK CORE (cached gradient)
+      if(!_gradCache._bhCore){
+        _gradCache._bhCore=ctx.createRadialGradient(0,0,0,0,0,coreR*0.8);
+        _gradCache._bhCore.addColorStop(0,'#000'); _gradCache._bhCore.addColorStop(0.6,'#050010'); _gradCache._bhCore.addColorStop(1,'#1a0030');
+      }
+      ctx.fillStyle=_gradCache._bhCore; ctx.globalAlpha=0.98;
       ctx.beginPath(); ctx.arc(0,0,coreR*0.8,0,Math.PI*2); ctx.fill();
-      // PHOTON RING (bright white, pulsing)
+      // PHOTON RING
       ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.globalAlpha=0.85+Math.sin(t*4)*0.1;
-      ctx.shadowColor='#fff'; ctx.shadowBlur=28;
       ctx.beginPath(); ctx.arc(0,0,coreR*0.8,0,Math.PI*2); ctx.stroke();
-      // Inner photon ring
       ctx.strokeStyle=sk.glow; ctx.lineWidth=0.8; ctx.globalAlpha=0.5;
       ctx.beginPath(); ctx.arc(0,0,coreR*0.55,0,Math.PI*2); ctx.stroke();
-      ctx.shadowBlur=0;
-      // SPIRALING ENERGY STREAMS (gravitational lensing)
-      for(let i=0;i<4;i++){
+      // SPIRALING ENERGY STREAMS (2 instead of 4, coarser step)
+      for(let i=0;i<2;i++){
         ctx.strokeStyle=i%2?sk.glow:sk.thrust; ctx.lineWidth=1.2; ctx.globalAlpha=0.22;
         ctx.beginPath();
-        for(let a=0;a<Math.PI*3;a+=0.1){
+        for(let a=0;a<Math.PI*3;a+=0.2){
           const sr=BIRD_SIZE*0.95-a*coreR*0.06;
           const sx=Math.cos(a+t*2.5+i*1.57)*sr, sy=Math.sin(a+t*2.5+i*1.57)*sr*0.35;
           a<0.01?ctx.moveTo(sx,sy):ctx.lineTo(sx,sy);
         }
         ctx.stroke();
       }
-      // POLAR JETS (relativistic)
+      // POLAR JETS (deterministic)
       for(const pole of[-1,1]){
-        // Main jet beam
-        ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
         ctx.strokeStyle=sk.thrust; ctx.lineWidth=2; ctx.globalAlpha=0.4;
         ctx.beginPath(); ctx.moveTo(0,pole*coreR*0.5);
         let jx=0, jy=pole*coreR*0.5;
-        for(let j=0;j<7;j++){
-          jx+=(Math.random()-0.5)*5; jy+=pole*(5+Math.random()*5);
+        for(let j=0;j<5;j++){
+          jx+=Math.sin(t*7+j*4.3+pole)*3; jy+=pole*(6+Math.sin(t*5+j*2.7)*3);
           ctx.lineTo(jx,jy);
         }
         ctx.stroke();
-        // Jet particles
-        for(let jp=0;jp<3;jp++){
-          const jpa=t*3+jp*2.1+pole;
-          ctx.fillStyle=sk.glow; ctx.globalAlpha=0.3+Math.sin(jpa)*0.2;
-          ctx.beginPath(); ctx.arc((Math.random()-0.5)*4,pole*(coreR*(1+jp*0.5)+Math.sin(jpa)*5),1.5,0,Math.PI*2); ctx.fill();
-        }
-        ctx.shadowBlur=0;
       }
       // GRAVITATIONAL LENS DISTORTION RING
       ctx.strokeStyle='rgba(150,100,255,0.08)'; ctx.lineWidth=8;
@@ -3586,9 +3799,12 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.lineTo(BIRD_SIZE*0.35,-BIRD_SIZE*0.24+Math.sin(t*3+Math.PI)*1.5); ctx.stroke();
       // CENTRAL IMPERIAL GEM (octagonal brilliant cut)
       const gemR=coreR*0.6;
-      const gemG=ctx.createRadialGradient(-1,-1,1,0,0,gemR);
-      gemG.addColorStop(0,'#fff'); gemG.addColorStop(0.15,'#ffee88'); gemG.addColorStop(0.5,sk.body); gemG.addColorStop(1,sk.glow);
-      ctx.fillStyle=gemG; ctx.globalAlpha=0.95;
+      if(!_gradCache._gemG){
+        _gradCache._gemG=ctx.createRadialGradient(-1,-1,1,0,0,gemR);
+        _gradCache._gemG.addColorStop(0,'#fff'); _gradCache._gemG.addColorStop(0.15,'#ffee88');
+        _gradCache._gemG.addColorStop(0.5,'#cc8800'); _gradCache._gemG.addColorStop(1,'#ffa500');
+      }
+      ctx.fillStyle=_gradCache._gemG; ctx.globalAlpha=0.95;
       ctx.beginPath();
       for(let i=0;i<8;i++){
         const ga=i*(Math.PI/4)+Math.PI/8+t*0.3;
@@ -3752,10 +3968,12 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.setLineDash([5,3]);
       ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.stroke();
       ctx.setLineDash([]);
-      // Inner ectoplasm fill
-      const ectoG=ctx.createRadialGradient(0,0,0,0,0,coreR*1.2);
-      ectoG.addColorStop(0,'rgba(200,200,255,0.08)'); ectoG.addColorStop(0.5,'rgba(180,180,240,0.04)'); ectoG.addColorStop(1,'transparent');
-      ctx.fillStyle=ectoG; ctx.globalAlpha=phase*2*flick;
+      // Inner ectoplasm fill (cached gradient)
+      if(!_gradCache._ectoG){
+        _gradCache._ectoG=ctx.createRadialGradient(0,0,0,0,0,coreR*1.2);
+        _gradCache._ectoG.addColorStop(0,'rgba(200,200,255,0.08)'); _gradCache._ectoG.addColorStop(0.5,'rgba(180,180,240,0.04)'); _gradCache._ectoG.addColorStop(1,'transparent');
+      }
+      ctx.fillStyle=_gradCache._ectoG; ctx.globalAlpha=phase*2*flick;
       ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.fill();
       ctx.shadowBlur=0;
       // HAUNTED FACE (glowing eyes, eerie mouth)
@@ -3836,13 +4054,15 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       }
       var proj=verts.map(function(v){return proj3d(v,S);});
       var edges=[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-      // Outer cube
-      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.8; ctx.shadowColor=sk.glow; ctx.shadowBlur=15;
+      // Outer cube (batched edges)
+      ctx.strokeStyle=sk.glow; ctx.lineWidth=1.8;
       ctx.globalAlpha=0.8;
+      ctx.beginPath();
       for(var ei=0;ei<edges.length;ei++){
         var e=edges[ei];
-        ctx.beginPath(); ctx.moveTo(proj[e[0]][0],proj[e[0]][1]); ctx.lineTo(proj[e[1]][0],proj[e[1]][1]); ctx.stroke();
+        ctx.moveTo(proj[e[0]][0],proj[e[0]][1]); ctx.lineTo(proj[e[1]][0],proj[e[1]][1]);
       }
+      ctx.stroke();
       // Inner cube (counter-rotating)
       var cA2=Math.cos(-t*2),sA2=Math.sin(-t*2),cB2=Math.cos(-t*1.4),sB2=Math.sin(-t*1.4);
       var proj2=verts.map(function(v){
@@ -3852,15 +4072,19 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         return [x2*0.6,y2*0.6];
       });
       ctx.strokeStyle='#88ffaa'; ctx.lineWidth=1; ctx.globalAlpha=0.45;
+      ctx.beginPath();
       for(var ei2=0;ei2<edges.length;ei2++){
         var e2=edges[ei2];
-        ctx.beginPath(); ctx.moveTo(proj2[e2[0]][0],proj2[e2[0]][1]); ctx.lineTo(proj2[e2[1]][0],proj2[e2[1]][1]); ctx.stroke();
+        ctx.moveTo(proj2[e2[0]][0],proj2[e2[0]][1]); ctx.lineTo(proj2[e2[1]][0],proj2[e2[1]][1]);
       }
-      // Connection lines between cubes
+      ctx.stroke();
+      // Connection lines between cubes (batched)
       ctx.strokeStyle=sk.glow; ctx.lineWidth=0.5; ctx.globalAlpha=0.2;
+      ctx.beginPath();
       for(var ci2=0;ci2<8;ci2++){
-        ctx.beginPath(); ctx.moveTo(proj[ci2][0],proj[ci2][1]); ctx.lineTo(proj2[ci2][0],proj2[ci2][1]); ctx.stroke();
+        ctx.moveTo(proj[ci2][0],proj[ci2][1]); ctx.lineTo(proj2[ci2][0],proj2[ci2][1]);
       }
+      ctx.stroke();
       // Vertex dots (pulsing)
       ctx.fillStyle=sk.glow;
       for(var vi=0;vi<proj.length;vi++){
@@ -4332,10 +4556,12 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.stroke();
       ctx.beginPath(); ctx.arc(0,0,pR,0,Math.PI*2); ctx.stroke();
       ctx.restore();
-      // DARK ENERGY ORB — core
-      const demonG=ctx.createRadialGradient(0,0,0,0,0,coreR*0.5);
-      demonG.addColorStop(0,'#ff0033'); demonG.addColorStop(0.4,'#440011'); demonG.addColorStop(1,'#000');
-      ctx.fillStyle=demonG; ctx.globalAlpha=0.9;
+      // DARK ENERGY ORB — core (cached gradient)
+      if(!_gradCache._demonG){
+        _gradCache._demonG=ctx.createRadialGradient(0,0,0,0,0,coreR*0.5);
+        _gradCache._demonG.addColorStop(0,'#ff0033'); _gradCache._demonG.addColorStop(0.4,'#440011'); _gradCache._demonG.addColorStop(1,'#000');
+      }
+      ctx.fillStyle=_gradCache._demonG; ctx.globalAlpha=0.9;
       ctx.beginPath(); ctx.arc(0,0,coreR*0.5,0,Math.PI*2); ctx.fill();
       // SOUL CHAINS — reaching out to grab
       for(let i=0;i<4;i++){
@@ -4432,16 +4658,19 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
       }
       ctx.globalAlpha=1;
-      // Core orb
-      ctx.shadowColor=sk.glow; ctx.shadowBlur=22;
-      const auraGrad=ctx.createRadialGradient(0,0,coreR*0.5,0,0,coreR*1.5);
-      auraGrad.addColorStop(0,sk.glow); auraGrad.addColorStop(1,'transparent');
-      ctx.fillStyle=auraGrad; ctx.globalAlpha=0.15+Math.sin(t*3)*0.05;
+      // Core orb (cached gradients)
+      if(!_gradCache._auraG){
+        _gradCache._auraG=ctx.createRadialGradient(0,0,coreR*0.5,0,0,coreR*1.5);
+        _gradCache._auraG.addColorStop(0,sk.glow); _gradCache._auraG.addColorStop(1,'transparent');
+      }
+      ctx.fillStyle=_gradCache._auraG; ctx.globalAlpha=0.15+Math.sin(t*3)*0.05;
       ctx.beginPath(); ctx.arc(0,0,coreR*1.5,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
-      const orbGrad=ctx.createRadialGradient(-2,-3,1,0,0,coreR);
-      orbGrad.addColorStop(0,"rgba(255,255,255,0.95)"); orbGrad.addColorStop(0.25,sk.body);
-      orbGrad.addColorStop(0.7,sk.glow); orbGrad.addColorStop(1,'rgba(0,0,0,0.3)');
-      ctx.fillStyle=orbGrad; ctx.beginPath(); ctx.arc(0,0,coreR,0,Math.PI*2); ctx.fill();
+      if(!_gradCache._orbG){
+        _gradCache._orbG=ctx.createRadialGradient(-2,-3,1,0,0,coreR);
+        _gradCache._orbG.addColorStop(0,'rgba(255,255,255,0.95)'); _gradCache._orbG.addColorStop(0.25,sk.body);
+        _gradCache._orbG.addColorStop(0.7,sk.glow); _gradCache._orbG.addColorStop(1,'rgba(0,0,0,0.3)');
+      }
+      ctx.fillStyle=_gradCache._orbG; ctx.beginPath(); ctx.arc(0,0,coreR,0,Math.PI*2); ctx.fill();
       ctx.fillStyle="rgba(255,255,255,0.5)";
       ctx.beginPath(); ctx.ellipse(-3,-4,BIRD_SIZE*0.12,BIRD_SIZE*0.08,0.3,0,Math.PI*2); ctx.fill();
       ctx.strokeStyle=sk.glow; ctx.lineWidth=1; ctx.globalAlpha=0.3;
@@ -4457,6 +4686,12 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       ctx.beginPath(); ctx.arc(BIRD_SIZE*0.52,0,1.5,0,Math.PI*2); ctx.fill();
     }
     ctx.globalAlpha=1; ctx.shadowBlur=0; ctx.setLineDash([]);
+
+    // === PERF GLOW: replaces all per-skin shadowBlur with single halo ===
+    ctx.globalAlpha=0.12;
+    ctx.fillStyle=sk.glow;
+    ctx.beginPath(); ctx.arc(0,0,BIRD_SIZE*0.85,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
 
     // === HEX SCANNER LINE (only while alive) ===
     if(state===STATE.PLAYING||state===STATE.MENU||state===STATE.PAUSED) {
@@ -4518,6 +4753,39 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     ctx.globalAlpha=1;
   }
 
+  // === OVERDRIVE AURA — rainbow energy field around bird ===
+  function drawOverdriveAura() {
+    if (!odActive) return;
+    const t = _now * 0.003;
+    const pulse = 0.6 + Math.sin(t * 4) * 0.3;
+    const hue = (_now * 3) % 360;
+    // Outer glow ring — rotating rainbow
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(t * 2);
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2 + t;
+      const h = (hue + i * 120) % 360;
+      ctx.globalAlpha = pulse * 0.15;
+      ctx.fillStyle = `hsl(${h},100%,60%)`;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * 4, Math.sin(a) * 4, BIRD_SIZE * 0.9 + Math.sin(t * 6 + i) * 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    // Inner bright ring
+    ctx.globalAlpha = pulse * 0.35;
+    ctx.strokeStyle = `hsl(${hue},100%,75%)`;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = `hsl(${hue},100%,70%)`;
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(bird.x, bird.y, BIRD_SIZE * 0.65 + Math.sin(t * 8) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
   function drawParticles() {
     ctx.shadowBlur=0;
     for(const p of particles) {
@@ -4575,7 +4843,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   // === POST-PROCESSING: Chromatic Aberration ===
   function postProcess() {
-    if(chromAb<0.3 && timeScale>0.9) { fxCanvas.classList.remove('active'); return; }
+    if(chromAb<0.5 && timeScale>0.9) { fxCanvas.classList.remove('active'); return; }
     fxCanvas.classList.add('active');
     fxCtx.clearRect(0,0,W,H);
     const ab=chromAb;
@@ -4592,7 +4860,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   // === BASS PULSE (border flash) ===
   function triggerBassPulse(type) {
-    bassPulse.className=''; void bassPulse.offsetWidth; bassPulse.classList.add(type);
+    bassPulse.className='';
+    requestAnimationFrame(() => bassPulse.classList.add(type));
     setTimeout(()=>bassPulse.className='',200);
   }
 
@@ -4626,7 +4895,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     drawSpeedLines();
     for(const p of pipes) drawPipe(p);
     drawFloatingCoins(); drawPowerUpOrbs();
-    drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawLaser(); drawFlash();
+    drawGround(); drawBird(); drawOverdriveAura(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawLaser(); drawFlash();
     if(state===STATE.DYING){
       const hAlpha=0.4+Math.sin(_now*0.008)*0.3;
       ctx.globalAlpha=hAlpha;
