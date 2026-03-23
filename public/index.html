@@ -682,6 +682,8 @@
   const adInterstitial = document.getElementById("ad-interstitial");
   const adRewarded = document.getElementById("ad-rewarded");
   let adActive = false; // blocks all game input while ad is showing
+  const AD_TIMEOUT_MS = 15000; // safety timeout — force-reset adActive after 15s
+  let restartPending = false; // prevent double startGame from rapid taps
 
   function updateCoinHud() { coinCount.textContent = coins; }
   updateCoinHud();
@@ -1145,15 +1147,19 @@
 
   async function showNativeInterstitial(onDone) {
     adActive = true;
+    let done = false;
+    const finish = () => { if(done) return; done=true; adActive=false; onDone(); };
+    const safetyTimer = setTimeout(() => { console.warn('[AdMob] Interstitial safety timeout'); finish(); }, AD_TIMEOUT_MS);
     try {
       await admobPlugin.prepareInterstitial({ adId: getAdId('interstitial') });
       const handler = admobPlugin.addListener('onInterstitialAdDismissed', () => {
-        handler.remove(); adActive=false; onDone();
+        handler.remove(); clearTimeout(safetyTimer); finish();
       });
       await admobPlugin.showInterstitial();
     } catch(e) {
+      clearTimeout(safetyTimer);
       console.warn('[AdMob] Interstitial failed:', e);
-      adActive=false; onDone();
+      finish();
     }
   }
 
@@ -1161,6 +1167,9 @@
     adActive = true;
     adInterstitial.classList.add("active");
     pushAdSense();
+    let done = false;
+    const finish = () => { if(done) return; done=true; clearInterval(iv); clearTimeout(safetyTimer); adInterstitial.classList.remove("active"); adActive=false; onDone(); };
+    const safetyTimer = setTimeout(finish, AD_TIMEOUT_MS);
     let sec = 5;
     const skipEl = document.getElementById("ad-skip");
     skipEl.classList.remove("ready");
@@ -1173,7 +1182,7 @@
         skipEl.innerHTML = "Pomiń ✕";
         skipEl.classList.add("ready");
         skipEl.style.pointerEvents = "auto";
-        skipEl.onclick = () => { adInterstitial.classList.remove("active"); skipEl.onclick=null; adActive=false; onDone(); };
+        skipEl.onclick = () => { skipEl.onclick=null; finish(); };
       } else {
         skipEl.innerHTML = 'Pomiń za <span class="ad-timer">' + sec + '</span>s';
       }
@@ -1191,18 +1200,28 @@
 
   async function showNativeRewarded(onReward) {
     adActive = true;
+    let rewarded = false, dismissed = false;
+    const safetyTimer = setTimeout(() => {
+      console.warn('[AdMob] Rewarded safety timeout');
+      if(!rewarded) { rewarded=true; onReward(); }
+      if(!dismissed) { dismissed=true; adActive=false; }
+    }, AD_TIMEOUT_MS);
     try {
       await admobPlugin.prepareRewardVideoAd({ adId: getAdId('rewarded') });
       const handler = admobPlugin.addListener('onRewardedVideoAdReward', () => {
-        handler.remove(); onReward();
+        handler.remove();
+        if(!rewarded) { rewarded=true; onReward(); }
       });
       const dismiss = admobPlugin.addListener('onRewardedVideoAdDismissed', () => {
-        dismiss.remove(); adActive=false;
+        dismiss.remove(); clearTimeout(safetyTimer);
+        if(!dismissed) { dismissed=true; adActive=false; }
       });
       await admobPlugin.showRewardVideoAd();
     } catch(e) {
+      clearTimeout(safetyTimer);
       console.warn('[AdMob] Rewarded failed, granting reward:', e);
-      adActive=false; onReward();
+      if(!rewarded) { rewarded=true; onReward(); }
+      if(!dismissed) { dismissed=true; adActive=false; }
     }
   }
 
@@ -1211,6 +1230,9 @@
     adRewarded.classList.add("active");
     const fill = document.getElementById("rewarded-fill");
     const status = document.getElementById("rewarded-status");
+    let done = false;
+    const finish = () => { if(done) return; done=true; clearInterval(iv); clearTimeout(safetyTimer); adRewarded.classList.remove("active"); fill.style.width="0"; adActive=false; onReward(); };
+    const safetyTimer = setTimeout(finish, AD_TIMEOUT_MS);
     status.textContent = "Oglądasz reklamę...";
     let progress = 0;
     const iv = setInterval(() => {
@@ -1219,7 +1241,7 @@
       if (progress >= 100) {
         clearInterval(iv);
         status.textContent = "Nagroda odebrana!";
-        setTimeout(() => { adRewarded.classList.remove("active"); fill.style.width="0"; adActive=false; onReward(); }, 300);
+        setTimeout(finish, 300);
       }
     }, 60);
   }
@@ -1700,6 +1722,7 @@
   }
   function startGame() {
     if(adActive) return;
+    restartPending=false;
     initAudio();
     if(!muted && !musicPlaying) startMusic();
     resetGame(); state=STATE.PLAYING; isThrusting=false;
@@ -1720,7 +1743,7 @@
     }, { once: true });
   });
 
-  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
+  canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGame(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   // Global tap handler for DYING skip (catches taps even if canvas doesn't get them)
   document.addEventListener("pointerdown", e => { if(state===STATE.DYING && !adActive) { e.preventDefault(); state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } });
   canvas.addEventListener("pointerup", () => thrustStop());
@@ -1741,7 +1764,7 @@
       else if(state===STATE.PAUSED) { state=STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); lastTime=0; accumulator=0; }
       else if(state===STATE.MENU) startGame();
       else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); }
-      else if(state===STATE.DEAD) { goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); }
+      else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); }
     }
   });
   document.addEventListener("keyup", e => {
@@ -1774,8 +1797,16 @@
     updateDailyBadge();
   });
   document.getElementById("btn-restart").addEventListener("click", e => {
-    e.stopPropagation(); goPanel.classList.remove("show");
+    e.stopPropagation(); if(restartPending) return; restartPending=true;
+    goPanel.classList.remove("show");
     setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200);
+  });
+  // Mobile: tap anywhere on game-over overlay background to restart
+  goOverlay.addEventListener("pointerdown", e => {
+    if(e.target===goOverlay && state===STATE.DEAD && !adActive && !restartPending) {
+      restartPending=true; goPanel.classList.remove("show");
+      setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200);
+    }
   });
   document.getElementById("btn-revive").addEventListener("click", e => {
     e.stopPropagation(); coins-=REVIVE_COST; STORAGE.set("coins",coins); updateCoinHud(); doRevive();
