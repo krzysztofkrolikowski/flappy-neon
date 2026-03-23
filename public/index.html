@@ -330,23 +330,32 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   /* === Laser button === */
   #laser-btn {
     position: fixed; bottom: 20px; right: 20px; z-index: 25;
-    width: 56px; height: 56px; border-radius: 50%;
-    background: rgba(20,20,40,0.85); border: 2px solid #ccccff;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(20,20,40,0.85); border: none;
     color: #fff; font-size: 24px; display: none; align-items: center; justify-content: center;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 0 15px rgba(200,200,255,0.3);
     transition: opacity 0.2s, transform 0.15s;
+    padding: 0;
   }
   #laser-btn.visible { display: flex; }
-  #laser-btn.ready { border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.6); animation: laser-pulse 1.5s infinite; }
-  #laser-btn.cooling { opacity: 0.4; border-color: #666; }
+  #laser-btn.ready { animation: laser-pulse 1.5s infinite; }
+  #laser-btn.cooling { opacity: 0.5; }
   #laser-btn:active { transform: scale(0.9); }
-  #laser-btn .laser-fill {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    background: rgba(200,200,255,0.25); border-radius: 0 0 50% 50%;
-    transition: height 0.1s linear;
+  #laser-ring {
+    position: absolute; inset: 0; width: 64px; height: 64px;
+    transform: rotate(-90deg);
   }
-  @keyframes laser-pulse { 0%,100% { box-shadow: 0 0 15px rgba(255,255,255,0.4); } 50% { box-shadow: 0 0 30px rgba(255,255,255,0.8); } }
+  #laser-ring-bg { fill: none; stroke: rgba(100,100,150,0.3); stroke-width: 3; }
+  #laser-ring-fg {
+    fill: none; stroke: #ccccff; stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 183; /* 2*PI*29 ≈ 183 */
+    stroke-dashoffset: 183;
+    transition: stroke-dashoffset 0.15s linear, stroke 0.3s;
+  }
+  #laser-btn.ready #laser-ring-fg { stroke: #ffffff; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
+  #laser-emoji { position: relative; z-index: 1; }
+  @keyframes laser-pulse { 0%,100% { filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)); } 50% { filter: drop-shadow(0 0 20px rgba(255,255,255,0.9)); } }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
@@ -369,7 +378,10 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <div id="powerup-hud" id="powerup-hud"></div>
 <div id="achievement-toast"></div>
 <div id="zone-banner"><div class="zone-num"></div><div class="zone-name"></div><div class="zone-sub"></div></div>
-<button id="laser-btn" aria-label="Laser shot"><span style="position:relative;z-index:1">💀</span><div class="laser-fill"></div></button>
+<button id="laser-btn" aria-label="Laser shot">
+  <svg id="laser-ring" viewBox="0 0 64 64"><circle id="laser-ring-bg" cx="32" cy="32" r="29"/><circle id="laser-ring-fg" cx="32" cy="32" r="29"/></svg>
+  <span id="laser-emoji">💀</span>
+</button>
 <div id="zone-flash"></div>
 
 <!-- PAUSE -->
@@ -502,7 +514,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v35-flames-20260323";
+  const _BUILD = "v36-ring-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -924,7 +936,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   const zoneBanner = document.getElementById('zone-banner');
   const zoneFlash = document.getElementById('zone-flash');
   const laserBtn = document.getElementById('laser-btn');
-  const laserFill = laserBtn.querySelector('.laser-fill');
+  const laserRingFg = document.getElementById('laser-ring-fg');
+  const LASER_RING_CIRCUM = 183; // 2*PI*29
 
   // =============================================
   //  DAILY BONUS
@@ -2367,8 +2380,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           laserCharge++;
           if(laserCharge>=LASER_COOLDOWN) { laserReady=true; laserCharge=LASER_COOLDOWN; laserBtn.classList.remove('cooling'); laserBtn.classList.add('ready'); }
         }
-        const pct=Math.round(laserCharge/LASER_COOLDOWN*100);
-        laserFill.style.height=pct+'%';
+        const pct=laserCharge/LASER_COOLDOWN;
+        laserRingFg.style.strokeDashoffset=LASER_RING_CIRCUM*(1-pct);
         // Update projectile
         if(laserProjectile && laserProjectile.active) {
           laserProjectile.x+=18; // fast projectile
