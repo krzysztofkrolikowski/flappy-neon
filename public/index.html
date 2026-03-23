@@ -9,8 +9,16 @@
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Neon Drift</title>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8654195531699282" crossorigin="anonymous"></script>
 <script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js" async></script>
+<script>
+// Load AdSense only when NOT on Poki
+if (!window.location.hostname.includes('poki.com') && !document.referrer.includes('poki.com')) {
+  var s = document.createElement('script');
+  s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8654195531699282';
+  s.async = true; s.crossOrigin = 'anonymous';
+  document.head.appendChild(s);
+}
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -607,6 +615,7 @@
   let activePowerUp = null, powerUpTimer = 0, powerUpOrbs = [];
   let shieldHits = 0;
   let secondChanceUsed = false; // for CERBERUS perk
+  let invincibleFrames = 0; // i-frames after shield/cerberus save
 
   // === SKIN PERK SYSTEM ===
   function hasPerk(perkId) {
@@ -623,10 +632,10 @@
   // === ZONE SYSTEM ===
   const ZONES = [
     { name:'NEON CITY', from:0,  bg1:'#050510', bg2:'#0a0a25', bg3:'#10103a', ground:'#1a0030', accent:'#ff00e6', laser:'#ff0066' },
-    { name:'ACID WASTE', from:15, bg1:'#051005', bg2:'#0a250a', bg3:'#103a10', ground:'#003a1a', accent:'#00ff44', laser:'#44ff00' },
-    { name:'PLASMA CORE', from:30, bg1:'#100505', bg2:'#250a0a', bg3:'#3a1010', ground:'#3a001a', accent:'#ff4400', laser:'#ff6600' },
-    { name:'VOID RIM', from:50, bg1:'#0a0510', bg2:'#150a25', bg3:'#20103a', ground:'#1a0040', accent:'#aa00ff', laser:'#bb44ff' },
-    { name:'SINGULARITY', from:75, bg1:'#020208', bg2:'#050515', bg3:'#080828', ground:'#0a0020', accent:'#ffffff', laser:'#ffffff' },
+    { name:'ACID WASTE', from:20, bg1:'#051005', bg2:'#0a250a', bg3:'#103a10', ground:'#003a1a', accent:'#00ff44', laser:'#44ff00' },
+    { name:'PLASMA CORE', from:45, bg1:'#100505', bg2:'#250a0a', bg3:'#3a1010', ground:'#3a001a', accent:'#ff4400', laser:'#ff6600' },
+    { name:'VOID RIM', from:75, bg1:'#0a0510', bg2:'#150a25', bg3:'#20103a', ground:'#1a0040', accent:'#aa00ff', laser:'#bb44ff' },
+    { name:'SINGULARITY', from:110, bg1:'#020208', bg2:'#050515', bg3:'#080828', ground:'#0a0020', accent:'#ffffff', laser:'#ffffff' },
   ];
   let currentZone = ZONES[0], lastZoneIdx = 0;
 
@@ -1438,7 +1447,7 @@
     groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[]; speedLines=[]; isThrusting=false;
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
-    secondChanceUsed=false; // reset per game
+    secondChanceUsed=false; invincibleFrames=0; // reset per game
     currentZone=ZONES[0]; lastZoneIdx=0;
     timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; dyingTimer=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
@@ -1660,6 +1669,7 @@
   // =============================================
   function showGameOver() {
     totalGames++; deathsSinceAd++;
+    if (IS_POKI && pokiReady) PokiSDK.gameplayStop();
     STORAGE.set("games",totalGames); STORAGE.set("deaths_ad",deathsSinceAd);
     const isNewBest = score > bestScore;
     if (isNewBest) { bestScore=score; STORAGE.set("best",bestScore); }
@@ -1924,6 +1934,7 @@
     nickOverlay.classList.remove("active"); nickPanel.classList.remove("show");
     lbOverlay.classList.remove("active"); lbPanel.classList.remove("show");
     scoreDisplay.classList.add("visible"); bird.vy=-4; playSound("flap");
+    if (IS_POKI && pokiReady) PokiSDK.gameplayStart();
   }
   function startGameWithNick() { startGame(); }
 
@@ -2227,17 +2238,18 @@
         }
         if(p.x+56<-10){pipes[i]=pipes[pipes.length-1];pipes.pop();}
       }
-      if(checkCollision()) {
+      if(invincibleFrames>0) invincibleFrames--;
+      if(invincibleFrames<=0 && checkCollision()) {
         // Shield power-up save
         if(activePowerUp && activePowerUp.id==='shield') {
           activePowerUp=null; powerUpTimer=0; powerupHud.classList.remove('visible');
-          shieldHits++; playSound('shield'); haptic(); shakeMag=6; flash=0.5;
+          shieldHits++; invincibleFrames=20; playSound('shield'); haptic(); shakeMag=6; flash=0.5;
           burst(bird.x,bird.y,'#00ffaa',20);
           bird.vy=bird.vy>0?-3:3; // bounce away from danger
           showStreak('🛡️ SHIELD!');
         } else if(hasPerk('second_chance') && !secondChanceUsed) {
           // CERBERUS perk: one free hit per game
-          secondChanceUsed=true;
+          secondChanceUsed=true; invincibleFrames=20;
           playSound('shield'); haptic(); shakeMag=8; flash=0.6;
           burst(bird.x,bird.y,'#ff2200',25);
           bird.vy=bird.vy>0?-4:4;
@@ -4115,6 +4127,13 @@
     }
     ctx.restore();
     requestAnimationFrame(frame);
+  }
+
+  applyI18n();
+
+  // Hide AdSense elements on Poki
+  if (IS_POKI) {
+    document.querySelectorAll('.adsbygoogle').forEach(el => el.style.display = 'none');
   }
 
   resetGame(); requestAnimationFrame(frame);

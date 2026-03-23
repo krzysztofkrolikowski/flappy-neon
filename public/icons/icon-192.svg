@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1a0a2e"/>
+      <stop offset="100%" stop-color="#0a0014"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="192" height="192" rx="32" fill="url(#bg)"/>
+  <!-- Neon pipes -->
+  <rect x="30" y="0" width="12" height="55" rx="4" fill="#00ff88" opacity="0.3" filter="url(#glow)"/>
+  <rect x="30" y="137" width="12" height="55" rx="4" fill="#00ff88" opacity="0.3" filter="url(#glow)"/>
+  <rect x="150" y="0" width="12" height="75" rx="4" fill="#ff00ff" opacity="0.3" filter="url(#glow)"/>
+  <rect x="150" y="130" width="12" height="62" rx="4" fill="#ff00ff" opacity="0.3" filter="url(#glow)"/>
+  <!-- Bird body -->
+  <ellipse cx="96" cy="96" rx="28" ry="22" fill="#00eeff" filter="url(#glow-strong)" opacity="0.9"/>
+  <ellipse cx="96" cy="96" rx="22" ry="17" fill="#0a0a2e"/>
+  <ellipse cx="96" cy="96" rx="18" ry="14" fill="#00ccff" opacity="0.15"/>
+  <!-- Eye -->
+  <circle cx="108" cy="89" r="6" fill="white"/>
+  <circle cx="110" cy="88" r="3" fill="#0a0014"/>
+  <!-- Wing -->
+  <path d="M78 96 Q60 78 68 65 Q76 72 84 88 Z" fill="#00ff88" filter="url(#glow)" opacity="0.8"/>
+  <!-- Beak -->
+  <polygon points="120,94 135,96 120,100" fill="#ffee00" filter="url(#glow)"/>
+  <!-- Trail -->
+  <line x1="68" y1="96" x2="35" y2="96" stroke="#00eeff" stroke-width="3" stroke-linecap="round" opacity="0.5" filter="url(#glow)"/>
+  <line x1="55" y1="96" x2="25" y2="96" stroke="#00eeff" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+</svg>
