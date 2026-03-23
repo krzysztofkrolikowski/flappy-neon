@@ -1243,8 +1243,18 @@
   //  ADS — unified: AdMob (native) / AdSense (web)
   // =============================================
   const IS_NATIVE = typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform();
+  const IS_POKI = !IS_NATIVE && typeof PokiSDK !== 'undefined';
   let admobPlugin = null;
   let admobReady = false;
+  let pokiReady = false;
+
+  // ── Poki SDK init ──
+  if (IS_POKI) {
+    PokiSDK.init().then(() => {
+      pokiReady = true;
+      console.log('[Poki] SDK initialized');
+    }).catch(e => console.warn('[Poki] Init failed:', e));
+  }
 
   // ── AdMob IDs (zamień na swoje z https://admob.google.com) ──
   const ADMOB_INTERSTITIAL_ANDROID = 'ca-app-pub-XXXX/INTERSTITIAL_ANDROID';
@@ -1294,7 +1304,10 @@
 
   // ── INTERSTITIAL ──
   function showInterstitialAd(onDone) {
-    if (IS_NATIVE && admobReady) {
+    if (IS_POKI && pokiReady) {
+      adActive = true;
+      PokiSDK.commercialBreak().then(() => { adActive = false; onDone(); }).catch(() => { adActive = false; onDone(); });
+    } else if (IS_NATIVE && admobReady) {
       showNativeInterstitial(onDone);
     } else {
       showWebInterstitial(onDone);
@@ -1347,7 +1360,10 @@
 
   // ── REWARDED ──
   function showRewardedAd(onReward) {
-    if (IS_NATIVE && admobReady) {
+    if (IS_POKI && pokiReady) {
+      adActive = true;
+      PokiSDK.rewardedBreak().then(success => { adActive = false; if (success) onReward(); }).catch(() => { adActive = false; });
+    } else if (IS_NATIVE && admobReady) {
       showNativeRewarded(onReward);
     } else {
       showWebRewarded(onReward);
@@ -2057,7 +2073,7 @@
     lbTable.style.display = 'none';
     lbOverlay.classList.add('active');
     setTimeout(() => lbPanel.classList.add('show'), 50);
-    fetchLeaderboard(50).then(rows => {
+    fetchLeaderboard(10).then(rows => {
       lbBody.innerHTML = '';
       if(!rows.length) { lbLoading.textContent = 'No scores yet'; return; }
       const medals = ['🥇','🥈','🥉'];
