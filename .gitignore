@@ -5,3 +5,4 @@ android/app/build/
 ios/App/Pods/
 *.log
 .DS_Store
+.vercel
