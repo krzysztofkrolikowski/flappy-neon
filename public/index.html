@@ -359,6 +359,21 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+  /* === Stats / Settings panels === */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; text-align: left; margin: 12px 0; }
+  .stats-grid .sg-label { color: rgba(255,255,255,0.4); font-size: 12px; }
+  .stats-grid .sg-val { color: #fff; font-size: 16px; font-weight: 700; }
+  .setting-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { color: rgba(255,255,255,0.6); font-size: 13px; }
+  .toggle-btn { width: 44px; height: 24px; border-radius: 12px; border: none; background: rgba(100,100,150,0.3); cursor: pointer; position: relative; transition: background 0.2s; }
+  .toggle-btn.on { background: #00ff88; }
+  .toggle-btn::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform 0.2s; }
+  .toggle-btn.on::after { transform: translateX(20px); }
+  .ach-grid { display: grid; grid-template-columns: 1fr; gap: 4px; max-height: 200px; overflow-y: auto; margin: 10px 0; text-align: left; }
+  .ach-item { font-size: 12px; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,0.04); }
+  .ach-item.locked { opacity: 0.3; }
+  .ach-item.unlocked { border-left: 2px solid #ffee00; }
 </style>
 </head>
 <body>
@@ -435,6 +450,30 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       <button class="btn btn-gold btn-small" id="btn-daily" data-t="dailyBonus">🎁 Daily Bonus</button>
       <span class="daily-badge" id="daily-badge" style="display:none">!</span>
     </div>
+    <div style="display:flex;gap:8px;width:100%;max-width:220px">
+      <button class="btn btn-small" id="btn-stats" style="flex:1;font-size:12px">📊 Stats</button>
+      <button class="btn btn-small" id="btn-settings" style="flex:1;font-size:12px">⚙️ Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div id="stats-overlay" class="overlay">
+  <div class="panel" id="stats-panel" style="max-width:340px">
+    <h2 style="color:#00f0ff">📊 STATS</h2>
+    <div class="stats-grid" id="stats-grid"></div>
+    <h3 style="color:#ffee00;font-size:13px;margin-top:12px">🏆 Achievements</h3>
+    <div class="ach-grid" id="ach-grid"></div>
+    <button class="btn btn-small" id="btn-stats-close" style="margin-top:12px">Close</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings-overlay" class="overlay">
+  <div class="panel" id="settings-panel" style="max-width:320px">
+    <h2 style="color:#00f0ff">⚙️ SETTINGS</h2>
+    <div id="settings-content"></div>
+    <button class="btn btn-small" id="btn-settings-close" style="margin-top:12px">Close</button>
   </div>
 </div>
 
@@ -514,7 +553,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v39-cleanhole-20260323";
+  const _BUILD = "v40-10of10-20260323";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -625,6 +664,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   let deathsSinceAd = STORAGE.get("deaths_ad", 0);
   let lastDaily = STORAGE.get("daily_ts", 0);
   let dailyStreak = STORAGE.get("daily_streak", 0);
+  let vibrationEnabled = STORAGE.get('vibration', true);
 
   const STATE = { MENU: 0, PLAYING: 1, DYING: 2, DEAD: 3, PAUSED: 4 };
   let state = STATE.MENU;
@@ -638,6 +678,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   let lastTime = 0, accumulator = 0;
 
   let bird = { x:0, y:0, vy:0, angle:0, wingPhase:0, trail:[] };
+  let deathFragments = []; // bird pieces after explosion
+  let driftTrailTimer = 0; // frames of drift sparkle trail
   let pipes = [], pipeTimer = 0, floatingCoins = [], isThrusting = false;
   let gameSpeed = PIPE_SPEED_START, pipeGap = PIPE_GAP_START;
   let groundX = 0, shakeX = 0, shakeY = 0, shakeMag = 0, flash = 0;
@@ -700,19 +742,42 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   // === ACHIEVEMENTS ===
   let unlockedAchievements = STORAGE.get('achievements', []);
+  // Persistent stats
+  let totalDrifts = STORAGE.get('total_drifts', 0);
+  let totalPipes = STORAGE.get('total_pipes', 0);
+  let totalCoinsEarned = STORAGE.get('total_coins', 0);
+  let totalLaserShots = STORAGE.get('total_lasers', 0);
+  let bestCombo = STORAGE.get('best_combo', 0);
+  let bestDriftStreak = STORAGE.get('best_drift_streak', 0);
+  let totalPlayTime = STORAGE.get('play_time', 0); // seconds
+  let sessionStartTime = 0;
   const ACHIEVEMENTS = [
-    { id:'first_game', name:'🎮 First Flight', cond:()=>totalGames>=1 },
-    { id:'score_10', name:'🌟 Rookie', cond:()=>score>=10 },
-    { id:'score_25', name:'🔥 Veteran', cond:()=>score>=25 },
-    { id:'score_50', name:'💀 Legend', cond:()=>score>=50 },
-    { id:'combo_5', name:'⚡ Combo x5', cond:()=>maxCombo>=5 },
-    { id:'combo_10', name:'🌊 Combo x10', cond:()=>maxCombo>=10 },
-    { id:'drift_3', name:'🎯 Drift Master', cond:()=>driftCount>=3 },
-    { id:'coins_100', name:'💰 Rich', cond:()=>coins>=100 },
-    { id:'coins_500', name:'💎 Millionaire', cond:()=>coins>=500 },
-    { id:'shield_save', name:'🛡️ Shield Save', cond:()=>shieldHits>=1 },
-    { id:'games_10', name:'🔁 Addicted', cond:()=>totalGames>=10 },
-    { id:'games_50', name:'🎰 Unstoppable', cond:()=>totalGames>=50 },
+    { id:'first_game', name:'🎮 First Flight', desc:'Play your first game', cond:()=>totalGames>=1 },
+    { id:'score_10', name:'🌟 Rookie', desc:'Score 10 points', cond:()=>score>=10 },
+    { id:'score_25', name:'🔥 Veteran', desc:'Score 25 points', cond:()=>score>=25 },
+    { id:'score_50', name:'💀 Legend', desc:'Score 50 points', cond:()=>score>=50 },
+    { id:'score_100', name:'👑 God Mode', desc:'Score 100 points', cond:()=>score>=100 },
+    { id:'combo_5', name:'⚡ Combo x5', desc:'Reach 5x combo', cond:()=>maxCombo>=5 },
+    { id:'combo_10', name:'🌊 Combo x10', desc:'Reach 10x combo', cond:()=>maxCombo>=10 },
+    { id:'combo_20', name:'💫 Combo Demon', desc:'Reach 20x combo', cond:()=>maxCombo>=20 },
+    { id:'drift_3', name:'🎯 Drift Master', desc:'3 drifts in one game', cond:()=>driftCount>=3 },
+    { id:'drift_10', name:'🎯 Drift King', desc:'10 drifts in one game', cond:()=>driftCount>=10 },
+    { id:'total_drift_50', name:'🎯 Drift Legend', desc:'50 total drifts', cond:()=>totalDrifts>=50 },
+    { id:'coins_100', name:'💰 Rich', desc:'Own 100 coins', cond:()=>coins>=100 },
+    { id:'coins_500', name:'💎 Millionaire', desc:'Own 500 coins', cond:()=>coins>=500 },
+    { id:'coins_2000', name:'🏦 Tycoon', desc:'Own 2000 coins', cond:()=>coins>=2000 },
+    { id:'shield_save', name:'🛡️ Shield Save', desc:'Survive a hit with shield', cond:()=>shieldHits>=1 },
+    { id:'games_10', name:'🔁 Addicted', desc:'Play 10 games', cond:()=>totalGames>=10 },
+    { id:'games_50', name:'🎰 Unstoppable', desc:'Play 50 games', cond:()=>totalGames>=50 },
+    { id:'games_200', name:'🤖 Machine', desc:'Play 200 games', cond:()=>totalGames>=200 },
+    { id:'zone_3', name:'🔥 Into The Fire', desc:'Reach Inferno Core', cond:()=>lastZoneIdx>=2 },
+    { id:'zone_4', name:'🌀 Void Walker', desc:'Reach Void Rift', cond:()=>lastZoneIdx>=3 },
+    { id:'zone_5', name:'⚫ Singularity', desc:'Reach Singularity', cond:()=>lastZoneIdx>=4 },
+    { id:'laser_1', name:'💀 First Shot', desc:'Fire your first laser', cond:()=>totalLaserShots>=1 },
+    { id:'laser_10', name:'💀 Sharpshooter', desc:'Fire 10 lasers', cond:()=>totalLaserShots>=10 },
+    { id:'speed_max', name:'💨 Mach Speed', desc:'Reach max game speed', cond:()=>gameSpeed>=PIPE_SPEED_MAX*0.98 },
+    { id:'skins_3', name:'👔 Collector', desc:'Own 3 skins', cond:()=>ownedSkins.length>=3 },
+    { id:'skins_7', name:'👔 Fashionista', desc:'Own 7 skins', cond:()=>ownedSkins.length>=7 },
   ];
   let driftCount = 0;
   let achievementQueue = [], achievementShowing = false;
@@ -1524,6 +1589,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     pipes=[]; pipeTimer=120; score=0; sessionCoins=0; reviveUsed=false; floatingCoins=[];
     gameSpeed=PIPE_SPEED_START; pipeGap=PIPE_GAP_START;
     groundX=0; shakeX=0; shakeY=0; shakeMag=0; flash=0; particles=[]; speedLines=[]; isThrusting=false;
+    deathFragments=[]; driftTrailTimer=0;
     combo=0; comboTimer=0; comboMultiplier=1; maxCombo=0; driftCount=0;
     activePowerUp=null; powerUpTimer=0; powerUpOrbs=[]; shieldHits=0;
     secondChanceUsed=false; invincibleFrames=0; // reset per game
@@ -1686,7 +1752,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   }
 
   // === HAPTICS ===
-  function haptic() { if(navigator.vibrate) navigator.vibrate(30); }
+  function haptic() { if(vibrationEnabled && navigator.vibrate) navigator.vibrate(30); }
 
   // === SPEED LINES ===
   function spawnSpeedLines() {
@@ -1779,6 +1845,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   // =============================================
   function showGameOver() {
     totalGames++; deathsSinceAd++;
+    if(maxCombo>bestCombo){bestCombo=maxCombo;STORAGE.set('best_combo',bestCombo);}
+    if(driftCount>bestDriftStreak){bestDriftStreak=driftCount;STORAGE.set('best_drift_streak',bestDriftStreak);}
+    totalCoinsEarned+=sessionCoins;STORAGE.set('total_coins',totalCoinsEarned);
     if (IS_POKI && pokiReady) PokiSDK.gameplayStop();
     STORAGE.set("games",totalGames); STORAGE.set("deaths_ad",deathsSinceAd);
     const isNewBest = score > bestScore;
@@ -2044,6 +2113,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     initAudio();
     if(!muted && !musicPlaying) startMusic();
     resetGame(); state=STATE.PLAYING; isThrusting=false;
+    sessionStartTime=Date.now();
     lastTime=0; accumulator=0;
     if(hasPerk('laser_shot')) { laserBtn.classList.add('visible','ready'); laserBtn.classList.remove('cooling'); } else { laserBtn.classList.remove('visible'); }
     menuOverlay.classList.remove("active"); goOverlay.classList.remove("active"); goPanel.classList.remove("show");
@@ -2098,6 +2168,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   function fireLaser() {
     if(!hasPerk('laser_shot') || !laserReady || state!==STATE.PLAYING) return;
     laserReady=false; laserCharge=0;
+    totalLaserShots++; STORAGE.set('total_lasers',totalLaserShots);
     laserProjectile={x:bird.x+15, y:bird.y, active:true};
     playSound('laser'); haptic(); shakeMag=3; chromAb=2;
     // Muzzle flash particles
@@ -2138,6 +2209,59 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     dailyPanel.classList.remove("show"); setTimeout(()=>dailyOverlay.classList.remove("active"), 300);
     updateDailyBadge();
   });
+
+  // === STATS PANEL ===
+  const statsOverlay=document.getElementById('stats-overlay');
+  const statsPanel=document.getElementById('stats-panel');
+  const statsGrid=document.getElementById('stats-grid');
+  const achGrid=document.getElementById('ach-grid');
+  function openStats() {
+    const stats=[
+      ['Games Played',totalGames],['Best Score',bestScore],
+      ['Total Pipes',totalPipes],['Total Drifts',totalDrifts],
+      ['Best Combo',bestCombo],['Best Drift Streak',bestDriftStreak],
+      ['Laser Shots',totalLaserShots],['Total Coins Earned',totalCoinsEarned],
+      ['Skins Owned',ownedSkins.length],['Play Time',formatTime(totalPlayTime)],
+    ];
+    statsGrid.innerHTML=stats.map(([l,v])=>`<div class="sg-label">${l}</div><div class="sg-val">${v}</div>`).join('');
+    achGrid.innerHTML=ACHIEVEMENTS.map(a=>{
+      const unlocked=unlockedAchievements.includes(a.id);
+      return `<div class="ach-item ${unlocked?'unlocked':'locked'}">${unlocked?'':'🔒 '}${a.name} <span style="color:rgba(255,255,255,0.3);font-size:11px">— ${a.desc}</span></div>`;
+    }).join('');
+    statsOverlay.classList.add('active');
+    setTimeout(()=>statsPanel.classList.add('show'),50);
+  }
+  function formatTime(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?`${h}h ${m}m`:`${m}m`;}
+  document.getElementById('btn-stats').addEventListener('click',e=>{e.stopPropagation();openStats();});
+  document.getElementById('btn-stats-close').addEventListener('click',()=>{
+    statsPanel.classList.remove('show');setTimeout(()=>statsOverlay.classList.remove('active'),300);
+  });
+
+  // === SETTINGS PANEL ===
+  const settingsOverlay=document.getElementById('settings-overlay');
+  const settingsPanel=document.getElementById('settings-panel');
+  const settingsContent=document.getElementById('settings-content');
+  function openSettings() {
+    settingsContent.innerHTML=`
+      <div class="setting-row"><span class="setting-label">🔊 Sound</span><button class="toggle-btn${muted?'':' on'}" id="stg-sound"></button></div>
+      <div class="setting-row"><span class="setting-label">📳 Vibration</span><button class="toggle-btn${vibrationEnabled?' on':''}" id="stg-vibration"></button></div>
+      <div class="setting-row"><span class="setting-label" style="color:#ff4466">🗑 Reset Progress</span><button class="btn btn-small" id="stg-reset" style="font-size:11px;padding:4px 10px">Reset</button></div>
+    `;
+    document.getElementById('stg-sound').addEventListener('click',function(){toggleMute();this.classList.toggle('on',!muted);});
+    document.getElementById('stg-vibration').addEventListener('click',function(){vibrationEnabled=!vibrationEnabled;STORAGE.set('vibration',vibrationEnabled);this.classList.toggle('on',vibrationEnabled);});
+    document.getElementById('stg-reset').addEventListener('click',()=>{
+      if(confirm('Reset all progress? This cannot be undone!')){
+        localStorage.clear(); location.reload();
+      }
+    });
+    settingsOverlay.classList.add('active');
+    setTimeout(()=>settingsPanel.classList.add('show'),50);
+  }
+  document.getElementById('btn-settings').addEventListener('click',e=>{e.stopPropagation();openSettings();});
+  document.getElementById('btn-settings-close').addEventListener('click',()=>{
+    settingsPanel.classList.remove('show');setTimeout(()=>settingsOverlay.classList.remove('active'),300);
+  });
+
   function doRestart() {
     if(restartPending) return;
     restartPending=true;
@@ -2277,9 +2401,14 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       bird.vy*=0.98; bird.y+=bird.vy;
       bird.angle=Math.max(-0.5,Math.min(bird.vy*0.06,1.2));
       bird.wingPhase+=isThrusting?0.35:0.12;
-      bird.trail.push({x:bird.x,y:bird.y,life:1});
-      if(bird.trail.length>15)bird.trail.shift();
-      for(const t of bird.trail) t.life-=0.07;
+      bird.trail.push({x:bird.x,y:bird.y,life:1,vy:bird.vy,angle:bird.angle});
+      if(bird.trail.length>20)bird.trail.shift();
+      for(const t of bird.trail) t.life-=0.05;
+      // Drift sparkle trail
+      if(driftTrailTimer>0) {
+        driftTrailTimer--;
+        for(let i=0;i<2;i++) particles.push({x:bird.x+(Math.random()-0.5)*16,y:bird.y+(Math.random()-0.5)*16,vx:-gameSpeed*0.5+(Math.random()-0.5)*2,vy:(Math.random()-0.5)*2,life:0.6,decay:0.03,size:1.5+Math.random()*2,color:Math.random()>0.5?'#00ffaa':'#ffee00'});
+      }
       if(isThrusting){
         // Double exhaust particles
         for(let i=0;i<2;i++){const a=Math.PI+Math.random()*0.6-0.3;particles.push({x:bird.x-BIRD_SIZE*0.5,y:bird.y+(Math.random()-0.5)*4,vx:Math.cos(a)*4,vy:Math.sin(a)*2,life:0.6,decay:0.04,size:2+Math.random()*3,color:getSkinColors().thrust});}
@@ -2358,6 +2487,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
         const pRight=p.x-(56-PIPE_WIDTH)/2+56; // right edge of visual panel
         if(!p.scored && pRight<bird.x) {
           p.scored=true; p.glow=1; pipesPassed++;
+          totalPipes++; STORAGE.set('total_pipes',totalPipes);
           score+=1;
           // Coins from pipe: base 1 × comboMultiplier × x2 powerup
           const pipeCoins = Math.ceil(1 * comboMultiplier * (activePowerUp && activePowerUp.id==='x2' ? 2 : 1));
@@ -2367,7 +2497,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           const distTop=Math.abs(bird.y-p.topH),distBot=Math.abs(bird.y-(p.topH+p.gap));
           const nearDist=Math.min(distTop,distBot);
           if(streakMilestones.includes(score)){playSound("milestone");showStreak(`🔥 ${score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
-          else if(nearDist<25){driftCount++;const driftCoins=Math.ceil(3*comboMultiplier*(activePowerUp&&activePowerUp.id==='x2'?2:1));addCoins(driftCoins);showStreak(`⚡ DRIFT +${driftCoins}💰`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
+          else if(nearDist<25){driftCount++;totalDrifts++;STORAGE.set('total_drifts',totalDrifts);driftTrailTimer=30;const driftCoins=Math.ceil(3*comboMultiplier*(activePowerUp&&activePowerUp.id==='x2'?2:1));addCoins(driftCoins);showStreak(`⚡ DRIFT +${driftCoins}💰`);burst(bird.x,bird.y,"#00ffaa",18);playSound("coin");haptic();chromAb=3;triggerBassPulse('drift');}
           else if(pipeCoins>1){showStreak(`+${pipeCoins} 💰`);}
           const speedMax = hasPerk('speed_cap') ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
           gameSpeed=Math.min(speedMax, PIPE_SPEED_START+score*0.025);
@@ -2473,17 +2603,26 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           bird.vy=bird.vy>0?-4:4;
           showStreak('🔥 CERBERUS — SECOND CHANCE!');
         } else {
-          state=STATE.DYING; playSound("hit"); haptic(); shakeMag=14; flash=1;
-          chromAb=8; screenPulse=1; deathFreezeFrames=4;
+          state=STATE.DYING; playSound("hit"); haptic(); shakeMag=18; flash=1;
+          chromAb=12; screenPulse=1; deathFreezeFrames=8;
           dyingTimer=0; laserBtn.classList.remove('visible');
-          timeScaleTarget=0.35; // brief bullet-time
+          timeScaleTarget=0.15; // dramatic bullet-time
           triggerBassPulse('hit');
-          burst(bird.x,bird.y,"#ff4466",18); burst(bird.x,bird.y,"#ffee00",10);
-          burst(bird.x,bird.y,"#ffffff",6);
-          // Explosion ring
-          for(let i=0;i<12;i++){const a=i/12*Math.PI*2;particles.push({x:bird.x,y:bird.y,vx:Math.cos(a)*6,vy:Math.sin(a)*6,life:0.7,decay:0.03,size:3,color:'#ff0066'});}
+          // Save play time
+          if(sessionStartTime) { totalPlayTime+=Math.floor((Date.now()-sessionStartTime)/1000); STORAGE.set('play_time',totalPlayTime); sessionStartTime=0; }
+          burst(bird.x,bird.y,"#ff4466",25); burst(bird.x,bird.y,"#ffee00",15);
+          burst(bird.x,bird.y,"#ffffff",10);
+          // Explosion ring (larger)
+          for(let i=0;i<16;i++){const a=i/16*Math.PI*2;particles.push({x:bird.x,y:bird.y,vx:Math.cos(a)*8,vy:Math.sin(a)*8,life:0.8,decay:0.025,size:3.5,color:i%2?'#ff0066':'#ff8800'});}
+          // Bird fragments — pieces fly outward
+          deathFragments=[];
+          const sk=getSkinColors();
+          for(let i=0;i<10;i++){
+            const a=Math.random()*Math.PI*2, sp=2+Math.random()*5;
+            deathFragments.push({x:bird.x,y:bird.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-2,rot:Math.random()*Math.PI*2,rotV:(Math.random()-0.5)*0.4,size:3+Math.random()*6,life:1,color:i<4?sk.body:i<7?sk.glow:sk.ring,shape:Math.floor(Math.random()*3)});
+          }
           // Debris
-          for(let i=0;i<6;i++) envDebris.push({x:bird.x,y:bird.y,vx:(Math.random()-0.5)*8,vy:(Math.random()-0.5)*8-3,rot:0,rotV:(Math.random()-0.5)*0.3,size:3+Math.random()*5,life:0.8,color:Math.random()>0.5?'#ff4466':'#ffee00'});
+          for(let i=0;i<8;i++) envDebris.push({x:bird.x,y:bird.y,vx:(Math.random()-0.5)*10,vy:(Math.random()-0.5)*10-4,rot:0,rotV:(Math.random()-0.5)*0.3,size:3+Math.random()*6,life:0.9,color:Math.random()>0.5?'#ff4466':'#ffee00'});
         }
       }
     }
@@ -2515,8 +2654,17 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       if(Math.random()>0.6) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.5,decay:0.04,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
       // End: hit ground or timeout → show game over
       const groundY = H - GROUND_HEIGHT;
-      if(bird.y > groundY || dyingTimer > 50) {
+      // Update death fragments
+      for(let i=deathFragments.length-1;i>=0;i--){
+        const f=deathFragments[i]; f.x+=f.vx*timeScale; f.y+=f.vy*timeScale; f.vy+=0.12; f.rot+=f.rotV; f.life-=0.01;
+        // Trail sparks from fragments
+        if(Math.random()>0.8) particles.push({x:f.x,y:f.y,vx:(Math.random()-0.5),vy:-Math.random(),life:0.3,decay:0.05,size:1,color:f.color});
+        if(f.life<=0){deathFragments[i]=deathFragments[deathFragments.length-1];deathFragments.pop();}
+      }
+      if(bird.y > groundY || dyingTimer > 60) {
         bird.y = Math.min(bird.y, groundY);
+        // Ground impact burst
+        if(dyingTimer<=60) { burst(bird.x,groundY,'#ff4466',12); burst(bird.x,groundY,'#ffaa00',8); shakeMag=10; }
         state=STATE.DEAD; timeScale=1; timeScaleTarget=1; chromAb=0;
         showGameOver();
       }
@@ -2923,15 +3071,44 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   }
 
   function drawBird() {
-    if(state===STATE.DEAD) return; // don't draw after explosion
+    // Draw death fragments (visible during DYING/DEAD)
+    if(deathFragments.length>0) {
+      for(const f of deathFragments) {
+        ctx.save(); ctx.translate(f.x,f.y); ctx.rotate(f.rot);
+        ctx.globalAlpha=f.life;
+        ctx.fillStyle=f.color;
+        if(f.shape===0) { ctx.fillRect(-f.size/2,-f.size/2,f.size,f.size); }
+        else if(f.shape===1) { ctx.beginPath(); ctx.moveTo(0,-f.size/2); ctx.lineTo(f.size/2,f.size/2); ctx.lineTo(-f.size/2,f.size/2); ctx.closePath(); ctx.fill(); }
+        else { ctx.beginPath(); ctx.arc(0,0,f.size/2,0,Math.PI*2); ctx.fill(); }
+        ctx.globalAlpha=f.life*0.3;
+        ctx.beginPath(); ctx.arc(0,0,f.size,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+    }
+    if(state===STATE.DEAD) return;
     const sk=getSkinColors();
     ctx.save(); ctx.translate(bird.x,bird.y); ctx.rotate(bird.angle);
     const t=_now*0.001;
-    // Trail
-    for(const tr of bird.trail) {
-      if(tr.life<=0) continue;
-      ctx.globalAlpha=tr.life*0.35; ctx.fillStyle=sk.thrust;
-      ctx.beginPath(); ctx.arc(tr.x-bird.x,tr.y-bird.y,3*tr.life,0,Math.PI*2); ctx.fill();
+    // Neon trail — gradient line + afterimage glow
+    if(bird.trail.length>=2) {
+      ctx.lineCap='round';
+      for(let i=1;i<bird.trail.length;i++) {
+        const tr=bird.trail[i], prev=bird.trail[i-1];
+        if(tr.life<=0||prev.life<=0) continue;
+        ctx.globalAlpha=tr.life*0.5;
+        ctx.strokeStyle=sk.glow;
+        ctx.lineWidth=4*tr.life;
+        ctx.beginPath();
+        ctx.moveTo(prev.x-bird.x,prev.y-bird.y);
+        ctx.lineTo(tr.x-bird.x,tr.y-bird.y);
+        ctx.stroke();
+      }
+      for(const tr of bird.trail) {
+        if(tr.life<=0) continue;
+        ctx.globalAlpha=tr.life*0.2;
+        ctx.fillStyle=sk.thrust;
+        ctx.beginPath(); ctx.arc(tr.x-bird.x,tr.y-bird.y,BIRD_SIZE*0.3*tr.life,0,Math.PI*2); ctx.fill();
+      }
     }
     ctx.globalAlpha=1;
 
