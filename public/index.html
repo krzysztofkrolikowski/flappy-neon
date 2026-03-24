@@ -615,7 +615,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v42-perf-20260323";
+  const _BUILD = "v47-perf-zone-trans";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -824,6 +824,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     { name:'SINGULARITY',    sub:'no one survives forever',   emoji:'⚫', from:110, bg1:'#020208', bg2:'#050515', bg3:'#080828', ground:'#0a0020', accent:'#ffffff', laser:'#ffffff' },
   ];
   let currentZone = ZONES[0], lastZoneIdx = 0, pipesPassed = 0;
+  let _prevBgGrad = null, _prevGroundGrad = null, _zoneTransT = 1;
 
   // === ACHIEVEMENTS ===
   let unlockedAchievements = STORAGE.get('achievements', []);
@@ -1730,7 +1731,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     odFill.style.width='0';
     secondChanceUsed=false; invincibleFrames=0; // reset per game
     laserCharge=LASER_COOLDOWN; laserProjectile=null; laserReady=true;
-    pipesPassed=0; currentZone=ZONES[0]; lastZoneIdx=0;
+    pipesPassed=0; currentZone=ZONES[0]; lastZoneIdx=0; _zoneTransT=1; _prevBgGrad=null; _prevGroundGrad=null;
     timeScale=1; timeScaleTarget=1; chromAb=0; screenPulse=0; deathFreezeFrames=0; dyingTimer=0; envDebris=[];
     comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
     scoreDisplay.textContent="0";
@@ -1786,7 +1787,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
     pipes.push({ x:W+20, topH, gap:thisGap, scored:false, glow:0,
       moving:effectiveMoving, moveDir:Math.random()<0.5?1:-1, moveSpeed,
-      moveMin, moveMax, moveRange });
+      moveMin, moveMax, moveRange, zone:currentZone });
     // Losowa moneta między rurami (70% szans)
     if (Math.random() < 0.7) {
       const coinY = topH + thisGap * (0.2 + Math.random() * 0.6);
@@ -1811,7 +1812,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     combo++; comboTimer=COMBO_DECAY;
     comboMultiplier=1+Math.floor(combo/3)*0.5; // x1, x1.5, x2, x2.5...
     if(combo>maxCombo) maxCombo=combo;
-    comboText.textContent=`x${combo} 💰×${comboMultiplier.toFixed(1)}`;
+    comboText.textContent = combo >= 3 ? `COMBO x${combo} 🪙${comboMultiplier.toFixed(1)}` : `COMBO x${combo}`;
     comboFill.style.width='100%';
     comboHud.classList.add('visible','bump');
     setTimeout(()=>comboHud.classList.remove('bump'),150);
@@ -1891,6 +1892,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     let zi=0;
     for(let i=ZONES.length-1;i>=0;i--) { if(pipesPassed>=ZONES[i].from){zi=i;break;} }
     if(zi!==lastZoneIdx) {
+      _prevBgGrad=_gradCache.bg; _prevGroundGrad=_gradCache.ground; _zoneTransT=0;
       lastZoneIdx=zi; currentZone=ZONES[zi];
       rebuildGradients();
       const z=currentZone;
@@ -2575,6 +2577,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   //  UPDATE
   // =============================================
   function update() {
+    // Zone background transition progress (~1.3s)
+    if(_zoneTransT<1) { _zoneTransT=Math.min(1,_zoneTransT+0.012); }
     for (const s of starParticles) {
       s.flicker+=0.03;
       if(state===STATE.PLAYING) s.x-=s.speed*gameSpeed*0.3;
@@ -2823,7 +2827,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
           state=STATE.DYING; playSound("hit"); haptic(); shakeMag=18; flash=1;
           chromAb=12; screenPulse=1; deathFreezeFrames=8;
           dyingTimer=0; laserBtn.classList.remove('visible');
-          timeScaleTarget=0.15; // dramatic bullet-time
+          timeScaleTarget=0.35; // dramatic bullet-time (smoother)
           triggerBassPulse('hit');
           // Save play time
           if(sessionStartTime) { totalPlayTime+=Math.floor((Date.now()-sessionStartTime)/1000); STORAGE.set('play_time',totalPlayTime); sessionStartTime=0; }
@@ -2845,7 +2849,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     }
     decayCombo();
     // Time scale lerp
-    timeScale+=(timeScaleTarget-timeScale)*0.18;
+    timeScale+=(timeScaleTarget-timeScale)*0.08;
     if(Math.abs(timeScale-timeScaleTarget)<0.01) timeScale=timeScaleTarget;
     chromAb*=0.88; screenPulse*=0.85;
     // Env debris
@@ -2866,7 +2870,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       flash*=0.82;
       dyingTimer++;
       // Ramp timeScale back to normal quickly
-      if(dyingTimer>6) timeScaleTarget+=(1-timeScaleTarget)*0.2;
+      if(dyingTimer>20) timeScaleTarget+=(1-timeScaleTarget)*0.06;
       // Trail sparks while falling
       if(Math.random()>0.6) particles.push({x:bird.x+(Math.random()-0.5)*10,y:bird.y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*2,vy:-Math.random()*2,life:0.5,decay:0.04,size:2+Math.random()*3,color:Math.random()>0.5?'#ff4466':'#ff8800'});
       // End: hit ground or timeout → show game over
@@ -2902,7 +2906,15 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   // =============================================
   function drawBackground() {
     const z=currentZone;
-    ctx.fillStyle=_gradCache.bg; ctx.fillRect(0,0,W,H);
+    // Smooth zone background transition
+    if(_zoneTransT<1 && _prevBgGrad) {
+      ctx.fillStyle=_prevBgGrad; ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=_zoneTransT;
+      ctx.fillStyle=_gradCache.bg; ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=1;
+    } else {
+      ctx.fillStyle=_gradCache.bg; ctx.fillRect(0,0,W,H);
+    }
     // Stars
     for(const s of starParticles) {
       ctx.globalAlpha=0.3+Math.sin(s.flicker)*0.3; ctx.fillStyle="#fff";
@@ -2982,7 +2994,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
   function drawPipe(p) {
     const topH=p.topH, botY=topH+p.gap;
-    const z=currentZone;
+    const z=p.zone||currentZone;
     const PANEL_W=56;
     const px=p.x-(PANEL_W-PIPE_WIDTH)/2; // center visual around hitbox
     const cx=px+PANEL_W/2; // center x
@@ -3229,7 +3241,15 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   function drawGround() {
     const gy=H-GROUND_HEIGHT;
     const z=currentZone;
-    ctx.fillStyle=_gradCache.ground; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
+    // Smooth zone ground transition
+    if(_zoneTransT<1 && _prevGroundGrad) {
+      ctx.fillStyle=_prevGroundGrad; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
+      ctx.globalAlpha=_zoneTransT;
+      ctx.fillStyle=_gradCache.ground; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
+      ctx.globalAlpha=1;
+    } else {
+      ctx.fillStyle=_gradCache.ground; ctx.fillRect(0,gy,W,GROUND_HEIGHT);
+    }
     // Horizon glow line
     ctx.strokeStyle=z.accent; ctx.lineWidth=6; ctx.globalAlpha=0.2;
     ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
@@ -4880,14 +4900,17 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     lastTime = now;
     const dt = rawDt * timeScale;
     accumulator += dt;
-    while (accumulator >= TICK_MS) {
+    let _ticks = 0;
+    while (accumulator >= TICK_MS && _ticks < 4) {
       try { update(); } catch(e) {
         if(_lastError!==e.message){ _lastError=e.message; console.error('[update crash]',e); }
         // Force death on crash so game doesn't freeze
         if(state===STATE.PLAYING) { state=STATE.DEAD; showGameOver(); }
       }
       accumulator -= TICK_MS;
+      _ticks++;
     }
+    if (accumulator > TICK_MS) accumulator = TICK_MS; // drop excess
     try {
     ctx.save();
     if(shakeMag>0.5) ctx.translate(shakeX,shakeY);
