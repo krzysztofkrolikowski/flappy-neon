@@ -633,7 +633,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <script>
 (() => {
   "use strict";
-  const _BUILD = "v48-ui-music";
+  const _BUILD = "v49-music-fix";
   console.log('[NeonDrift]', _BUILD);
 
   // =============================================
@@ -2110,7 +2110,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   // =============================================
   //  SPACE AMBIENT MUSIC (dark / melancholic)
   // =============================================
-  let musicPlaying = false, musicNodes = [], musicTimers = [];
+  let musicPlaying = false, musicNodes = [], musicTimer = 0;
   const MUSIC_VOL = 0.055;
   // Ethereal space: Em9 - Cmaj7 - Am7 - Bm (open voicings, fifths)
   const CHORDS = [
@@ -2121,10 +2121,10 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   ];
   const BASS_NOTES = [82.41, 65.41, 55.00, 61.74]; // E2, C2, A1, B1
   const ARP_NOTES = [
-    [329.63,493.88,659.26,493.88], // Em pentatonic high
-    [261.63,392.00,523.25,392.00], // C
-    [220.00,329.63,440.00,329.63], // Am
-    [246.94,369.99,493.88,369.99], // Bm
+    [329.63,493.88,659.26,493.88],
+    [261.63,392.00,523.25,392.00],
+    [220.00,329.63,440.00,329.63],
+    [246.94,369.99,493.88,369.99],
   ];
 
   function startMusic() {
@@ -2139,166 +2139,163 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     musicNodes.push(master, limiter);
 
     const BPM = 90, beatLen = 60/BPM, barLen = beatLen*4;
+    const loopLen = barLen * 4;
+    let nextLoop = audioCtx.currentTime + 0.05;
 
-    // === SPACE PAD (slow evolving sine/triangle wash with long tails) ===
-    function playPad() {
+    // Pre-compute noise buffer once
+    const noiseBufLen = audioCtx.sampleRate * 2;
+    const _noiseBuf = audioCtx.createBuffer(1, noiseBufLen, audioCtx.sampleRate);
+    const _nd = _noiseBuf.getChannelData(0);
+    for(let i=0; i<noiseBufLen; i++) _nd[i] = (Math.random()*2-1);
+    // Tick buffer
+    const tickBufLen = Math.ceil(audioCtx.sampleRate * 0.015);
+    const _tickBuf = audioCtx.createBuffer(1, tickBufLen, audioCtx.sampleRate);
+    const _td = _tickBuf.getChannelData(0);
+    for(let i=0; i<tickBufLen; i++) _td[i] = (Math.random()*2-1)*Math.exp(-i/(tickBufLen*0.2));
+
+    function scheduleLoop() {
       if(!musicPlaying) return;
-      const now = audioCtx.currentTime;
+      const start = nextLoop;
+
       for(let bar=0; bar<4; bar++) {
+        const t = start + bar*barLen;
         const chord = CHORDS[bar];
-        const t = now + bar*barLen;
+
+        // ── PAD: warm sine + detuned triangle + sub octave ──
         for(const freq of chord) {
-          const osc1 = audioCtx.createOscillator();
+          const o1 = audioCtx.createOscillator();
           const g1 = audioCtx.createGain();
-          osc1.type = 'sine'; osc1.frequency.value = freq;
-          osc1.connect(g1); g1.connect(master);
+          o1.type = 'sine'; o1.frequency.value = freq;
+          o1.connect(g1); g1.connect(master);
           g1.gain.setValueAtTime(0, t);
           g1.gain.linearRampToValueAtTime(0.12, t+barLen*0.3);
           g1.gain.setValueAtTime(0.12, t+barLen*0.7);
           g1.gain.linearRampToValueAtTime(0, t+barLen+0.5);
-          osc1.start(t); osc1.stop(t+barLen+0.6);
-          const osc2 = audioCtx.createOscillator();
+          o1.start(t); o1.stop(t+barLen+0.6);
+
+          const o2 = audioCtx.createOscillator();
           const g2 = audioCtx.createGain();
-          const filt = audioCtx.createBiquadFilter();
-          osc2.type = 'triangle'; osc2.frequency.value = freq*1.002;
-          filt.type = 'lowpass'; filt.frequency.value = 600; filt.Q.value = 0.5;
-          osc2.connect(filt); filt.connect(g2); g2.connect(master);
+          const f2 = audioCtx.createBiquadFilter();
+          o2.type = 'triangle'; o2.frequency.value = freq*1.002;
+          f2.type = 'lowpass'; f2.frequency.value = 600; f2.Q.value = 0.5;
+          o2.connect(f2); f2.connect(g2); g2.connect(master);
           g2.gain.setValueAtTime(0, t+0.1);
           g2.gain.linearRampToValueAtTime(0.07, t+barLen*0.4);
           g2.gain.linearRampToValueAtTime(0, t+barLen+0.3);
-          osc2.start(t); osc2.stop(t+barLen+0.4);
-          const osc3 = audioCtx.createOscillator();
+          o2.start(t); o2.stop(t+barLen+0.4);
+
+          const o3 = audioCtx.createOscillator();
           const g3 = audioCtx.createGain();
-          osc3.type = 'sine'; osc3.frequency.value = freq*0.5;
-          osc3.connect(g3); g3.connect(master);
+          o3.type = 'sine'; o3.frequency.value = freq*0.5;
+          o3.connect(g3); g3.connect(master);
           g3.gain.setValueAtTime(0, t);
           g3.gain.linearRampToValueAtTime(0.04, t+barLen*0.5);
           g3.gain.linearRampToValueAtTime(0, t+barLen);
-          osc3.start(t); osc3.stop(t+barLen+0.1);
+          o3.start(t); o3.stop(t+barLen+0.1);
         }
-      }
-      musicTimers.push(setTimeout(playPad, barLen*4*1000 - 200));
-    }
 
-    // === DEEP SPACE BASS (slow sub pulses) ===
-    function playBass() {
-      if(!musicPlaying) return;
-      const now = audioCtx.currentTime;
-      for(let bar=0; bar<4; bar++) {
-        const freq = BASS_NOTES[bar];
-        const t = now + bar*barLen;
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'sine'; osc.frequency.value = freq;
-        osc.connect(g); g.connect(master);
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.35, t+beatLen);
-        g.gain.setValueAtTime(0.35, t+barLen-beatLen);
-        g.gain.linearRampToValueAtTime(0, t+barLen);
-        osc.start(t); osc.stop(t+barLen+0.05);
-        const osc2 = audioCtx.createOscillator();
-        const g2 = audioCtx.createGain();
-        osc2.type = 'triangle'; osc2.frequency.value = freq*2;
-        const filt = audioCtx.createBiquadFilter();
-        filt.type = 'lowpass'; filt.frequency.value = 200;
-        osc2.connect(filt); filt.connect(g2); g2.connect(master);
+        // ── BASS: sustained sub + octave pulse on beat 3 ──
+        const bfreq = BASS_NOTES[bar];
+        const bo = audioCtx.createOscillator();
+        const bg = audioCtx.createGain();
+        bo.type = 'sine'; bo.frequency.value = bfreq;
+        bo.connect(bg); bg.connect(master);
+        bg.gain.setValueAtTime(0, t);
+        bg.gain.linearRampToValueAtTime(0.35, t+beatLen);
+        bg.gain.setValueAtTime(0.35, t+barLen-beatLen);
+        bg.gain.linearRampToValueAtTime(0, t+barLen);
+        bo.start(t); bo.stop(t+barLen+0.05);
+
+        const b2 = audioCtx.createOscillator();
+        const bg2 = audioCtx.createGain();
+        const bf = audioCtx.createBiquadFilter();
+        b2.type = 'triangle'; b2.frequency.value = bfreq*2;
+        bf.type = 'lowpass'; bf.frequency.value = 200;
+        b2.connect(bf); bf.connect(bg2); bg2.connect(master);
         const pt = t + beatLen*2;
-        g2.gain.setValueAtTime(0.15, pt);
-        g2.gain.exponentialRampToValueAtTime(0.01, pt+beatLen*0.8);
-        osc2.start(pt); osc2.stop(pt+beatLen);
-      }
-      musicTimers.push(setTimeout(playBass, barLen*4*1000 - 200));
-    }
+        bg2.gain.setValueAtTime(0.15, pt);
+        bg2.gain.exponentialRampToValueAtTime(0.01, pt+beatLen*0.8);
+        b2.start(pt); b2.stop(pt+beatLen);
 
-    // === COSMIC PINGS (sparse high notes with long reverb-like tail) ===
-    function playPings() {
-      if(!musicPlaying) return;
-      const now = audioCtx.currentTime;
-      for(let bar=0; bar<4; bar++) {
+        // ── COSMIC PINGS: sparse high notes with shimmer + echo ──
         const notes = ARP_NOTES[bar];
-        const t = now + bar*barLen;
         const hits = [0, 1.3, 2.5, 3.2];
         for(let i=0; i<hits.length; i++) {
           const nt = t + hits[i]*beatLen;
           const freq = notes[i%notes.length] * 2;
-          const osc = audioCtx.createOscillator();
-          const g = audioCtx.createGain();
-          osc.type = 'sine'; osc.frequency.value = freq;
-          osc.connect(g); g.connect(master);
-          g.gain.setValueAtTime(0.14, nt);
-          g.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*2);
-          osc.start(nt); osc.stop(nt+beatLen*2.1);
-          const osc2 = audioCtx.createOscillator();
-          const g2 = audioCtx.createGain();
-          const filt = audioCtx.createBiquadFilter();
-          osc2.type = 'triangle'; osc2.frequency.value = freq*1.005;
-          filt.type = 'lowpass'; filt.frequency.value = 2000;
-          osc2.connect(filt); filt.connect(g2); g2.connect(master);
-          g2.gain.setValueAtTime(0.06, nt+0.05);
-          g2.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*3);
-          osc2.start(nt+0.05); osc2.stop(nt+beatLen*3.1);
-          const osc3 = audioCtx.createOscillator();
-          const g3 = audioCtx.createGain();
-          osc3.type = 'sine'; osc3.frequency.value = freq*0.999;
-          osc3.connect(g3); g3.connect(master);
+          const po = audioCtx.createOscillator();
+          const pg = audioCtx.createGain();
+          po.type = 'sine'; po.frequency.value = freq;
+          po.connect(pg); pg.connect(master);
+          pg.gain.setValueAtTime(0.14, nt);
+          pg.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*2);
+          po.start(nt); po.stop(nt+beatLen*2.1);
+
+          const so = audioCtx.createOscillator();
+          const sg = audioCtx.createGain();
+          const sf = audioCtx.createBiquadFilter();
+          so.type = 'triangle'; so.frequency.value = freq*1.005;
+          sf.type = 'lowpass'; sf.frequency.value = 2000;
+          so.connect(sf); sf.connect(sg); sg.connect(master);
+          sg.gain.setValueAtTime(0.06, nt+0.05);
+          sg.gain.exponentialRampToValueAtTime(0.01, nt+beatLen*3);
+          so.start(nt+0.05); so.stop(nt+beatLen*3.1);
+
+          const eo = audioCtx.createOscillator();
+          const eg = audioCtx.createGain();
+          eo.type = 'sine'; eo.frequency.value = freq*0.999;
+          eo.connect(eg); eg.connect(master);
           const echo = beatLen*0.75;
-          g3.gain.setValueAtTime(0, nt+echo);
-          g3.gain.linearRampToValueAtTime(0.04, nt+echo+0.02);
-          g3.gain.exponentialRampToValueAtTime(0.01, nt+echo+beatLen*1.5);
-          osc3.start(nt+echo); osc3.stop(nt+echo+beatLen*1.6);
+          eg.gain.setValueAtTime(0, nt+echo);
+          eg.gain.linearRampToValueAtTime(0.04, nt+echo+0.02);
+          eg.gain.exponentialRampToValueAtTime(0.01, nt+echo+beatLen*1.5);
+          eo.start(nt+echo); eo.stop(nt+echo+beatLen*1.6);
+        }
+
+        // ── SPACE WASH: bandpass noise sweep ──
+        const ws = audioCtx.createBufferSource();
+        const wg = audioCtx.createGain();
+        const wf = audioCtx.createBiquadFilter();
+        ws.buffer = _noiseBuf; ws.loop = true;
+        wf.type = 'bandpass'; wf.Q.value = 8;
+        wf.frequency.setValueAtTime(200 + bar*150, t);
+        wf.frequency.linearRampToValueAtTime(600 + bar*150, t+barLen*0.5);
+        wf.frequency.linearRampToValueAtTime(300 + bar*50, t+barLen);
+        ws.connect(wf); wf.connect(wg); wg.connect(master);
+        wg.gain.setValueAtTime(0, t);
+        wg.gain.linearRampToValueAtTime(0.025, t+barLen*0.3);
+        wg.gain.setValueAtTime(0.025, t+barLen*0.7);
+        wg.gain.linearRampToValueAtTime(0, t+barLen);
+        ws.start(t); ws.stop(t+barLen+0.01);
+
+        // ── METALLIC TICKS: 2 per bar ──
+        for(let ti=0; ti<2; ti++) {
+          const tt = t + ti*beatLen*2 + (Math.random()-0.5)*beatLen*0.3;
+          const ts = audioCtx.createBufferSource();
+          const tg = audioCtx.createGain();
+          const thp = audioCtx.createBiquadFilter();
+          ts.buffer = _tickBuf;
+          thp.type = 'highpass'; thp.frequency.value = 6000+Math.random()*4000;
+          ts.connect(thp); thp.connect(tg); tg.connect(master);
+          tg.gain.setValueAtTime(0.06+Math.random()*0.06, tt);
+          tg.gain.exponentialRampToValueAtTime(0.01, tt+0.03);
+          ts.start(tt); ts.stop(tt+0.04);
         }
       }
-      musicTimers.push(setTimeout(playPings, barLen*4*1000 - 200));
+
+      nextLoop = start + loopLen;
+      const ahead = (nextLoop - audioCtx.currentTime) * 1000 - 800;
+      musicTimer = setTimeout(scheduleLoop, Math.max(ahead, 100));
     }
 
-    // === SPACE TEXTURE (filtered noise washes + subtle ticks) ===
-    function playTexture() {
-      if(!musicPlaying) return;
-      const now = audioCtx.currentTime;
-      const noiseBufLen = audioCtx.sampleRate * 2;
-      const noiseBuf = audioCtx.createBuffer(1, noiseBufLen, audioCtx.sampleRate);
-      const nd = noiseBuf.getChannelData(0);
-      for(let i=0; i<noiseBufLen; i++) nd[i] = (Math.random()*2-1);
-      const totalLen = barLen*4;
-      const src = audioCtx.createBufferSource();
-      const ng = audioCtx.createGain();
-      const bp = audioCtx.createBiquadFilter();
-      src.buffer = noiseBuf; src.loop = true;
-      bp.type = 'bandpass'; bp.frequency.value = 400; bp.Q.value = 8;
-      bp.frequency.setValueAtTime(200, now);
-      bp.frequency.linearRampToValueAtTime(800, now+totalLen*0.5);
-      bp.frequency.linearRampToValueAtTime(300, now+totalLen);
-      src.connect(bp); bp.connect(ng); ng.connect(master);
-      ng.gain.setValueAtTime(0.02, now);
-      ng.gain.linearRampToValueAtTime(0.04, now+totalLen*0.3);
-      ng.gain.linearRampToValueAtTime(0.015, now+totalLen);
-      src.start(now); src.stop(now+totalLen+0.1);
-      const tickBufLen = audioCtx.sampleRate * 0.015;
-      const tickBuf = audioCtx.createBuffer(1, tickBufLen, audioCtx.sampleRate);
-      const td = tickBuf.getChannelData(0);
-      for(let i=0; i<tickBufLen; i++) td[i] = (Math.random()*2-1)*Math.exp(-i/(tickBufLen*0.2));
-      for(let i=0; i<8; i++) {
-        const tt = now + (i*beatLen*2) + (Math.random()-0.5)*beatLen*0.3;
-        const tsrc = audioCtx.createBufferSource();
-        const tg = audioCtx.createGain();
-        const thp = audioCtx.createBiquadFilter();
-        tsrc.buffer = tickBuf;
-        thp.type = 'highpass'; thp.frequency.value = 6000+Math.random()*4000;
-        tsrc.connect(thp); thp.connect(tg); tg.connect(master);
-        tg.gain.setValueAtTime(0.06+Math.random()*0.06, tt);
-        tg.gain.exponentialRampToValueAtTime(0.01, tt+0.03);
-        tsrc.start(tt); tsrc.stop(tt+0.04);
-      }
-      musicTimers.push(setTimeout(playTexture, totalLen*1000 - 200));
-    }
-
-    playPad(); playBass(); playPings(); playTexture();
+    // Double-buffer: schedule 2 cycles ahead for seamless playback
+    scheduleLoop();
+    scheduleLoop();
   }
 
   function stopMusic() {
     musicPlaying = false;
-    for(const t of musicTimers) clearTimeout(t);
-    musicTimers = [];
+    clearTimeout(musicTimer);
     for(const n of musicNodes) { try { n.disconnect(); } catch(e){} }
     musicNodes = [];
   }
