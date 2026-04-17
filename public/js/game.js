@@ -187,13 +187,13 @@ function showCoinPopup(x,y,amount) {
 }
 
 export function addCoins(n) {
-  const coinMod = hasPerk('coin_bonus', S.equippedSkin) ? 1.25 : (hasPerk('demon_aura', S.equippedSkin) ? 1.15 : 1);
+  const coinMod = hasPerk('omega_aura', S.equippedSkin) ? 1.30 : hasPerk('coin_bonus', S.equippedSkin) ? 1.25 : (hasPerk('demon_aura', S.equippedSkin) ? 1.15 : 1);
   const amt = Math.ceil(n * coinMod);
   S.coins+=amt; S.sessionCoins+=amt; STORAGE.set("coins",S.coins); updateCoinHud();
 }
 
 function checkCollision() {
-  const hitboxMod = hasPerk('small_hitbox', S.equippedSkin) ? 0.85 : (hasPerk('demon_aura', S.equippedSkin) ? 0.90 : 1);
+  const hitboxMod = hasPerk('omega_aura', S.equippedSkin) ? 0.80 : hasPerk('small_hitbox', S.equippedSkin) ? 0.85 : (hasPerk('demon_aura', S.equippedSkin) ? 0.90 : 1);
   const bx=S.bird.x, by=S.bird.y, br=BIRD_SIZE*0.4*hitboxMod;
   if (by+br>H-GROUND_HEIGHT||by-br<0) return true;
   const PANEL_W=56;
@@ -371,7 +371,8 @@ export function update() {
         playSound('shield'); haptic(); S.shakeMag=8; S.flash=0.6;
         burst(S.bird.x,S.bird.y,'#ff2200',25);
         S.bird.vy=S.bird.vy>0?-4:4;
-        showStreak('🔥 CERBERUS — DRUGA SZANSA!');
+        const secondChanceMsg = hasPerk('omega_aura', S.equippedSkin) ? '✨ OMEGA — NIEŚMIERTELNOŚĆ!' : '🔥 CERBERUS — DRUGA SZANSA!';
+        showStreak(secondChanceMsg);
       } else {
         S.state=STATE.DYING; playSound("hit"); haptic(); S.shakeMag=14; S.flash=1;
         S.chromAb=8; S.screenPulse=1; S.deathFreezeFrames=0;

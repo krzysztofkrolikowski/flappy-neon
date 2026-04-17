@@ -38,6 +38,7 @@ export const SKINS = [
   { id: "kraken",   name: "KRAKEN",   price: 2500, body: "#004455", glow: "#00ccdd", ring: "#006677", thrust: "#44ffee", fx: "abyss", desc: "Z dna oceanu. 8 macek. Miażdży kadłuby.", perk: "gravity_reduce", perkDesc: "🐙 -12% grawitacji" },
   { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "Krzyk zabija. Fala uderzeniowa łamie kości.", perk: "speed_cap", perkDesc: "👻 Max prędkość rur -8%" },
   { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon z Otchłani. Rogi. Ogień piekielny. Koniec.", perk: "demon_aura", perkDesc: "😈 Hitbox -10%, combo -20% wolniej, +15% monet" },
+  { id: "omega",    name: "OMEGA",    price: 10,   body: "#ffffff", glow: "#ffe566", ring: "#ffcc00", thrust: "#fff8b0", fx: "celestial", desc: "Bóg Kosmosu. Czysty light. Nieskończona moc. Omega.", perk: "omega_aura", perkDesc: "✨ Hitbox -20%, combo -30% wolniej, +30% monet, -10% grawitacji, 2. szansa, 1.5× power-up" },
 ];
 
 export const POWERUP_TYPES = [
@@ -89,6 +90,10 @@ export function hasPerk(perkId, equippedSkin) {
   if (s.perk === perkId) return true;
   if (s.perk === 'demon_aura') {
     if (perkId === 'small_hitbox' || perkId === 'combo_slow' || perkId === 'coin_bonus') return true;
+  }
+  if (s.perk === 'omega_aura') {
+    if (perkId === 'small_hitbox' || perkId === 'combo_slow' || perkId === 'coin_bonus' ||
+        perkId === 'gravity_reduce' || perkId === 'second_chance' || perkId === 'powerup_luck') return true;
   }
   return false;
 }
