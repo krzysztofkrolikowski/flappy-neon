@@ -39,6 +39,7 @@ export const SKINS = [
   { id: "banshee",  name: "BANSHEE",  price: 3000, body: "#eeeeff", glow: "#ccccff", ring: "#aaaadd", thrust: "#ffffff", fx: "scream", desc: "Krzyk zabija. Fala uderzeniowa łamie kości.", perk: "speed_cap", perkDesc: "👻 Max prędkość rur -8%" },
   { id: "abyssal",  name: "ABYSSAL",  price: 5000, body: "#110011", glow: "#ff0033", ring: "#440000", thrust: "#ff0066", fx: "demon", desc: "Demon z Otchłani. Rogi. Ogień piekielny. Koniec.", perk: "demon_aura", perkDesc: "😈 Hitbox -10%, combo -20% wolniej, +15% monet" },
   { id: "omega",    name: "OMEGA",    price: 10,   body: "#ffffff", glow: "#ffe566", ring: "#ffcc00", thrust: "#fff8b0", fx: "celestial", desc: "Bóg Kosmosu. Czysty light. Nieskończona moc. Omega.", perk: "omega_aura", perkDesc: "✨ Hitbox -20%, combo -30% wolniej, +30% monet, -10% grawitacji, 2. szansa, 1.5× power-up" },
+  { id: "hypernova", name: "HYPERNOVA", price: 10, body: "hypernova", glow: "#ff00ff", ring: "#00ffff", thrust: "#ffffff", fx: "supernova", desc: "Supernowa. Czysta energia. Wszechświat drży. Brak granic.", perk: "hypernova_aura", perkDesc: "💥 ALL PERKS MAX: Hitbox -25%, combo -40%, +40% 🪙, -15% grav, 2. szansa, 2× PU, +20% thrust, rury +10%, PU +40% dłużej, magnes +50%, speed -10%" },
 ];
 
 export const POWERUP_TYPES = [
@@ -94,6 +95,12 @@ export function hasPerk(perkId, equippedSkin) {
   if (s.perk === 'omega_aura') {
     if (perkId === 'small_hitbox' || perkId === 'combo_slow' || perkId === 'coin_bonus' ||
         perkId === 'gravity_reduce' || perkId === 'second_chance' || perkId === 'powerup_luck') return true;
+  }
+  if (s.perk === 'hypernova_aura') {
+    if (perkId === 'small_hitbox' || perkId === 'combo_slow' || perkId === 'coin_bonus' ||
+        perkId === 'gravity_reduce' || perkId === 'second_chance' || perkId === 'powerup_luck' ||
+        perkId === 'thrust_boost' || perkId === 'gap_widen' || perkId === 'powerup_extend' ||
+        perkId === 'coin_magnet' || perkId === 'speed_cap' || perkId === 'combo_floor') return true;
   }
   return false;
 }

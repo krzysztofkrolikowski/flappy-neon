@@ -50,7 +50,7 @@ export function resetGame() {
 
 export function spawnPipe() {
   const gapVariation = (Math.random() - 0.5) * 60;
-  const gapMod = hasPerk('gap_widen', S.equippedSkin) ? 1.08 : 1;
+  const gapMod = hasPerk('hypernova_aura', S.equippedSkin) ? 1.10 : hasPerk('gap_widen', S.equippedSkin) ? 1.08 : 1;
   const thisGap = Math.max(PIPE_GAP_MIN, Math.min((S.pipeGap + gapVariation) * gapMod, (PIPE_GAP_START + 20) * gapMod));
   const minY=80, maxY=H-GROUND_HEIGHT-thisGap-80;
   const travelTicks = PIPE_SPACING / Math.max(S.gameSpeed, PIPE_SPEED_START);
@@ -90,7 +90,7 @@ export function spawnPipe() {
     const bonusY = Math.random() * (H - GROUND_HEIGHT - 100) + 50;
     S.floatingCoins.push({ x: W + 120 + Math.random()*80, y: bonusY, collected: false, wobble: Math.random()*Math.PI*2, bonus: true });
   }
-  const puChance = hasPerk('powerup_luck', S.equippedSkin) ? 0.16 : 0.08;
+  const puChance = hasPerk('hypernova_aura', S.equippedSkin) ? 0.20 : hasPerk('powerup_luck', S.equippedSkin) ? 0.16 : 0.08;
   if (S.score > 3 && Math.random() < puChance && !S.activePowerUp) {
     const puType = POWERUP_TYPES[Math.floor(Math.random()*POWERUP_TYPES.length)];
     const puY = topH + thisGap * (0.3 + Math.random() * 0.4);
@@ -117,7 +117,7 @@ function addCombo() {
 }
 
 function decayCombo() {
-  const comboDecayMod = hasPerk('combo_slow', S.equippedSkin) ? 0.7 : (hasPerk('demon_aura', S.equippedSkin) ? 0.8 : 1);
+  const comboDecayMod = hasPerk('hypernova_aura', S.equippedSkin) ? 0.6 : hasPerk('combo_slow', S.equippedSkin) ? 0.7 : (hasPerk('demon_aura', S.equippedSkin) ? 0.8 : 1);
   if(S.comboTimer>0){ S.comboTimer-=comboDecayMod; comboFill.style.width=(S.comboTimer/COMBO_DECAY*100)+'%'; }
   else if(S.combo>0){
     const floor = hasPerk('combo_floor', S.equippedSkin) ? 3 : 0;
@@ -187,13 +187,13 @@ function showCoinPopup(x,y,amount) {
 }
 
 export function addCoins(n) {
-  const coinMod = hasPerk('omega_aura', S.equippedSkin) ? 1.30 : hasPerk('coin_bonus', S.equippedSkin) ? 1.25 : (hasPerk('demon_aura', S.equippedSkin) ? 1.15 : 1);
+  const coinMod = hasPerk('hypernova_aura', S.equippedSkin) ? 1.40 : hasPerk('omega_aura', S.equippedSkin) ? 1.30 : hasPerk('coin_bonus', S.equippedSkin) ? 1.25 : (hasPerk('demon_aura', S.equippedSkin) ? 1.15 : 1);
   const amt = Math.ceil(n * coinMod);
   S.coins+=amt; S.sessionCoins+=amt; STORAGE.set("coins",S.coins); updateCoinHud();
 }
 
 function checkCollision() {
-  const hitboxMod = hasPerk('omega_aura', S.equippedSkin) ? 0.80 : hasPerk('small_hitbox', S.equippedSkin) ? 0.85 : (hasPerk('demon_aura', S.equippedSkin) ? 0.90 : 1);
+  const hitboxMod = hasPerk('hypernova_aura', S.equippedSkin) ? 0.75 : hasPerk('omega_aura', S.equippedSkin) ? 0.80 : hasPerk('small_hitbox', S.equippedSkin) ? 0.85 : (hasPerk('demon_aura', S.equippedSkin) ? 0.90 : 1);
   const bx=S.bird.x, by=S.bird.y, br=BIRD_SIZE*0.4*hitboxMod;
   if (by+br>H-GROUND_HEIGHT||by-br<0) return true;
   const PANEL_W=56;
@@ -254,6 +254,10 @@ export function getSkinColors() {
     const hue = (Date.now() / 10) % 360;
     return { body:`hsl(${hue},100%,60%)`, glow:`hsl(${hue},100%,50%)`, ring:`hsl(${(hue+120)%360},80%,40%)`, thrust:`hsl(${(hue+60)%360},100%,70%)` };
   }
+  if (s.body === "hypernova") {
+    const hue = (Date.now() / 6) % 360;
+    return { body:`hsl(${hue},100%,70%)`, glow:`hsl(${(hue+90)%360},100%,60%)`, ring:`hsl(${(hue+180)%360},100%,50%)`, thrust:'#ffffff' };
+  }
   return { body:s.body, glow:s.glow, ring:s.ring, thrust:s.thrust };
 }
 
@@ -270,8 +274,8 @@ export function update() {
     S.bird.angle=Math.sin(Date.now()/500)*0.1; S.bird.wingPhase+=0.15; return;
   }
   if (S.state===STATE.PLAYING) {
-    const thrustMod=hasPerk('thrust_boost',S.equippedSkin)?1.15:1;
-    const gravMod=hasPerk('gravity_reduce',S.equippedSkin)?0.88:1;
+    const thrustMod=hasPerk('hypernova_aura',S.equippedSkin)?1.20:hasPerk('thrust_boost',S.equippedSkin)?1.15:1;
+    const gravMod=hasPerk('hypernova_aura',S.equippedSkin)?0.85:hasPerk('gravity_reduce',S.equippedSkin)?0.88:1;
     if(S.isThrusting){S.bird.vy-=THRUST_POWER*thrustMod;if(S.bird.vy<-MAX_VY)S.bird.vy=-MAX_VY;}
     else{S.bird.vy+=DRIFT_GRAV*gravMod;if(S.bird.vy>MAX_VY)S.bird.vy=MAX_VY;}
     S.bird.vy*=0.98; S.bird.y+=S.bird.vy;
@@ -295,7 +299,7 @@ export function update() {
       const dx=S.bird.x-pu.x, dy=S.bird.y-pu.y;
       if(dx*dx+dy*dy < 22*22) {
         pu.collected=true; S.powerUpOrbs.splice(i,1);
-        const durMod = hasPerk('powerup_extend', S.equippedSkin) ? 1.3 : 1;
+        const durMod = hasPerk('hypernova_aura', S.equippedSkin) ? 1.4 : hasPerk('powerup_extend', S.equippedSkin) ? 1.3 : 1;
         S.activePowerUp=pu.type; S.powerUpTimer=Math.round(pu.type.dur * durMod);
         powerupHud.textContent=`${pu.type.icon} ${pu.type.desc}`;
         powerupHud.style.color=pu.type.color;
@@ -313,7 +317,7 @@ export function update() {
           if(c.collected) continue;
           const dx=S.bird.x-c.x, dy=S.bird.y-c.y;
           const dist=Math.sqrt(dx*dx+dy*dy);
-          const magnetRange = hasPerk('coin_magnet', S.equippedSkin) ? 168 : 120;
+          const magnetRange = hasPerk('hypernova_aura', S.equippedSkin) ? 180 : hasPerk('coin_magnet', S.equippedSkin) ? 168 : 120;
           if(dist < magnetRange) { c.x+=dx/dist*4; c.y+=dy/dist*4; }
         }
       }
@@ -353,7 +357,7 @@ export function update() {
         if(streakMilestones.includes(S.score)){playSound("milestone");showStreak(`🔥 ${S.score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
         else if(nearDist<25){S.driftCount++;addCoins(Math.ceil(2*S.comboMultiplier));showStreak(`⚡ DRIFT +${pts}×${S.comboMultiplier.toFixed(1)}`);burst(S.bird.x,S.bird.y,"#00ffaa",18);playSound("coin");haptic();S.chromAb=3;triggerBassPulse('drift');}
         else if(pts>1){showStreak(`+${pts} ×${S.comboMultiplier.toFixed(1)}`);}
-        const speedMax = hasPerk('speed_cap', S.equippedSkin) ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
+        const speedMax = hasPerk('hypernova_aura', S.equippedSkin) ? PIPE_SPEED_MAX * 0.90 : hasPerk('speed_cap', S.equippedSkin) ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
         S.gameSpeed=Math.min(speedMax, PIPE_SPEED_START+S.score*0.025);
         S.pipeGap=Math.max(PIPE_GAP_MIN, PIPE_GAP_START-S.score*0.5);
       }
@@ -371,7 +375,7 @@ export function update() {
         playSound('shield'); haptic(); S.shakeMag=8; S.flash=0.6;
         burst(S.bird.x,S.bird.y,'#ff2200',25);
         S.bird.vy=S.bird.vy>0?-4:4;
-        const secondChanceMsg = hasPerk('omega_aura', S.equippedSkin) ? '✨ OMEGA — NIEŚMIERTELNOŚĆ!' : '🔥 CERBERUS — DRUGA SZANSA!';
+        const secondChanceMsg = hasPerk('hypernova_aura', S.equippedSkin) ? '💥 HYPERNOVA — NIEZNISZCZALNY!' : hasPerk('omega_aura', S.equippedSkin) ? '✨ OMEGA — NIEŚMIERTELNOŚĆ!' : '🔥 CERBERUS — DRUGA SZANSA!';
         showStreak(secondChanceMsg);
       } else {
         S.state=STATE.DYING; playSound("hit"); haptic(); S.shakeMag=14; S.flash=1;

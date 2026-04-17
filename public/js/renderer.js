@@ -349,6 +349,68 @@ export function drawShopDrone(cvs, s) {
         c.fillStyle='hsl('+mhue+',100%,80%)'; c.globalAlpha=0.7;
         c.beginPath(); c.arc(Math.cos(ma)*mr,Math.sin(ma)*mr,1.8,0,Math.PI*2); c.fill();}
       c.shadowBlur=0;
+    } else if(s.id==='hypernova'){
+      // HYPERNOVA — exploding supernova, ultimate power
+      const hue=(Date.now()*0.1)%360;
+      // Shockwave rings expanding
+      for(let w=0;w<3;w++){
+        const wPhase=(t*1.5+w*2.1)%3;
+        const wR=R*(0.6+wPhase*0.8);
+        const wAlpha=Math.max(0,0.4-wPhase*0.15);
+        c.strokeStyle='hsla('+(hue+w*120)%360+',100%,70%,'+wAlpha+')';
+        c.lineWidth=2.5-wPhase*0.6; c.shadowColor='hsl('+(hue+w*120)%360+',100%,60%)'; c.shadowBlur=10;
+        c.beginPath(); c.arc(0,0,wR,0,Math.PI*2); c.stroke();}
+      c.shadowBlur=0;
+      // Energy lightning bolts
+      for(let i=0;i<6;i++){
+        const la=t*0.8+i*Math.PI/3;
+        const lLen=R*(1.2+Math.sin(t*6+i*2)*0.4);
+        c.strokeStyle='hsla('+(hue+i*60)%360+',100%,80%,0.5)'; c.lineWidth=1.5;
+        c.beginPath(); c.moveTo(Math.cos(la)*R*0.3,Math.sin(la)*R*0.3);
+        const mx=Math.cos(la+Math.sin(t*10+i)*0.3)*R*0.7;
+        const my=Math.sin(la+Math.sin(t*10+i)*0.3)*R*0.7;
+        c.lineTo(mx,my);
+        c.lineTo(Math.cos(la)*lLen,Math.sin(la)*lLen); c.stroke();}
+      // Plasma vortex ring
+      c.save(); c.rotate(t*2); c.globalAlpha=0.3;
+      for(let i=0;i<8;i++){
+        const va=i*Math.PI/4;
+        const vhue=(hue+i*45)%360;
+        c.fillStyle='hsl('+vhue+',100%,60%)';
+        c.beginPath(); c.arc(Math.cos(va)*R*0.8,Math.sin(va)*R*0.8,3,0,Math.PI*2); c.fill();}
+      c.restore();
+      // Core supernova body — white-hot with rainbow shimmer
+      const sG=c.createRadialGradient(0,0,0,0,0,R*0.9);
+      sG.addColorStop(0,'#ffffff');
+      sG.addColorStop(0.2,'hsl('+hue+',100%,85%)');
+      sG.addColorStop(0.5,'hsl('+(hue+60)%360+',100%,60%)');
+      sG.addColorStop(0.8,'hsl('+(hue+180)%360+',100%,40%)');
+      sG.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=sG; c.globalAlpha=1; c.shadowColor='hsl('+hue+',100%,70%)'; c.shadowBlur=25;
+      c.beginPath(); c.arc(0,0,R*0.9,0,Math.PI*2); c.fill();
+      // Inner white-hot core with pulsating
+      const pulse=0.85+Math.sin(t*8)*0.15;
+      c.fillStyle='#fff'; c.globalAlpha=0.95; c.shadowColor='#fff'; c.shadowBlur=20;
+      c.beginPath(); c.arc(0,0,R*0.35*pulse,0,Math.PI*2); c.fill();
+      // Orbiting debris/energy fragments
+      for(let i=0;i<8;i++){
+        const da=t*2.5+i*Math.PI*2/8;
+        const dr=R*(0.9+Math.sin(t*4+i*1.7)*0.3);
+        const dhue=(hue+i*45)%360;
+        c.fillStyle='hsl('+dhue+',100%,75%)'; c.globalAlpha=0.8;
+        c.shadowColor='hsl('+dhue+',100%,60%)'; c.shadowBlur=5;
+        c.beginPath(); c.arc(Math.cos(da)*dr,Math.sin(da)*dr,2.2,0,Math.PI*2); c.fill();
+        // Debris trail
+        c.globalAlpha=0.3;
+        c.beginPath(); c.arc(Math.cos(da-0.4)*dr,Math.sin(da-0.4)*dr,1.5,0,Math.PI*2); c.fill();}
+      // Cross-star sparkle in center
+      const spLen=R*(0.4+Math.sin(t*10)*0.15);
+      c.strokeStyle='#fff'; c.lineWidth=1.5; c.globalAlpha=0.7; c.shadowColor='#fff'; c.shadowBlur=8;
+      c.beginPath(); c.moveTo(-spLen,0); c.lineTo(spLen,0); c.stroke();
+      c.beginPath(); c.moveTo(0,-spLen); c.lineTo(0,spLen); c.stroke();
+      c.beginPath(); c.moveTo(-spLen*0.7,-spLen*0.7); c.lineTo(spLen*0.7,spLen*0.7); c.stroke();
+      c.beginPath(); c.moveTo(spLen*0.7,-spLen*0.7); c.lineTo(-spLen*0.7,spLen*0.7); c.stroke();
+      c.shadowBlur=0;
     } else {
       // Classic neon drone
       c.shadowColor=sk.glow; c.shadowBlur=12;
@@ -2011,8 +2073,148 @@ export function drawBird() {
         }
       }
 
+    } else if(skinId==="hypernova"){
+      // ═══ HYPERNOVA — exploding supernova, ultimate power ═══
+      const tB=S.isThrusting?1:0.3;
+      const hue=(Date.now()*0.1)%360;
+
+      // SUPERNOVA EXHAUST — multicolor plasma explosion
+      ctx.shadowColor='hsl('+hue+',100%,70%)'; ctx.shadowBlur=S.isThrusting?60:15;
+      for(let i=0;i<(S.isThrusting?16:5);i++){
+        const fx=-BIRD_SIZE*0.5-Math.random()*(S.isThrusting?50:12);
+        const fy=(Math.random()-0.5)*18;
+        const mhue=(hue+i*25)%360;
+        ctx.fillStyle=i%4===0?'#ffffff':('hsl('+mhue+',100%,75%)');
+        ctx.globalAlpha=tB*(0.3+Math.random()*0.6);
+        ctx.beginPath(); ctx.arc(fx,fy,1.5+Math.random()*5,0,Math.PI*2); ctx.fill();
+      }
+      if(S.isThrusting){
+        // Plasma beam exhaust — dual color
+        const bLen=30+Math.sin(t*25)*12;
+        ctx.fillStyle='hsl('+hue+',100%,70%)'; ctx.globalAlpha=0.4;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,-4);
+        ctx.lineTo(-BIRD_SIZE*0.5-bLen,-10);
+        ctx.lineTo(-BIRD_SIZE*0.5-bLen,10);
+        ctx.lineTo(-BIRD_SIZE*0.5,4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#ffffff'; ctx.globalAlpha=0.7;
+        ctx.beginPath(); ctx.moveTo(-BIRD_SIZE*0.5,-2);
+        ctx.lineTo(-BIRD_SIZE*0.5-bLen*0.5,-4);
+        ctx.lineTo(-BIRD_SIZE*0.5-bLen*0.5,4);
+        ctx.lineTo(-BIRD_SIZE*0.5,2); ctx.closePath(); ctx.fill();
+        // Lightning sparks in exhaust
+        for(let j=0;j<4;j++){
+          const lx=-BIRD_SIZE*0.5-Math.random()*bLen;
+          const ly=(Math.random()-0.5)*12;
+          ctx.strokeStyle='hsl('+(hue+j*90)%360+',100%,90%)'; ctx.lineWidth=1; ctx.globalAlpha=0.6;
+          ctx.beginPath(); ctx.moveTo(lx,ly);
+          ctx.lineTo(lx-3+Math.random()*6,ly-3+Math.random()*6); ctx.stroke();
+        }
+      }
+      ctx.shadowBlur=0; ctx.globalAlpha=1;
+
+      // EXPANDING SHOCKWAVE RINGS
+      for(let w=0;w<3;w++){
+        const wPhase=(t*1.5+w*2.1)%3;
+        const wR=BIRD_SIZE*(0.4+wPhase*0.5);
+        const wAlpha=Math.max(0,0.3-wPhase*0.1);
+        ctx.strokeStyle='hsla('+(hue+w*120)%360+',100%,70%,'+wAlpha+')';
+        ctx.lineWidth=2.5-wPhase*0.5;
+        ctx.beginPath(); ctx.arc(0,0,wR,0,Math.PI*2); ctx.stroke();
+      }
+
+      // ENERGY LIGHTNING BOLTS — radiating from core
+      for(let i=0;i<8;i++){
+        const la=t*0.6+i*Math.PI/4;
+        const lLen=BIRD_SIZE*(0.6+Math.sin(t*7+i*2)*0.3);
+        ctx.strokeStyle='hsla('+(hue+i*45)%360+',100%,85%,0.4)'; ctx.lineWidth=1.5;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(la)*coreR*0.4,Math.sin(la)*coreR*0.4);
+        const mx=Math.cos(la+Math.sin(t*12+i)*0.3)*coreR*1.2;
+        const my=Math.sin(la+Math.sin(t*12+i)*0.3)*coreR*1.2;
+        ctx.lineTo(mx,my);
+        ctx.lineTo(Math.cos(la)*lLen,Math.sin(la)*lLen);
+        ctx.stroke();
+      }
+
+      // PLASMA VORTEX RING — spinning energy particles
+      ctx.save(); ctx.rotate(t*2.5);
+      for(let i=0;i<10;i++){
+        const va=i*Math.PI/5;
+        const vR=ringR*(0.9+Math.sin(t*3+i)*0.1);
+        const vhue=(hue+i*36)%360;
+        ctx.fillStyle='hsl('+vhue+',100%,65%)'; ctx.globalAlpha=0.5;
+        ctx.shadowColor='hsl('+vhue+',100%,50%)'; ctx.shadowBlur=4;
+        ctx.beginPath(); ctx.arc(Math.cos(va)*vR,Math.sin(va)*vR,2.5,0,Math.PI*2); ctx.fill();
+      }
+      ctx.restore(); ctx.shadowBlur=0;
+
+      // SUPERNOVA CORE — white-hot with rainbow shimmer
+      ctx.shadowColor='hsl('+hue+',100%,70%)'; ctx.shadowBlur=35;
+      const sG=ctx.createRadialGradient(0,0,0,0,0,coreR*1.2);
+      sG.addColorStop(0,'#ffffff');
+      sG.addColorStop(0.2,'hsl('+hue+',100%,85%)');
+      sG.addColorStop(0.45,'hsl('+(hue+60)%360+',100%,65%)');
+      sG.addColorStop(0.7,'hsl('+(hue+180)%360+',100%,45%)');
+      sG.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=sG; ctx.globalAlpha=1;
+      ctx.beginPath(); ctx.arc(0,0,coreR*1.2,0,Math.PI*2); ctx.fill();
+
+      // Inner white-hot core — pulsating
+      const pulse=0.85+Math.sin(t*8)*0.15;
+      ctx.fillStyle='#fff'; ctx.globalAlpha=0.97;
+      ctx.shadowColor='#fff'; ctx.shadowBlur=25;
+      ctx.beginPath(); ctx.arc(0,0,coreR*0.5*pulse,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+
+      // ORBITING ENERGY FRAGMENTS — fast moving debris
+      for(let i=0;i<10;i++){
+        const da=t*2.5+i*Math.PI*2/10;
+        const dr=BIRD_SIZE*(0.5+Math.sin(t*4+i*1.3)*0.25);
+        const dhue=(hue+i*36)%360;
+        ctx.fillStyle='hsl('+dhue+',100%,80%)'; ctx.globalAlpha=0.8;
+        ctx.shadowColor='hsl('+dhue+',100%,65%)'; ctx.shadowBlur=5;
+        ctx.beginPath(); ctx.arc(Math.cos(da)*dr,Math.sin(da)*dr,2.2,0,Math.PI*2); ctx.fill();
+        // Fragment trail
+        ctx.globalAlpha=0.25;
+        ctx.beginPath(); ctx.arc(Math.cos(da-0.4)*dr,Math.sin(da-0.4)*dr,1.5,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(Math.cos(da-0.7)*dr,Math.sin(da-0.7)*dr,1,0,Math.PI*2); ctx.fill();
+        ctx.shadowBlur=0;
+      }
+
+      // CROSS-STAR SPARKLE — 8-pointed star
+      const spLen=BIRD_SIZE*(0.3+Math.sin(t*10)*0.12);
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.8; ctx.globalAlpha=0.7;
+      ctx.shadowColor='#fff'; ctx.shadowBlur=8;
+      for(let i=0;i<4;i++){
+        const sa=i*Math.PI/4;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(sa)*(-spLen),Math.sin(sa)*(-spLen));
+        ctx.lineTo(Math.cos(sa)*spLen,Math.sin(sa)*spLen);
+        ctx.stroke();
+      }
+      ctx.shadowBlur=0;
+
+      // HYPERNOVA SYMBOL — pulsing diamond
+      ctx.strokeStyle='hsl('+hue+',100%,80%)'; ctx.lineWidth=1.5; ctx.globalAlpha=0.5;
+      const dSize=coreR*0.35;
+      ctx.beginPath();
+      ctx.moveTo(dSize,0); ctx.lineTo(0,-dSize); ctx.lineTo(-dSize,0); ctx.lineTo(0,dSize); ctx.closePath();
+      ctx.stroke();
+
+      // RANDOM SPARKLE BURSTS
+      for(let i=0;i<6;i++){
+        const bA=t*6+i*1.8;
+        const bR=BIRD_SIZE*(0.3+Math.sin(t*4+i)*0.5);
+        const bx=Math.cos(bA)*bR, by=Math.sin(bA)*bR;
+        const bAlpha=0.3+Math.sin(t*9+i*2.5)*0.35;
+        if(bAlpha>0.3){
+          ctx.strokeStyle='hsl('+(hue+i*60)%360+',100%,90%)'; ctx.lineWidth=1; ctx.globalAlpha=bAlpha;
+          ctx.beginPath(); ctx.moveTo(bx-3,by); ctx.lineTo(bx+3,by); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(bx,by-3); ctx.lineTo(bx,by+3); ctx.stroke();
+        }
+      }
+
     } else {
-      // Standard thrust engine
       const thrustBase=S.isThrusting?1:0.25;
       const thrustLen=S.isThrusting?(18+Math.sin(t*28)*7):(3+Math.sin(t*8)*1.5);
       const thrustSpread=S.isThrusting?11:4;
