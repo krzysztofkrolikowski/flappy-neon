@@ -8,7 +8,8 @@ import {
   PIPE_SPEED_START, PIPE_SPEED_MAX, PIPE_SPACING,
   GROUND_HEIGHT, AD_EVERY_N_DEATHS, COMBO_DECAY,
   POWERUP_TYPES, STATE, ZONES, ACHIEVEMENTS, SKINS,
-  streakMilestones, hasPerk
+  streakMilestones, hasPerk, getPartyBirdScale, PARTY_PIPE_EMOJIS,
+  BIRD_BUBBLES
 } from './config.js';
 import { W, H, triggerBassPulse } from './canvas.js';
 import { playSound } from './audio.js';
@@ -44,6 +45,7 @@ export function resetGame() {
   S.secondChanceUsed=false;
   S.currentZone=ZONES[0]; S.lastZoneIdx=0;
   S.timeScale=1; S.timeScaleTarget=1; S.chromAb=0; S.screenPulse=0; S.deathFreezeFrames=0; S.envDebris=[];
+  S.speechBubble=null; S.speechBubbleCooldown=0;
   comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
   scoreDisplay.textContent="0";
 }
@@ -113,6 +115,7 @@ function addCombo() {
     burst(S.bird.x,S.bird.y,'#ff00e6',15+S.combo);
     S.chromAb=4+S.combo*0.5; S.screenPulse=0.6; triggerBassPulse('combo');
     haptic();
+    showBirdBubble(S.combo >= 10 ? 'combo10' : 'combo5');
   }
 }
 
@@ -163,6 +166,20 @@ function showNextAchievement() {
 
 export function haptic() { if(navigator.vibrate) navigator.vibrate(30); }
 
+function pickBubble(category) {
+  const arr = BIRD_BUBBLES[category];
+  if (!arr) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function showBirdBubble(category) {
+  if (S.speechBubbleCooldown > 0) return;
+  const text = pickBubble(category);
+  if (!text) return;
+  S.speechBubble = { text, timer: 90, opacity: 1, floatY: 0 };
+  S.speechBubbleCooldown = 120;
+}
+
 function spawnSpeedLines() {
   if(S.gameSpeed>3.5) {
     const count=Math.floor((S.gameSpeed-3.5)*2);
@@ -186,6 +203,15 @@ function showCoinPopup(x,y,amount) {
   setTimeout(()=>el.remove(), 700);
 }
 
+function spawnEmojiPopup(x,y,emoji) {
+  const el=document.createElement("div");
+  el.style.cssText=`position:fixed;left:${x}px;top:${y}px;font-size:${20+Math.random()*16}px;pointer-events:none;z-index:25;transition:all 0.8s ease-out;opacity:1;transform:translateY(0) rotate(0deg);`;
+  el.textContent=emoji;
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>{el.style.opacity='0';el.style.transform=`translateY(-${60+Math.random()*40}px) rotate(${(Math.random()-0.5)*60}deg)`;});
+  setTimeout(()=>el.remove(), 900);
+}
+
 export function addCoins(n) {
   const coinMod = hasPerk('coin_bonus', S.equippedSkin) ? 1.25 : (hasPerk('demon_aura', S.equippedSkin) ? 1.15 : 1);
   const amt = Math.ceil(n * coinMod);
@@ -194,7 +220,8 @@ export function addCoins(n) {
 
 function checkCollision() {
   const hitboxMod = hasPerk('small_hitbox', S.equippedSkin) ? 0.85 : (hasPerk('demon_aura', S.equippedSkin) ? 0.90 : 1);
-  const bx=S.bird.x, by=S.bird.y, br=BIRD_SIZE*0.4*hitboxMod;
+  const partyScale = S.partyMode ? getPartyBirdScale(S.score) : 1;
+  const bx=S.bird.x, by=S.bird.y, br=BIRD_SIZE*0.4*hitboxMod*partyScale;
   if (by+br>H-GROUND_HEIGHT||by-br<0) return true;
   const PANEL_W=56;
   for (const p of S.pipes) {
@@ -281,8 +308,12 @@ export function update() {
     if(S.bird.trail.length>15)S.bird.trail.shift();
     for(const t of S.bird.trail) t.life-=0.07;
     if(S.isThrusting){
+      if(S.partyMode) {
+        for(let i=0;i<3;i++){const a=Math.PI+Math.random()*0.8-0.4;S.particles.push({x:S.bird.x-BIRD_SIZE*0.5,y:S.bird.y+(Math.random()-0.5)*8,vx:Math.cos(a)*3,vy:Math.sin(a)*2-1,life:0.8,decay:0.02,size:4+Math.random()*6,color:Math.random()>0.5?'rgba(100,180,50,0.6)':'rgba(140,120,40,0.5)'});}
+      } else {
       for(let i=0;i<2;i++){const a=Math.PI+Math.random()*0.6-0.3;S.particles.push({x:S.bird.x-BIRD_SIZE*0.5,y:S.bird.y+(Math.random()-0.5)*4,vx:Math.cos(a)*4,vy:Math.sin(a)*2,life:0.6,decay:0.04,size:2+Math.random()*3,color:getSkinColors().thrust});}
       if(Math.random()>0.6) S.particles.push({x:S.bird.x-BIRD_SIZE*0.5,y:S.bird.y+(Math.random()-0.5)*6,vx:-2-Math.random()*3,vy:(Math.random()-0.5)*3,life:0.4,decay:0.05,size:1+Math.random(),color:'#ffffff'});
+      }
     }
     if(S.gameSpeed>3.5 && Math.random()>0.85) {
       S.particles.push({x:W+5,y:Math.random()*(H-GROUND_HEIGHT),vx:-S.gameSpeed*3,vy:(Math.random()-0.5)*0.5,life:0.5,decay:0.025,size:1+Math.random(),color:S.currentZone.accent});
@@ -303,6 +334,7 @@ export function update() {
         playSound('powerup'); haptic();
         burst(pu.x,pu.y,pu.type.color,20);
         showStreak(`${pu.type.icon} ${pu.type.desc}!`);
+        showBirdBubble('powerup');
       }
     }
     if(S.activePowerUp) {
@@ -348,10 +380,16 @@ export function update() {
         const pts=Math.max(1,Math.floor(S.comboMultiplier));
         S.score+=pts; scoreDisplay.textContent=S.score;
         playSound("score"); addCombo(); checkZone(); spawnSpeedLines();
+        if(S.partyMode) {
+          for(let ei=0;ei<3;ei++){
+            const emoji=PARTY_PIPE_EMOJIS[Math.floor(Math.random()*PARTY_PIPE_EMOJIS.length)];
+            spawnEmojiPopup(p.x, p.topH + p.gap*0.3 + Math.random()*p.gap*0.4, emoji);
+          }
+        }
         const distTop=Math.abs(S.bird.y-p.topH),distBot=Math.abs(S.bird.y-(p.topH+p.gap));
         const nearDist=Math.min(distTop,distBot);
-        if(streakMilestones.includes(S.score)){playSound("milestone");showStreak(`🔥 ${S.score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();}
-        else if(nearDist<25){S.driftCount++;addCoins(Math.ceil(2*S.comboMultiplier));showStreak(`⚡ DRIFT +${pts}×${S.comboMultiplier.toFixed(1)}`);burst(S.bird.x,S.bird.y,"#00ffaa",18);playSound("coin");haptic();S.chromAb=3;triggerBassPulse('drift');}
+        if(streakMilestones.includes(S.score)){playSound("milestone");showStreak(`🔥 ${S.score}!`);burst(W/2,H*0.3,"#ffee00",20);haptic();showBirdBubble('milestone');}
+        else if(nearDist<25){S.driftCount++;addCoins(Math.ceil(2*S.comboMultiplier));showStreak(`⚡ DRIFT +${pts}×${S.comboMultiplier.toFixed(1)}`);burst(S.bird.x,S.bird.y,"#00ffaa",18);playSound("coin");haptic();S.chromAb=3;triggerBassPulse('drift');showBirdBubble('drift');}
         else if(pts>1){showStreak(`+${pts} ×${S.comboMultiplier.toFixed(1)}`);}
         const speedMax = hasPerk('speed_cap', S.equippedSkin) ? PIPE_SPEED_MAX * 0.92 : PIPE_SPEED_MAX;
         S.gameSpeed=Math.min(speedMax, PIPE_SPEED_START+S.score*0.025);
@@ -366,6 +404,7 @@ export function update() {
         burst(S.bird.x,S.bird.y,'#00ffaa',20);
         S.bird.vy=S.bird.vy>0?-3:3;
         showStreak('🛡️ TARCZA!');
+        showBirdBubble('shield_save');
       } else if(hasPerk('second_chance', S.equippedSkin) && !S.secondChanceUsed) {
         S.secondChanceUsed=true;
         playSound('shield'); haptic(); S.shakeMag=8; S.flash=0.6;
@@ -378,6 +417,7 @@ export function update() {
         S.dyingTimer=0;
         S.timeScaleTarget=0.35;
         triggerBassPulse('hit');
+        showBirdBubble(S.score === 0 ? 'score0death' : 'lowscore_death');
         burst(S.bird.x,S.bird.y,"#ff4466",18); burst(S.bird.x,S.bird.y,"#ffee00",10);
         burst(S.bird.x,S.bird.y,"#ffffff",6);
         for(let i=0;i<12;i++){const a=i/12*Math.PI*2;S.particles.push({x:S.bird.x,y:S.bird.y,vx:Math.cos(a)*6,vy:Math.sin(a)*6,life:0.7,decay:0.03,size:3,color:'#ff0066'});}
@@ -414,4 +454,16 @@ export function update() {
     if(sl.life<=0||sl.x+sl.len<0) S.speedLines.splice(i,1);
   }
   checkAchievements();
+
+  // Speech bubble decay + random flight bubbles
+  if (S.speechBubbleCooldown > 0) S.speechBubbleCooldown--;
+  if (S.speechBubble) {
+    S.speechBubble.timer--;
+    S.speechBubble.floatY -= 0.4;
+    if (S.speechBubble.timer < 20) S.speechBubble.opacity = S.speechBubble.timer / 20;
+    if (S.speechBubble.timer <= 0) S.speechBubble = null;
+  }
+  if (S.state === STATE.PLAYING && !S.speechBubble && S.speechBubbleCooldown <= 0 && Math.random() < 0.003) {
+    showBirdBubble('random_flight');
+  }
 }

@@ -68,6 +68,9 @@ export const S = {
   achievementQueue: [],
   achievementShowing: false,
 
+  // Party Fowl mode (Konami Code easter egg)
+  partyMode: false,
+
   // Ads
   adActive: false,
 
@@ -81,6 +84,10 @@ export const S = {
 
   // Shop
   shopAnimFrame: 0,
+
+  // Bird speech bubbles
+  speechBubble: null,  // { text, timer, opacity, floatY }
+  speechBubbleCooldown: 0,
 
   // Dying
   dyingTimer: 0,
@@ -101,3 +108,4 @@ S.lastDaily = STORAGE.get("daily_ts", 0);
 S.dailyStreak = STORAGE.get("daily_streak", 0);
 S.unlockedAchievements = STORAGE.get('achievements', []);
 S.muted = STORAGE.get('muted', false);
+S.partyMode = STORAGE.get('party', false);

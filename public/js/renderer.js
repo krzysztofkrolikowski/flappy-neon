@@ -2,7 +2,7 @@
 //  RENDERER — all drawing functions
 // =============================================
 import { S } from './state.js';
-import { BIRD_SIZE, GROUND_HEIGHT, PIPE_WIDTH, SKINS, STATE, ZONES } from './config.js';
+import { BIRD_SIZE, GROUND_HEIGHT, PIPE_WIDTH, SKINS, STATE, ZONES, getPartyBirdScale } from './config.js';
 import { ctx, fxCanvas, fxCtx, W, H, canvas } from './canvas.js';
 import { getSkinColors } from './game.js';
 
@@ -578,6 +578,7 @@ export function drawBird() {
     if(S.state===STATE.DEAD) return; // don't draw after explosion
     const sk=getSkinColors();
     ctx.save(); ctx.translate(S.bird.x,S.bird.y); ctx.rotate(S.bird.angle);
+    if(S.partyMode) { const ps=getPartyBirdScale(S.score); ctx.scale(ps,ps); }
     const t=Date.now()*0.001;
     // Trail
     for(const tr of S.bird.trail) {

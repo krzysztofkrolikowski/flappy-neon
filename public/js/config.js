@@ -77,10 +77,29 @@ export const TAUNTS = [
   ['CO?! Legenda!','Niemożliwe!','Jesteś bogiem?!'],
 ];
 
+export const PARTY_TAUNTS = [
+  ['🐔 Kur*a, za gruby!','💨 Pfffrrt... koniec.','🍑 Za dużo ciasta!','😂 Tłusty ptaszek nie lata!'],
+  ['🐔 THICC mode ON!','💨 Gazowy gigant!','🍗 KFC nie przyjmie...','😂 Dobrze szło... na wagę!'],
+  ['🐔 Gruby i dumny!','💨 Lećcie beze mnie!','🍑 Fit? Raczej fat.','😂 Aerodynamika: ZERO!'],
+  ['🐔 Legenda tłustych!','💨 GIGA-PFFRT!','🍗 Gruby boss!','😂 Za ciężki na porażkę!'],
+];
+
+export const PARTY_PIPE_EMOJIS = ['💩','🤡','🎺','🐔','🍑','💨','🌮','🍕','🧀','😂','🐷','🎪'];
+
 export function getTaunt(s) {
   const tier = s >= 50 ? 3 : s >= 25 ? 2 : s >= 10 ? 1 : 0;
   const arr = TAUNTS[tier];
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function getPartyTaunt(s) {
+  const tier = s >= 50 ? 3 : s >= 25 ? 2 : s >= 10 ? 1 : 0;
+  const arr = PARTY_TAUNTS[tier];
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function getPartyBirdScale(score) {
+  return 1 + Math.min(score * 0.035, 0.8);
 }
 
 export function hasPerk(perkId, equippedSkin) {
@@ -92,6 +111,20 @@ export function hasPerk(perkId, equippedSkin) {
   }
   return false;
 }
+
+// Bird speech bubble messages — triggered by in-game events
+export const BIRD_BUBBLES = {
+  drift: ['ZA BLISKO! 💀','YOLO! 🔥','Nie patrzcie! 😰','DRIFT KING! 🏎️','Powiało grobem! ⚰️','Łiii! ✈️'],
+  combo5: ['JESTEM BOGIEM! 👑','Nikt mnie nie zatrzyma! 🚀','GIGACHAD! 💪','Legenda! 🏆'],
+  combo10: ['TO JUŻ ABSURD! 🤯','MATKO! 😱','Wyłączcie kalkulator! 🧮','BOSS MODE! 👾'],
+  score0death: ['BRUH 💀','Skill issue 😂','Uninstall 🗑️','Mamo, odbierz mnie 📞','Tutorial? 📖','F 🪦'],
+  lowscore_death: ['Oops... 🫠','Następnym razem! 🤞','Nie moja wina! 😤','LAG! 🌐','Rury się ruszyły! 😠'],
+  powerup: ['POWA! ⚡','Mniam! 🍪','Doładowanie! 🔋','SUPER SAIYAN! 💥'],
+  milestone: ['SZYBCIEJ! 🏋️','Level up! 🆙','Nie zatrzymam się! 🚂','🔥🔥🔥'],
+  shield_save: ['AUĆ! ale mam tarczę 🛡️','Ha! Prawie! 😏','Nice try, ruro! 😤','Żyję! 🎉'],
+  start: ['No to jedziemy! 🏁','LECIMY! 🚀','Hop hop! 🐦','Kto tu rządzi?! 👊'],
+  random_flight: ['Weee! 🎢','Szybciej! 🏎️','Tralala~ 🎵','Jestem ptakiem! 🐤','Wheeee! 🎠','Lecę! ✨'],
+};
 
 export const CHORDS = [
   [164.81, 246.94, 369.99],

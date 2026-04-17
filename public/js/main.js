@@ -2,11 +2,11 @@
 //  MAIN — entry point, input, game loop
 // =============================================
 import { S, STORAGE } from './state.js';
-import { STATE, REVIVE_COST, TICK_MS, getTaunt } from './config.js';
+import { STATE, REVIVE_COST, TICK_MS, getTaunt, getPartyTaunt, getPartyBirdScale } from './config.js';
 import { canvas, ctx, W, H, resize } from './canvas.js';
 import { initAudio, playSound, startMusic, stopMusic } from './audio.js';
 import {
-  initStars, resetGame, update, showGameOver, doRevive, updateCoinHud
+  initStars, resetGame, update, showGameOver, doRevive, updateCoinHud, showBirdBubble
 } from './game.js';
 import {
   drawBackground, drawPipe, drawFloatingCoins, drawGround, drawBird,
@@ -19,7 +19,7 @@ import {
 
 // ── Wire callbacks to break circular deps ──
 S._showInterstitialAd = showInterstitialAd;
-S._getTaunt = getTaunt;
+S._getTaunt = (s) => S.partyMode ? getPartyTaunt(s) : getTaunt(s);
 
 // ── Init ──
 resize();
@@ -43,12 +43,46 @@ function toggleMute() {
 }
 muteBtn.addEventListener('click', toggleMute);
 
+// ── Konami Code → Party Fowl Mode ──
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA'];
+let konamiIdx = 0;
+const partyBanner = document.getElementById('party-banner');
+function updatePartyIndicator() {
+  const el = document.getElementById('party-indicator');
+  if (el) el.style.display = S.partyMode ? 'block' : 'none';
+}
+updatePartyIndicator();
+
+document.addEventListener('keydown', function konamiListener(e) {
+  if (S.state !== STATE.MENU) { konamiIdx = 0; return; }
+  if (e.code === KONAMI[konamiIdx]) {
+    konamiIdx++;
+    if (konamiIdx === KONAMI.length) {
+      konamiIdx = 0;
+      S.partyMode = !S.partyMode;
+      STORAGE.set('party', S.partyMode);
+      initAudio();
+      playSound('party_activate');
+      if (S.partyMode) {
+        partyBanner.textContent = '🐔🎉 PARTY FOWL MODE 🎉🐔';
+        partyBanner.style.color = '#ffee00';
+      } else {
+        partyBanner.textContent = '🐔 PARTY MODE OFF 🐔';
+        partyBanner.style.color = '#ff4466';
+      }
+      partyBanner.classList.add('show');
+      setTimeout(() => partyBanner.classList.remove('show'), 2200);
+      updatePartyIndicator();
+    }
+  } else { konamiIdx = e.code === KONAMI[0] ? 1 : 0; }
+});
+
 function thrustStart() {
   if (S.adActive) return;
   initAudio();
   if (!S.muted && !S.musicPlaying) startMusic();
   if (S.state === STATE.PLAYING && !S.isThrusting) {
-    S.isThrusting = true; playSound("flap");
+    S.isThrusting = true; playSound(S.partyMode ? "fart" : "flap");
   }
 }
 function thrustStop() { S.isThrusting = false; }
@@ -73,7 +107,8 @@ function startGame() {
   document.getElementById('go-overlay').classList.remove("active");
   document.getElementById('go-panel').classList.remove("show");
   document.getElementById('score-display').classList.add("visible");
-  S.bird.vy = -4; playSound("flap");
+  S.bird.vy = -4; playSound(S.partyMode ? "fart" : "flap");
+  showBirdBubble('start');
 }
 
 // Start music on first user interaction
@@ -236,6 +271,57 @@ function frame(now) {
   for (const p of S.pipes) drawPipe(p);
   drawFloatingCoins(); drawPowerUpOrbs();
   drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
+  // Speech bubble above bird
+  if (S.speechBubble && S.speechBubble.opacity > 0) {
+    const b = S.speechBubble;
+    const bx = S.bird.x;
+    const by = S.bird.y - 38 + b.floatY;
+    ctx.save();
+    ctx.globalAlpha = b.opacity;
+    ctx.font = 'bold 12px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const metrics = ctx.measureText(b.text);
+    const tw = metrics.width + 16;
+    const th = 22;
+    const rx = bx - tw / 2;
+    const ry = by - th / 2;
+    // Bubble background
+    ctx.fillStyle = 'rgba(10,10,30,0.85)';
+    ctx.strokeStyle = S.currentZone ? S.currentZone.accent : '#00f0ff';
+    ctx.lineWidth = 1.5;
+    ctx.shadowColor = S.currentZone ? S.currentZone.accent : '#00f0ff';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    const cr = 8;
+    ctx.moveTo(rx + cr, ry);
+    ctx.lineTo(rx + tw - cr, ry);
+    ctx.arcTo(rx + tw, ry, rx + tw, ry + cr, cr);
+    ctx.lineTo(rx + tw, ry + th - cr);
+    ctx.arcTo(rx + tw, ry + th, rx + tw - cr, ry + th, cr);
+    ctx.lineTo(rx + cr, ry + th);
+    ctx.arcTo(rx, ry + th, rx, ry + th - cr, cr);
+    ctx.lineTo(rx, ry + cr);
+    ctx.arcTo(rx, ry, rx + cr, ry, cr);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Bubble tail (triangle pointing down to bird)
+    ctx.fillStyle = 'rgba(10,10,30,0.85)';
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.moveTo(bx - 5, ry + th);
+    ctx.lineTo(bx, ry + th + 6);
+    ctx.lineTo(bx + 5, ry + th);
+    ctx.closePath();
+    ctx.fill();
+    // Text
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = S.currentZone ? S.currentZone.accent : '#00f0ff';
+    ctx.shadowBlur = 6;
+    ctx.fillText(b.text, bx, by + 4);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
   // "TAP TO SKIP" hint during DYING
   if (S.state === STATE.DYING) {
     const hAlpha = 0.4 + Math.sin(_now * 0.008) * 0.3;
