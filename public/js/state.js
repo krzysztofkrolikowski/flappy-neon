@@ -74,6 +74,10 @@ export const S = {
   // Audio
   musicPlaying: false,
   musicNodes: [],
+  musicMasterGain: null,
+  musicCurrentZoneIdx: 0,
+  musicTimer: 0,
+  musicVolume: 70,
 
   // Timing
   lastTime: 0,
