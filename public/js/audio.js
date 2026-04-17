@@ -6,6 +6,7 @@ import { MUSIC_VOL, CHORDS, BASS_NOTES, ARP_NOTES } from './config.js';
 
 let audioCtx;
 let masterGain;
+let musicGainNode;
 
 export function initAudio() {
   if (!audioCtx) {
@@ -13,6 +14,9 @@ export function initAudio() {
     masterGain = audioCtx.createGain();
     masterGain.gain.value = S.muted ? 0 : S.volume;
     masterGain.connect(audioCtx.destination);
+    musicGainNode = audioCtx.createGain();
+    musicGainNode.gain.value = S.musicMuted ? 0 : S.musicVolume;
+    musicGainNode.connect(masterGain);
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
@@ -21,7 +25,11 @@ export function getAudioCtx() { return audioCtx; }
 
 export function getMasterGain() { return masterGain; }
 
+export function getMusicGainNode() { return musicGainNode; }
+
 function getAudioDest() { return masterGain || (audioCtx ? audioCtx.destination : null); }
+
+function getMusicDest() { return musicGainNode || getAudioDest(); }
 
 export function setMasterVolume(v) {
   if (masterGain) masterGain.gain.value = v;
@@ -120,15 +128,19 @@ export function playSound(type) {
 //  SPACE AMBIENT MUSIC
 // =============================================
 
+export function setMusicVolume(v) {
+  if (musicGainNode) musicGainNode.gain.value = v;
+}
+
 export function startMusic() {
-  if (S.musicPlaying || !audioCtx) return;
+  if (S.musicPlaying || !audioCtx || S.musicMuted) return;
   S.musicPlaying = true;
   const master = audioCtx.createGain();
   master.gain.value = MUSIC_VOL;
   const limiter = audioCtx.createDynamicsCompressor();
   limiter.threshold.value = -6; limiter.knee.value = 12;
   limiter.ratio.value = 8; limiter.attack.value = 0.002; limiter.release.value = 0.15;
-  master.connect(limiter); limiter.connect(getAudioDest());
+  master.connect(limiter); limiter.connect(getMusicDest());
   S.musicNodes.push(master, limiter);
 
   const BPM = 90, beatLen = 60/BPM, barLen = beatLen*4;
