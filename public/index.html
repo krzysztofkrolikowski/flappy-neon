@@ -376,6 +376,24 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     backdrop-filter: blur(10px); white-space: nowrap;
   }
   #achievement-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* === Party Fowl Mode === */
+  #party-banner {
+    position: fixed; top: 30%; left: 50%; transform: translateX(-50%) scale(0.5);
+    z-index: 55; pointer-events: none; text-align: center;
+    font-size: clamp(24px,6vw,40px); font-weight: 900;
+    text-shadow: 0 0 30px rgba(255,238,0,0.8), 0 0 60px rgba(255,0,230,0.5);
+    opacity: 0; transition: all 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+  }
+  #party-banner.show { opacity: 1; transform: translateX(-50%) scale(1); }
+  #party-indicator {
+    position: fixed; top: max(env(safe-area-inset-top), 20px); left: 50%;
+    transform: translateX(50px);
+    font-size: 14px; z-index: 20; pointer-events: none;
+    animation: partyBounce 0.6s ease-in-out infinite alternate;
+    display: none;
+  }
+  @keyframes partyBounce { 0%{transform:translateX(50px) rotate(-10deg)} 100%{transform:translateX(50px) rotate(10deg)} }
   /* === Zone banner === */
   #zone-banner {
     position: fixed; top: 26%; left: 50%; transform: translateX(-50%) scale(0.5);
@@ -467,6 +485,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <div id="combo-hud"><span id="combo-text">x1</span><div id="combo-bar"><div id="combo-fill"></div></div></div>
 <div id="powerup-hud" id="powerup-hud"></div>
 <div id="achievement-toast"></div>
+<div id="party-banner"></div>
+<div id="party-indicator">🐔</div>
 <div id="zone-banner"><div class="zone-num"></div><div class="zone-name"></div><div class="zone-sub"></div></div>
 <button id="laser-btn" aria-label="Laser shot">
   <svg id="laser-ring" viewBox="0 0 64 64"><circle id="laser-ring-bg" cx="32" cy="32" r="29"/><circle id="laser-ring-fg" cx="32" cy="32" r="29"/></svg>

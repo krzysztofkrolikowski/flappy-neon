@@ -99,6 +99,35 @@ export function playSound(type) {
     synth('sawtooth', 120, 220, 0.2, 0.025, 400);
   } else if (type === "shield") {
     synth('triangle', 350, 180, 0.08, 0.03, 700);
+  } else if (type === "fart") {
+    const bufLen = audioCtx.sampleRate * 0.18;
+    const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) {
+      const env = Math.pow(1 - i / bufLen, 0.6);
+      const wobble = Math.sin(i / (audioCtx.sampleRate * 0.004)) * 0.5;
+      d[i] = (Math.random() * 2 - 1) * env * (0.5 + wobble * 0.5);
+    }
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.setValueAtTime(600, t);
+    filt.frequency.exponentialRampToValueAtTime(120, t + 0.15); filt.Q.setValueAtTime(8, t);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.06, t); g.gain.linearRampToValueAtTime(0, t + 0.18);
+    src.connect(filt); filt.connect(g); g.connect(dest);
+    src.start(t); src.stop(t + 0.18);
+    synth('sawtooth', 80, 40, 0.12, 0.02, 200);
+  } else if (type === "party_activate") {
+    [300, 400, 500, 600, 800].forEach((freq, i) => {
+      const delay = i * 0.08;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(freq, t + delay);
+      g.gain.setValueAtTime(0.025, t + delay);
+      g.gain.linearRampToValueAtTime(0, t + delay + 0.12);
+      o.connect(g); g.connect(dest);
+      o.start(t + delay); o.stop(t + delay + 0.12);
+    });
   }
 }
 

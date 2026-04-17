@@ -77,10 +77,29 @@ export const TAUNTS = [
   ['CO?! Legenda!','Niemożliwe!','Jesteś bogiem?!'],
 ];
 
+export const PARTY_TAUNTS = [
+  ['🐔 Kur*a, za gruby!','💨 Pfffrrt... koniec.','🍑 Za dużo ciasta!','😂 Tłusty ptaszek nie lata!'],
+  ['🐔 THICC mode ON!','💨 Gazowy gigant!','🍗 KFC nie przyjmie...','😂 Dobrze szło... na wagę!'],
+  ['🐔 Gruby i dumny!','💨 Lećcie beze mnie!','🍑 Fit? Raczej fat.','😂 Aerodynamika: ZERO!'],
+  ['🐔 Legenda tłustych!','💨 GIGA-PFFRT!','🍗 Gruby boss!','😂 Za ciężki na porażkę!'],
+];
+
+export const PARTY_PIPE_EMOJIS = ['💩','🤡','🎺','🐔','🍑','💨','🌮','🍕','🧀','😂','🐷','🎪'];
+
 export function getTaunt(s) {
   const tier = s >= 50 ? 3 : s >= 25 ? 2 : s >= 10 ? 1 : 0;
   const arr = TAUNTS[tier];
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function getPartyTaunt(s) {
+  const tier = s >= 50 ? 3 : s >= 25 ? 2 : s >= 10 ? 1 : 0;
+  const arr = PARTY_TAUNTS[tier];
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function getPartyBirdScale(score) {
+  return 1 + Math.min(score * 0.035, 0.8);
 }
 
 export function hasPerk(perkId, equippedSkin) {
