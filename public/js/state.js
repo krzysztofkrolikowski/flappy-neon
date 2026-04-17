@@ -68,6 +68,11 @@ export const S = {
   achievementQueue: [],
   achievementShowing: false,
 
+  // Party mode (Konami code Easter egg)
+  partyMode: false,
+  partyTimer: 0,
+  confetti: [],
+
   // Ads
   adActive: false,
 
@@ -81,6 +86,11 @@ export const S = {
 
   // Shop
   shopAnimFrame: 0,
+
+  // Drunk mode
+  drunkHiccupTimer: 0,
+  drunkWobble: 0,
+  drunkMsgTimer: 0,
 
   // Dying
   dyingTimer: 0,

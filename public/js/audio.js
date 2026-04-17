@@ -95,10 +95,54 @@ export function playSound(type) {
     g.gain.linearRampToValueAtTime(0, t + 0.4);
     o.connect(f); f.connect(g); g.connect(dest);
     o.start(t); o.stop(t + 0.4);
+  } else if (type === "hiccup") {
+    // Funny hiccup: pitch-up blip + wobbly descend
+    synth('square', 280, 420, 0.06, 0.04, 800);
+    synth('sine', 380, 160, 0.12, 0.03, 600);
+    // Tiny burp noise
+    const bufLen = audioCtx.sampleRate * 0.08;
+    const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 3) * Math.sin(i * 0.05);
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.setValueAtTime(500, t); filt.Q.setValueAtTime(3, t);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.05, t); g.gain.linearRampToValueAtTime(0, t + 0.08);
+    src.connect(filt); filt.connect(g); g.connect(dest);
+    src.start(t); src.stop(t + 0.08);
   } else if (type === "powerup") {
     synth('sawtooth', 120, 220, 0.2, 0.025, 400);
   } else if (type === "shield") {
     synth('triangle', 350, 180, 0.08, 0.03, 700);
+  } else if (type === "party") {
+    // Ascending chiptune fanfare
+    const notes = [261.63, 329.63, 392.00, 523.25, 659.26, 783.99];
+    notes.forEach((freq, i) => {
+      const d = i * 0.08;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const f = audioCtx.createBiquadFilter();
+      o.type = i % 2 === 0 ? 'square' : 'triangle';
+      o.frequency.setValueAtTime(freq, t + d);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(1200, t + d); f.Q.setValueAtTime(2, t);
+      g.gain.setValueAtTime(0, t + d);
+      g.gain.linearRampToValueAtTime(0.04, t + d + 0.02);
+      g.gain.linearRampToValueAtTime(0, t + d + 0.18);
+      o.connect(f); f.connect(g); g.connect(dest);
+      o.start(t + d); o.stop(t + d + 0.2);
+    });
+    // Final chord
+    [523.25, 659.26, 783.99].forEach(freq => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.setValueAtTime(freq, t + 0.5);
+      g.gain.setValueAtTime(0, t + 0.5);
+      g.gain.linearRampToValueAtTime(0.03, t + 0.55);
+      g.gain.linearRampToValueAtTime(0, t + 1.2);
+      o.connect(g); g.connect(dest);
+      o.start(t + 0.5); o.stop(t + 1.3);
+    });
   }
 }
 

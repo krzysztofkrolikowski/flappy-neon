@@ -6,12 +6,14 @@ import { STATE, REVIVE_COST, TICK_MS, getTaunt } from './config.js';
 import { canvas, ctx, W, H, resize } from './canvas.js';
 import { initAudio, playSound, startMusic, stopMusic } from './audio.js';
 import {
-  initStars, resetGame, update, showGameOver, doRevive, updateCoinHud
+  initStars, resetGame, update, showGameOver, doRevive, updateCoinHud,
+  activatePartyMode
 } from './game.js';
 import {
   drawBackground, drawPipe, drawFloatingCoins, drawGround, drawBird,
   drawPowerUpOrbs, drawSpeedLines, drawShieldBubble, drawParticles,
-  drawFlash, drawEnvDebris, postProcess, invalidateGradientCache
+  drawFlash, drawEnvDebris, postProcess, invalidateGradientCache,
+  drawConfetti
 } from './renderer.js';
 import {
   showInterstitialAd, showRewardedAd, claimDaily, updateDailyBadge, renderShop
@@ -137,6 +139,24 @@ document.addEventListener("keyup", e => {
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "Enter") thrustStop();
 });
 
+// =============================================
+//  KONAMI CODE EASTER EGG (↑↑↓↓←→←→BA)
+// =============================================
+const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA'];
+let konamiIdx = 0;
+document.addEventListener('keydown', e => {
+  if (e.code === KONAMI[konamiIdx]) {
+    konamiIdx++;
+    if (konamiIdx === KONAMI.length) {
+      konamiIdx = 0;
+      initAudio();
+      activatePartyMode();
+    }
+  } else {
+    konamiIdx = e.code === KONAMI[0] ? 1 : 0;
+  }
+});
+
 // Buttons
 document.getElementById("btn-play").addEventListener("click", e => { e.stopPropagation(); startGame(); });
 document.getElementById("btn-resume").addEventListener("click", e => { e.stopPropagation(); S.state = STATE.PLAYING; document.getElementById('pause-overlay').classList.remove('active'); S.lastTime = 0; S.accumulator = 0; });
@@ -231,11 +251,18 @@ function frame(now) {
   try {
   ctx.save();
   if (S.shakeMag > 0.5) ctx.translate(S.shakeX, S.shakeY);
+  // Drunk mode: screen wobble rotation
+  if (S.activePowerUp && S.activePowerUp.id === 'drunk') {
+    const wobble = Math.sin(S.drunkWobble * 2) * 0.03 + Math.sin(S.drunkWobble * 0.7) * 0.015;
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(wobble);
+    ctx.translate(-W / 2, -H / 2);
+  }
   drawBackground();
   drawSpeedLines();
   for (const p of S.pipes) drawPipe(p);
   drawFloatingCoins(); drawPowerUpOrbs();
-  drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawFlash();
+  drawGround(); drawBird(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawConfetti(); drawFlash();
   // "TAP TO SKIP" hint during DYING
   if (S.state === STATE.DYING) {
     const hAlpha = 0.4 + Math.sin(_now * 0.008) * 0.3;

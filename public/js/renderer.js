@@ -1994,6 +1994,17 @@ export function drawParticles() {
 
 export function drawFlash() {
     if(S.flash>0.01){ ctx.fillStyle=`rgba(255,68,102,${S.flash*0.3})`; ctx.fillRect(0,0,W,H); }
+    // Drunk mode: amber beer-tinted overlay + pulsating vignette
+    if(S.activePowerUp && S.activePowerUp.id==='drunk') {
+      const pulse = 0.06 + Math.sin(Date.now() * 0.003) * 0.03;
+      ctx.fillStyle = `rgba(255,170,0,${pulse})`;
+      ctx.fillRect(0, 0, W, H);
+      const dg = ctx.createRadialGradient(W/2, H/2, W*0.15, W/2, H/2, W*0.7);
+      dg.addColorStop(0, 'transparent');
+      dg.addColorStop(1, `rgba(180,100,0,${0.15 + Math.sin(Date.now() * 0.002) * 0.08})`);
+      ctx.fillStyle = dg;
+      ctx.fillRect(0, 0, W, H);
+    }
     // Screen pulse (bass drop glow from edges)
     if(S.screenPulse>0.01) {
       const pg=ctx.createRadialGradient(W/2,H/2,W*0.2, W/2,H/2,W*0.8);
@@ -2011,6 +2022,37 @@ export function drawEnvDebris() {
       ctx.restore();
     }
     ctx.globalAlpha=1;
+  }
+
+export function drawConfetti() {
+    for(const c of S.confetti) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      ctx.globalAlpha = c.life;
+      ctx.fillStyle = c.color;
+      ctx.shadowColor = c.color;
+      ctx.shadowBlur = 4;
+      ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+      ctx.globalAlpha = c.life * 0.4;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(-c.w / 2, -c.h / 4, c.w, c.h / 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    if(S.partyMode && S.partyTimer > 0) {
+      const hue = (Date.now() / 5) % 360;
+      const alpha = Math.min(0.35, S.partyTimer / 360 * 0.35);
+      ctx.save();
+      ctx.strokeStyle = `hsla(${hue},100%,60%,${alpha})`;
+      ctx.lineWidth = 6;
+      ctx.shadowColor = `hsl(${hue},100%,50%)`;
+      ctx.shadowBlur = 20;
+      ctx.strokeRect(3, 3, W - 6, H - 6);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
   }
 
 export function postProcess() {
