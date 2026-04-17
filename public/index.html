@@ -21,6 +21,9 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 </script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  #volume-slider::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,0,230,0.5); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6); }
+  #volume-slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,0,230,0.5); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6); }
+  #volume-panel.visible { display:flex !important; }
   html, body {
     width: 100%; height: 100%;
     overflow: hidden;
@@ -462,7 +465,13 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <!-- HUD -->
 <div id="score-display">0</div>
 <div id="coin-hud"><span class="coin-icon"></span> <span id="coin-count">0</span></div>
-<div id="mute-btn" style="position:fixed;bottom:max(env(safe-area-inset-bottom),16px);right:16px;z-index:50;font-size:1.1rem;cursor:pointer;opacity:0.7;user-select:none;background:rgba(10,10,30,0.5);border:1px solid rgba(255,0,230,0.25);border-radius:6px;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)" title="M = mute">🔊</div>
+<div id="audio-controls" style="position:fixed;bottom:max(env(safe-area-inset-bottom),16px);right:16px;z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:4px;user-select:none">
+  <div id="volume-panel" style="display:none;background:rgba(10,10,30,0.85);border:1px solid rgba(255,0,230,0.3);border-radius:8px;padding:8px 10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);flex-direction:column;align-items:center;gap:6px;min-width:36px">
+    <div id="volume-label" style="font-size:10px;color:rgba(255,255,255,0.5);text-align:center;white-space:nowrap">70%</div>
+    <input type="range" id="volume-slider" min="0" max="100" value="70" style="writing-mode:vertical-lr;direction:rtl;-webkit-appearance:none;appearance:none;width:6px;height:100px;background:linear-gradient(to top,rgba(255,0,230,0.4),rgba(0,212,255,0.4));border-radius:3px;outline:none;cursor:pointer" title="Volume">
+  </div>
+  <div id="mute-btn" style="font-size:1.1rem;cursor:pointer;opacity:0.7;background:rgba(10,10,30,0.5);border:1px solid rgba(255,0,230,0.25);border-radius:6px;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)" title="Tap=mute, Long-press=volume">🔊</div>
+</div>
 <div id="streak-popup" class="streak-popup"></div>
 <div id="combo-hud"><span id="combo-text">x1</span><div id="combo-bar"><div id="combo-fill"></div></div></div>
 <div id="powerup-hud" id="powerup-hud"></div>
@@ -965,14 +974,22 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   //  AUDIO
   // =============================================
   let audioCtx;
+  let masterGain;
+  let volume = STORAGE.get('volume', 70) / 100;
   function initAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = volume;
+      masterGain.connect(audioCtx.destination);
+    }
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
+  function getAudioDest() { return masterGain || (audioCtx ? audioCtx.destination : null); }
   function playSound(type) {
     if (!audioCtx || muted) return;
     const t = audioCtx.currentTime;
-    const dest = audioCtx.destination;
+    const dest = getAudioDest();
 
     function synth(wave, freq, endFreq, dur, vol, filterFreq) {
       const o = audioCtx.createOscillator();
@@ -2135,7 +2152,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     const limiter = audioCtx.createDynamicsCompressor();
     limiter.threshold.value = -6; limiter.knee.value = 10;
     limiter.ratio.value = 6; limiter.attack.value = 0.003; limiter.release.value = 0.15;
-    master.connect(limiter); limiter.connect(audioCtx.destination);
+    master.connect(limiter); limiter.connect(getAudioDest());
     musicNodes.push(master, limiter);
 
     const BPM = 90, beatLen = 60/BPM, barLen = beatLen*4;
@@ -2326,14 +2343,66 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   // =============================================
   let muted = STORAGE.get('muted', false);
   const muteBtn = document.getElementById('mute-btn');
-  function updateMuteBtn() { muteBtn.textContent = muted ? '🔇' : '🔊'; }
+  const volumePanel = document.getElementById('volume-panel');
+  const volumeSlider = document.getElementById('volume-slider');
+  const volumeLabel = document.getElementById('volume-label');
+  let volumePanelVisible = false;
+  let muteHoldTimer = null;
+
+  function getVolumeIcon() {
+    if (muted || volume === 0) return '🔇';
+    if (volume < 0.33) return '🔈';
+    if (volume < 0.67) return '🔉';
+    return '🔊';
+  }
+  function updateMuteBtn() { muteBtn.textContent = getVolumeIcon(); }
+  function updateVolumeUI() {
+    const pct = Math.round(volume * 100);
+    volumeSlider.value = pct;
+    volumeLabel.textContent = pct + '%';
+    updateMuteBtn();
+  }
+  function setVolume(v) {
+    volume = Math.max(0, Math.min(1, v));
+    STORAGE.set('volume', Math.round(volume * 100));
+    if (masterGain) masterGain.gain.value = muted ? 0 : volume;
+    updateVolumeUI();
+  }
+  function showVolumePanel() {
+    volumePanelVisible = true;
+    volumePanel.classList.add('visible');
+  }
+  function hideVolumePanel() {
+    volumePanelVisible = false;
+    volumePanel.classList.remove('visible');
+  }
   updateMuteBtn();
+  updateVolumeUI();
+
   function toggleMute() {
     muted = !muted; STORAGE.set('muted', muted); updateMuteBtn();
-    if(muted) { stopMusic(); if(audioCtx) audioCtx.suspend(); }
-    else { if(audioCtx) audioCtx.resume(); startMusic(); }
+    if(muted) { stopMusic(); if(masterGain) masterGain.gain.value = 0; }
+    else { if(masterGain) masterGain.gain.value = volume; if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); startMusic(); }
   }
-  muteBtn.addEventListener('click', toggleMute);
+
+  muteBtn.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    muteHoldTimer = setTimeout(() => { muteHoldTimer = null; if(volumePanelVisible) hideVolumePanel(); else showVolumePanel(); }, 400);
+  });
+  muteBtn.addEventListener('pointerup', e => {
+    e.stopPropagation();
+    if (muteHoldTimer) { clearTimeout(muteHoldTimer); muteHoldTimer = null; toggleMute(); }
+  });
+  muteBtn.addEventListener('pointerleave', () => { if(muteHoldTimer) { clearTimeout(muteHoldTimer); muteHoldTimer = null; } });
+
+  volumeSlider.addEventListener('input', e => { e.stopPropagation(); setVolume(parseInt(e.target.value) / 100); });
+  volumeSlider.addEventListener('pointerdown', e => e.stopPropagation());
+  volumeSlider.addEventListener('pointerup', e => e.stopPropagation());
+  volumeSlider.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+
+  document.addEventListener('pointerdown', e => {
+    if (volumePanelVisible && !document.getElementById('audio-controls').contains(e.target)) hideVolumePanel();
+  });
 
   function thrustStart() {
     if(adActive) return;
@@ -2398,6 +2467,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       return;
     }
     if(e.code==="KeyM") { toggleMute(); return; }
+    if(e.code==="KeyV") { if(volumePanelVisible) hideVolumePanel(); else showVolumePanel(); return; }
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") {
       e.preventDefault();
       if(state===STATE.PLAYING) thrustStart();

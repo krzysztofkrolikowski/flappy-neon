@@ -23,6 +23,7 @@ export const S = {
   dailyStreak: 0,
   unlockedAchievements: [],
   muted: false,
+  volume: 0.7,
 
   // Game session
   state: STATE.MENU,
@@ -101,3 +102,4 @@ S.lastDaily = STORAGE.get("daily_ts", 0);
 S.dailyStreak = STORAGE.get("daily_streak", 0);
 S.unlockedAchievements = STORAGE.get('achievements', []);
 S.muted = STORAGE.get('muted', false);
+S.volume = STORAGE.get('volume', 70) / 100;

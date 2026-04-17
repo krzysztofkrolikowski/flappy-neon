@@ -5,18 +5,32 @@ import { S } from './state.js';
 import { MUSIC_VOL, CHORDS, BASS_NOTES, ARP_NOTES } from './config.js';
 
 let audioCtx;
+let masterGain;
 
 export function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = S.muted ? 0 : S.volume;
+    masterGain.connect(audioCtx.destination);
+  }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 export function getAudioCtx() { return audioCtx; }
 
+export function getMasterGain() { return masterGain; }
+
+function getAudioDest() { return masterGain || (audioCtx ? audioCtx.destination : null); }
+
+export function setMasterVolume(v) {
+  if (masterGain) masterGain.gain.value = v;
+}
+
 export function playSound(type) {
   if (!audioCtx || S.muted) return;
   const t = audioCtx.currentTime;
-  const dest = audioCtx.destination;
+  const dest = getAudioDest();
 
   function synth(wave, freq, endFreq, dur, vol, filterFreq) {
     const o = audioCtx.createOscillator();
@@ -114,7 +128,7 @@ export function startMusic() {
   const limiter = audioCtx.createDynamicsCompressor();
   limiter.threshold.value = -6; limiter.knee.value = 12;
   limiter.ratio.value = 8; limiter.attack.value = 0.002; limiter.release.value = 0.15;
-  master.connect(limiter); limiter.connect(audioCtx.destination);
+  master.connect(limiter); limiter.connect(getAudioDest());
   S.musicNodes.push(master, limiter);
 
   const BPM = 90, beatLen = 60/BPM, barLen = beatLen*4;

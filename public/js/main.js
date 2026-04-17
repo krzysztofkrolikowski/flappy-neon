@@ -4,7 +4,7 @@
 import { S, STORAGE } from './state.js';
 import { STATE, REVIVE_COST, TICK_MS, getTaunt } from './config.js';
 import { canvas, ctx, W, H, resize } from './canvas.js';
-import { initAudio, playSound, startMusic, stopMusic } from './audio.js';
+import { initAudio, playSound, startMusic, stopMusic, setMasterVolume } from './audio.js';
 import {
   initStars, resetGame, update, showGameOver, doRevive, updateCoinHud
 } from './game.js';
@@ -33,15 +33,69 @@ resetGame();
 //  INPUT
 // =============================================
 const muteBtn = document.getElementById('mute-btn');
-function updateMuteBtn() { muteBtn.textContent = S.muted ? '🔇' : '🔊'; }
+const volumePanel = document.getElementById('volume-panel');
+const volumeSlider = document.getElementById('volume-slider');
+const volumeLabel = document.getElementById('volume-label');
+let volumePanelVisible = false;
+let muteHoldTimer = null;
+
+function getVolumeIcon() {
+  if (S.muted || S.volume === 0) return '🔇';
+  if (S.volume < 0.33) return '🔈';
+  if (S.volume < 0.67) return '🔉';
+  return '🔊';
+}
+function updateMuteBtn() { muteBtn.textContent = getVolumeIcon(); }
+function updateVolumeUI() {
+  const pct = Math.round(S.volume * 100);
+  if (volumeSlider) volumeSlider.value = pct;
+  if (volumeLabel) volumeLabel.textContent = pct + '%';
+  updateMuteBtn();
+}
+function setVolume(v) {
+  S.volume = Math.max(0, Math.min(1, v));
+  STORAGE.set('volume', Math.round(S.volume * 100));
+  setMasterVolume(S.muted ? 0 : S.volume);
+  updateVolumeUI();
+}
+function showVolumePanel() {
+  volumePanelVisible = true;
+  if (volumePanel) volumePanel.classList.add('visible');
+}
+function hideVolumePanel() {
+  volumePanelVisible = false;
+  if (volumePanel) volumePanel.classList.remove('visible');
+}
 updateMuteBtn();
+updateVolumeUI();
 
 function toggleMute() {
   S.muted = !S.muted; STORAGE.set('muted', S.muted); updateMuteBtn();
-  if (S.muted) { stopMusic(); }
-  else { startMusic(); }
+  if (S.muted) { stopMusic(); setMasterVolume(0); }
+  else { setMasterVolume(S.volume); startMusic(); }
 }
-muteBtn.addEventListener('click', toggleMute);
+
+muteBtn.addEventListener('pointerdown', e => {
+  e.stopPropagation();
+  muteHoldTimer = setTimeout(() => { muteHoldTimer = null; if(volumePanelVisible) hideVolumePanel(); else showVolumePanel(); }, 400);
+});
+muteBtn.addEventListener('pointerup', e => {
+  e.stopPropagation();
+  if (muteHoldTimer) { clearTimeout(muteHoldTimer); muteHoldTimer = null; toggleMute(); }
+});
+muteBtn.addEventListener('pointerleave', () => { if(muteHoldTimer) { clearTimeout(muteHoldTimer); muteHoldTimer = null; } });
+
+if (volumeSlider) {
+  volumeSlider.addEventListener('input', e => { e.stopPropagation(); setVolume(parseInt(e.target.value) / 100); });
+  volumeSlider.addEventListener('pointerdown', e => e.stopPropagation());
+  volumeSlider.addEventListener('pointerup', e => e.stopPropagation());
+  volumeSlider.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+}
+
+document.addEventListener('pointerdown', e => {
+  const audioControls = document.getElementById('audio-controls');
+  if (volumePanelVisible && audioControls && !audioControls.contains(e.target)) hideVolumePanel();
+});
 
 function thrustStart() {
   if (S.adActive) return;
@@ -120,6 +174,7 @@ document.addEventListener("keydown", e => {
     return;
   }
   if (e.code === "KeyM") { toggleMute(); return; }
+  if (e.code === "KeyV") { if(volumePanelVisible) hideVolumePanel(); else showVolumePanel(); return; }
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "Enter") {
     e.preventDefault();
     if (S.state === STATE.PLAYING) thrustStart();
