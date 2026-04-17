@@ -21,6 +21,14 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 </script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  #volume-slider::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,0,230,0.5); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6); }
+  #volume-slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,0,230,0.5); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6); }
+  #volume-panel.visible { display:flex !important; }
+  .stg-vol-slider { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; background:linear-gradient(90deg,rgba(255,0,230,0.3),rgba(0,212,255,0.3)); outline:none; cursor:pointer; }
+  .stg-vol-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#00d4ff; border:1px solid rgba(255,0,230,0.4); cursor:pointer; box-shadow:0 0 6px rgba(0,212,255,0.5); }
+  .stg-vol-slider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#00d4ff; border:1px solid rgba(255,0,230,0.4); cursor:pointer; box-shadow:0 0 6px rgba(0,212,255,0.5); }
+  .stg-vol-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .stg-vol-pct { font-size:11px; color:rgba(0,212,255,0.7); min-width:28px; text-align:right; }
   html, body {
     width: 100%; height: 100%;
     overflow: hidden;
@@ -462,7 +470,16 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 <!-- HUD -->
 <div id="score-display">0</div>
 <div id="coin-hud"><span class="coin-icon"></span> <span id="coin-count">0</span></div>
-<div id="mute-btn" style="position:fixed;bottom:max(env(safe-area-inset-bottom),16px);right:16px;z-index:50;font-size:1.1rem;cursor:pointer;opacity:0.7;user-select:none;background:rgba(10,10,30,0.5);border:1px solid rgba(255,0,230,0.25);border-radius:6px;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)" title="M = mute">🔊</div>
+<div id="audio-controls" style="position:fixed;bottom:max(env(safe-area-inset-bottom),16px);right:16px;z-index:50;display:flex;flex-direction:column;align-items:flex-end;gap:4px;user-select:none">
+  <div id="volume-panel" style="display:none;background:rgba(10,10,30,0.85);border:1px solid rgba(255,0,230,0.3);border-radius:8px;padding:8px 10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);flex-direction:column;align-items:center;gap:6px;min-width:36px">
+    <div id="volume-label" style="font-size:10px;color:rgba(255,255,255,0.5);text-align:center;white-space:nowrap">70%</div>
+    <input type="range" id="volume-slider" min="0" max="100" value="70" style="writing-mode:vertical-lr;direction:rtl;-webkit-appearance:none;appearance:none;width:6px;height:100px;background:linear-gradient(to top,rgba(255,0,230,0.4),rgba(0,212,255,0.4));border-radius:3px;outline:none;cursor:pointer" title="Volume">
+  </div>
+  <div style="display:flex;gap:4px;align-items:center">
+    <div id="music-btn" style="font-size:1.1rem;cursor:pointer;opacity:0.7;background:rgba(10,10,30,0.5);border:1px solid rgba(255,0,230,0.25);border-radius:6px;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)" title="Toggle music">🎵</div>
+    <div id="mute-btn" style="font-size:1.1rem;cursor:pointer;opacity:0.7;background:rgba(10,10,30,0.5);border:1px solid rgba(255,0,230,0.25);border-radius:6px;padding:4px 8px;line-height:1;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)" title="Tap=mute, Long-press=volume">🔊</div>
+  </div>
+</div>
 <div id="streak-popup" class="streak-popup"></div>
 <div id="combo-hud"><span id="combo-text">x1</span><div id="combo-bar"><div id="combo-fill"></div></div></div>
 <div id="powerup-hud" id="powerup-hud"></div>
@@ -965,14 +982,29 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   //  AUDIO
   // =============================================
   let audioCtx;
+  let masterGain;
+  let musicGainNode;
+  let volume = STORAGE.get('volume', 70) / 100;
+  let musicVolume = STORAGE.get('musicVolume', 70) / 100;
+  let musicMuted = STORAGE.get('musicMuted', false);
   function initAudio() {
-    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = volume;
+      masterGain.connect(audioCtx.destination);
+      musicGainNode = audioCtx.createGain();
+      musicGainNode.gain.value = musicMuted ? 0 : musicVolume;
+      musicGainNode.connect(masterGain);
+    }
     if (audioCtx.state === 'suspended') audioCtx.resume();
   }
+  function getAudioDest() { return masterGain || (audioCtx ? audioCtx.destination : null); }
+  function getMusicDest() { return musicGainNode || getAudioDest(); }
   function playSound(type) {
     if (!audioCtx || muted) return;
     const t = audioCtx.currentTime;
-    const dest = audioCtx.destination;
+    const dest = getAudioDest();
 
     function synth(wave, freq, endFreq, dur, vol, filterFreq) {
       const o = audioCtx.createOscillator();
@@ -2128,14 +2160,14 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   ];
 
   function startMusic() {
-    if(musicPlaying || !audioCtx) return;
+    if(musicPlaying || !audioCtx || musicMuted) return;
     musicPlaying = true;
     const master = audioCtx.createGain();
     master.gain.value = MUSIC_VOL;
     const limiter = audioCtx.createDynamicsCompressor();
     limiter.threshold.value = -6; limiter.knee.value = 10;
     limiter.ratio.value = 6; limiter.attack.value = 0.003; limiter.release.value = 0.15;
-    master.connect(limiter); limiter.connect(audioCtx.destination);
+    master.connect(limiter); limiter.connect(getMusicDest());
     musicNodes.push(master, limiter);
 
     const BPM = 90, beatLen = 60/BPM, barLen = beatLen*4;
@@ -2326,14 +2358,89 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   // =============================================
   let muted = STORAGE.get('muted', false);
   const muteBtn = document.getElementById('mute-btn');
-  function updateMuteBtn() { muteBtn.textContent = muted ? '🔇' : '🔊'; }
+  const musicBtn = document.getElementById('music-btn');
+  const volumePanel = document.getElementById('volume-panel');
+  const volumeSlider = document.getElementById('volume-slider');
+  const volumeLabel = document.getElementById('volume-label');
+  let volumePanelVisible = false;
+  let muteHoldTimer = null;
+
+  function getMusicIcon() { return musicMuted ? '🎵❌' : '🎵'; }
+  function updateMusicBtn() { musicBtn.textContent = getMusicIcon(); musicBtn.style.opacity = musicMuted ? '0.4' : '0.7'; }
+  function getVolumeIcon() {
+    if (muted || volume === 0) return '🔇';
+    if (volume < 0.33) return '🔈';
+    if (volume < 0.67) return '🔉';
+    return '🔊';
+  }
+  function updateMuteBtn() { muteBtn.textContent = getVolumeIcon(); }
+  function updateVolumeUI() {
+    const pct = Math.round(volume * 100);
+    volumeSlider.value = pct;
+    volumeLabel.textContent = pct + '%';
+    updateMuteBtn();
+    updateMusicBtn();
+  }
+  function setVolume(v) {
+    volume = Math.max(0, Math.min(1, v));
+    STORAGE.set('volume', Math.round(volume * 100));
+    if (masterGain) masterGain.gain.value = muted ? 0 : volume;
+    updateVolumeUI();
+  }
+  function setMusicVolume(v) {
+    musicVolume = Math.max(0, Math.min(1, v));
+    STORAGE.set('musicVolume', Math.round(musicVolume * 100));
+    if (musicGainNode) musicGainNode.gain.value = musicMuted ? 0 : musicVolume;
+  }
+  function showVolumePanel() {
+    volumePanelVisible = true;
+    volumePanel.classList.add('visible');
+  }
+  function hideVolumePanel() {
+    volumePanelVisible = false;
+    volumePanel.classList.remove('visible');
+  }
   updateMuteBtn();
+  updateMusicBtn();
+  updateVolumeUI();
+
   function toggleMute() {
     muted = !muted; STORAGE.set('muted', muted); updateMuteBtn();
-    if(muted) { stopMusic(); if(audioCtx) audioCtx.suspend(); }
-    else { if(audioCtx) audioCtx.resume(); startMusic(); }
+    if(muted) { stopMusic(); if(masterGain) masterGain.gain.value = 0; }
+    else { if(masterGain) masterGain.gain.value = volume; if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); startMusic(); }
   }
-  muteBtn.addEventListener('click', toggleMute);
+
+  function toggleMusic() {
+    musicMuted = !musicMuted; STORAGE.set('musicMuted', musicMuted); updateMusicBtn();
+    if (musicMuted) {
+      stopMusic();
+      if (musicGainNode) musicGainNode.gain.value = 0;
+    } else {
+      if (musicGainNode) musicGainNode.gain.value = musicVolume;
+      if (audioCtx && !muted) startMusic();
+    }
+  }
+
+  musicBtn.addEventListener('click', e => { e.stopPropagation(); toggleMusic(); });
+
+  muteBtn.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+    muteHoldTimer = setTimeout(() => { muteHoldTimer = null; if(volumePanelVisible) hideVolumePanel(); else showVolumePanel(); }, 400);
+  });
+  muteBtn.addEventListener('pointerup', e => {
+    e.stopPropagation();
+    if (muteHoldTimer) { clearTimeout(muteHoldTimer); muteHoldTimer = null; toggleMute(); }
+  });
+  muteBtn.addEventListener('pointerleave', () => { if(muteHoldTimer) { clearTimeout(muteHoldTimer); muteHoldTimer = null; } });
+
+  volumeSlider.addEventListener('input', e => { e.stopPropagation(); setVolume(parseInt(e.target.value) / 100); });
+  volumeSlider.addEventListener('pointerdown', e => e.stopPropagation());
+  volumeSlider.addEventListener('pointerup', e => e.stopPropagation());
+  volumeSlider.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+
+  document.addEventListener('pointerdown', e => {
+    if (volumePanelVisible && !document.getElementById('audio-controls').contains(e.target)) hideVolumePanel();
+  });
 
   function thrustStart() {
     if(adActive) return;
@@ -2383,6 +2490,15 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     }, { once: true });
   });
 
+  // Suspend/resume audio when tab visibility changes
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+    } else {
+      if (audioCtx && audioCtx.state === 'suspended' && !muted) audioCtx.resume();
+    }
+  });
+
   canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGameWithNick(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   // Global tap handler for DYING skip (catches taps even if canvas doesn't get them)
   document.addEventListener("pointerdown", e => { if(state===STATE.DYING && !adActive) { e.preventDefault(); state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } });
@@ -2398,6 +2514,8 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       return;
     }
     if(e.code==="KeyM") { toggleMute(); return; }
+    if(e.code==="KeyN") { toggleMusic(); return; }
+    if(e.code==="KeyV") { if(volumePanelVisible) hideVolumePanel(); else showVolumePanel(); return; }
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") {
       e.preventDefault();
       if(state===STATE.PLAYING) thrustStart();
@@ -2489,12 +2607,48 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   const settingsPanel=document.getElementById('settings-panel');
   const settingsContent=document.getElementById('settings-content');
   function openSettings() {
+    const volPct = Math.round(volume * 100);
+    const musVolPct = Math.round(musicVolume * 100);
     settingsContent.innerHTML=`
-      <div class="setting-row"><span class="setting-label">🔊 Sound</span><button class="toggle-btn${muted?'':' on'}" id="stg-sound"></button></div>
+      <div class="setting-row"><span class="setting-label">🔊 Sound Effects</span><button class="toggle-btn${muted?'':' on'}" id="stg-sound"></button></div>
+      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:4px">
+        <span class="setting-label">🔊 Master Volume</span>
+        <div class="stg-vol-row">
+          <input type="range" class="stg-vol-slider" id="stg-vol" min="0" max="100" value="${volPct}">
+          <span class="stg-vol-pct" id="stg-vol-pct">${volPct}%</span>
+        </div>
+      </div>
+      <div class="setting-row"><span class="setting-label">🎵 Music</span><button class="toggle-btn${musicMuted?'':' on'}" id="stg-music"></button></div>
+      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:4px">
+        <span class="setting-label">🎵 Music Volume</span>
+        <div class="stg-vol-row">
+          <input type="range" class="stg-vol-slider" id="stg-mus-vol" min="0" max="100" value="${musVolPct}">
+          <span class="stg-vol-pct" id="stg-mus-vol-pct">${musVolPct}%</span>
+        </div>
+      </div>
       <div class="setting-row"><span class="setting-label">📳 Vibration</span><button class="toggle-btn${vibrationEnabled?' on':''}" id="stg-vibration"></button></div>
       <div class="setting-row"><span class="setting-label" style="color:#ff4466">🗑 Reset Progress</span><button class="btn btn-small" id="stg-reset" style="font-size:11px;padding:4px 10px">Reset</button></div>
     `;
-    document.getElementById('stg-sound').addEventListener('click',function(){toggleMute();this.classList.toggle('on',!muted);});
+    document.getElementById('stg-sound').addEventListener('click',function(){toggleMute();this.classList.toggle('on',!muted);document.getElementById('stg-vol-pct').textContent=Math.round(volume*100)+'%';});
+    document.getElementById('stg-vol').addEventListener('input',function(e){
+      e.stopPropagation();
+      const v = parseInt(this.value) / 100;
+      setVolume(v);
+      document.getElementById('stg-vol-pct').textContent = this.value + '%';
+      if (muted && v > 0) { muted = false; STORAGE.set('muted', muted); document.getElementById('stg-sound').classList.add('on'); }
+      if (!muted && !musicPlaying && !musicMuted) { initAudio(); startMusic(); }
+    });
+    document.getElementById('stg-vol').addEventListener('pointerdown', e => e.stopPropagation());
+    document.getElementById('stg-music').addEventListener('click',function(){toggleMusic();this.classList.toggle('on',!musicMuted);});
+    document.getElementById('stg-mus-vol').addEventListener('input',function(e){
+      e.stopPropagation();
+      const v = parseInt(this.value) / 100;
+      setMusicVolume(v);
+      document.getElementById('stg-mus-vol-pct').textContent = this.value + '%';
+      if (musicMuted && v > 0) { musicMuted = false; STORAGE.set('musicMuted', musicMuted); updateMusicBtn(); document.getElementById('stg-music').classList.add('on'); }
+      if (!muted && !musicMuted && !musicPlaying) { initAudio(); startMusic(); }
+    });
+    document.getElementById('stg-mus-vol').addEventListener('pointerdown', e => e.stopPropagation());
     document.getElementById('stg-vibration').addEventListener('click',function(){vibrationEnabled=!vibrationEnabled;STORAGE.set('vibration',vibrationEnabled);this.classList.toggle('on',vibrationEnabled);});
     document.getElementById('stg-reset').addEventListener('click',()=>{
       if(confirm('Reset all progress? This cannot be undone!')){
