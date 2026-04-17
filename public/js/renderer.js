@@ -1994,6 +1994,17 @@ export function drawParticles() {
 
 export function drawFlash() {
     if(S.flash>0.01){ ctx.fillStyle=`rgba(255,68,102,${S.flash*0.3})`; ctx.fillRect(0,0,W,H); }
+    // Drunk mode: amber beer-tinted overlay + pulsating vignette
+    if(S.activePowerUp && S.activePowerUp.id==='drunk') {
+      const pulse = 0.06 + Math.sin(Date.now() * 0.003) * 0.03;
+      ctx.fillStyle = `rgba(255,170,0,${pulse})`;
+      ctx.fillRect(0, 0, W, H);
+      const dg = ctx.createRadialGradient(W/2, H/2, W*0.15, W/2, H/2, W*0.7);
+      dg.addColorStop(0, 'transparent');
+      dg.addColorStop(1, `rgba(180,100,0,${0.15 + Math.sin(Date.now() * 0.002) * 0.08})`);
+      ctx.fillStyle = dg;
+      ctx.fillRect(0, 0, W, H);
+    }
     // Screen pulse (bass drop glow from edges)
     if(S.screenPulse>0.01) {
       const pg=ctx.createRadialGradient(W/2,H/2,W*0.2, W/2,H/2,W*0.8);

@@ -95,6 +95,22 @@ export function playSound(type) {
     g.gain.linearRampToValueAtTime(0, t + 0.4);
     o.connect(f); f.connect(g); g.connect(dest);
     o.start(t); o.stop(t + 0.4);
+  } else if (type === "hiccup") {
+    // Funny hiccup: pitch-up blip + wobbly descend
+    synth('square', 280, 420, 0.06, 0.04, 800);
+    synth('sine', 380, 160, 0.12, 0.03, 600);
+    // Tiny burp noise
+    const bufLen = audioCtx.sampleRate * 0.08;
+    const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufLen, 3) * Math.sin(i * 0.05);
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const filt = audioCtx.createBiquadFilter();
+    filt.type = 'lowpass'; filt.frequency.setValueAtTime(500, t); filt.Q.setValueAtTime(3, t);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.05, t); g.gain.linearRampToValueAtTime(0, t + 0.08);
+    src.connect(filt); filt.connect(g); g.connect(dest);
+    src.start(t); src.stop(t + 0.08);
   } else if (type === "powerup") {
     synth('sawtooth', 120, 220, 0.2, 0.025, 400);
   } else if (type === "shield") {

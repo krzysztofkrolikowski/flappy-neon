@@ -45,6 +45,7 @@ export const POWERUP_TYPES = [
   { id:'magnet', icon:'🧲', color:'#ff00e6', dur:360, desc:'Magnes' },
   { id:'slowmo', icon:'⏳', color:'#00aaff', dur:240, desc:'Slow-Mo' },
   { id:'x2',     icon:'×2', color:'#ffee00', dur:300, desc:'x2 Monety' },
+  { id:'drunk',  icon:'🍺', color:'#ffaa00', dur:360, desc:'Pijany Tryb' },
 ];
 
 export const ZONES = [
@@ -86,6 +87,17 @@ export const PARTY_MESSAGES = [
   '🪩 TRYB DYSKOTEKA!',
   '🎶 CAŁY KOSMOS TAŃCZY!',
   '🦄 MAGICZNY MOMENT!',
+];
+
+export const DRUNK_MESSAGES = [
+  '🍺 Hik!',
+  '🍺 Gdzie jestem...?',
+  '🍺 Ziemia się kręci!',
+  '🍺 Jeszcze jednego!',
+  '🍺 Kto zgasił światło?!',
+  '🍺 Widzę podwójnie!',
+  '🍺 Potrzymaj mi piwo...',
+  '🍺 Czemu rury tańczą?!',
 ];
 
 export function getTaunt(s) {

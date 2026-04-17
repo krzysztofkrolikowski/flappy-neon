@@ -8,7 +8,7 @@ import {
   PIPE_SPEED_START, PIPE_SPEED_MAX, PIPE_SPACING,
   GROUND_HEIGHT, AD_EVERY_N_DEATHS, COMBO_DECAY,
   POWERUP_TYPES, STATE, ZONES, ACHIEVEMENTS, SKINS,
-  streakMilestones, hasPerk, PARTY_MESSAGES
+  streakMilestones, hasPerk, PARTY_MESSAGES, DRUNK_MESSAGES
 } from './config.js';
 import { W, H, triggerBassPulse } from './canvas.js';
 import { playSound } from './audio.js';
@@ -42,6 +42,7 @@ export function resetGame() {
   S.combo=0; S.comboTimer=0; S.comboMultiplier=1; S.maxCombo=0; S.driftCount=0;
   S.activePowerUp=null; S.powerUpTimer=0; S.powerUpOrbs=[]; S.shieldHits=0;
   S.secondChanceUsed=false;
+  S.drunkHiccupTimer=0; S.drunkWobble=0; S.drunkMsgTimer=0;
   S.currentZone=ZONES[0]; S.lastZoneIdx=0;
   S.timeScale=1; S.timeScaleTarget=1; S.chromAb=0; S.screenPulse=0; S.deathFreezeFrames=0; S.envDebris=[];
   comboHud.classList.remove('visible'); powerupHud.classList.remove('visible');
@@ -320,6 +321,41 @@ export function update() {
       if(S.activePowerUp && S.activePowerUp.id==='slowmo') {
         S.gameSpeed=Math.max(PIPE_SPEED_START*0.5, S.gameSpeed*0.97);
       }
+      // Drunk mode: hiccups, wobble gravity, beer bubbles, funny messages
+      if(S.activePowerUp && S.activePowerUp.id==='drunk') {
+        S.drunkWobble += 0.07;
+        // Wobble gravity: sinusoidal sideways drift
+        S.bird.y += Math.sin(S.drunkWobble * 3) * 0.8;
+        // Random hiccups
+        S.drunkHiccupTimer--;
+        if(S.drunkHiccupTimer <= 0) {
+          S.drunkHiccupTimer = 40 + Math.floor(Math.random() * 60);
+          S.bird.vy -= 2.5 + Math.random() * 2;
+          playSound('hiccup');
+          S.shakeMag = Math.max(S.shakeMag, 3);
+          burst(S.bird.x, S.bird.y, '#ffaa00', 6);
+        }
+        // Beer bubbles floating up from bird
+        if(Math.random() > 0.6) {
+          S.particles.push({
+            x: S.bird.x + (Math.random() - 0.5) * 16,
+            y: S.bird.y + (Math.random() - 0.5) * 8,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: -1.5 - Math.random() * 2,
+            life: 0.7,
+            decay: 0.012,
+            size: 3 + Math.random() * 4,
+            color: Math.random() > 0.5 ? '#ffcc00' : '#ff8800',
+          });
+        }
+        // Periodic funny messages
+        S.drunkMsgTimer--;
+        if(S.drunkMsgTimer <= 0) {
+          S.drunkMsgTimer = 80 + Math.floor(Math.random() * 60);
+          const msg = DRUNK_MESSAGES[Math.floor(Math.random() * DRUNK_MESSAGES.length)];
+          showStreak(msg);
+        }
+      }
     }
     S.groundX-=S.gameSpeed; if(S.groundX<-40) S.groundX+=40;
     S.pipeTimer-=S.gameSpeed; if(S.pipeTimer<=0){ spawnPipe(); S.pipeTimer=PIPE_SPACING; }
@@ -331,7 +367,7 @@ export function update() {
       const dx=S.bird.x-c.x, dy=S.bird.y-c.y;
       if(dx*dx+dy*dy < 20*20) {
         c.collected=true;
-        const amt = (c.bonus ? 3 : 1) * (S.activePowerUp && S.activePowerUp.id==='x2' ? 2 : 1);
+        const amt = (c.bonus ? 3 : 1) * (S.activePowerUp && S.activePowerUp.id==='x2' ? 2 : 1) * (S.activePowerUp && S.activePowerUp.id==='drunk' ? 3 : 1);
         addCoins(amt); playSound("coin"); addCombo();
         showCoinPopup(c.x, c.y-15, amt);
         burst(c.x, c.y, "#ffee00", 8);

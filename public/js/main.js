@@ -251,6 +251,13 @@ function frame(now) {
   try {
   ctx.save();
   if (S.shakeMag > 0.5) ctx.translate(S.shakeX, S.shakeY);
+  // Drunk mode: screen wobble rotation
+  if (S.activePowerUp && S.activePowerUp.id === 'drunk') {
+    const wobble = Math.sin(S.drunkWobble * 2) * 0.03 + Math.sin(S.drunkWobble * 0.7) * 0.015;
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(wobble);
+    ctx.translate(-W / 2, -H / 2);
+  }
   drawBackground();
   drawSpeedLines();
   for (const p of S.pipes) drawPipe(p);

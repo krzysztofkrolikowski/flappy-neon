@@ -87,6 +87,11 @@ export const S = {
   // Shop
   shopAnimFrame: 0,
 
+  // Drunk mode
+  drunkHiccupTimer: 0,
+  drunkWobble: 0,
+  drunkMsgTimer: 0,
+
   // Dying
   dyingTimer: 0,
 
