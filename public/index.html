@@ -24,6 +24,11 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   #volume-slider::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,0,230,0.5); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6); }
   #volume-slider::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:#00d4ff; border:2px solid rgba(255,0,230,0.5); cursor:pointer; box-shadow:0 0 8px rgba(0,212,255,0.6); }
   #volume-panel.visible { display:flex !important; }
+  .stg-vol-slider { -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:3px; background:linear-gradient(90deg,rgba(255,0,230,0.3),rgba(0,212,255,0.3)); outline:none; cursor:pointer; }
+  .stg-vol-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#00d4ff; border:1px solid rgba(255,0,230,0.4); cursor:pointer; box-shadow:0 0 6px rgba(0,212,255,0.5); }
+  .stg-vol-slider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:#00d4ff; border:1px solid rgba(255,0,230,0.4); cursor:pointer; box-shadow:0 0 6px rgba(0,212,255,0.5); }
+  .stg-vol-row { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .stg-vol-pct { font-size:11px; color:rgba(0,212,255,0.7); min-width:28px; text-align:right; }
   html, body {
     width: 100%; height: 100%;
     overflow: hidden;
@@ -2452,6 +2457,15 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     }, { once: true });
   });
 
+  // Suspend/resume audio when tab visibility changes
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+    } else {
+      if (audioCtx && audioCtx.state === 'suspended' && !muted) audioCtx.resume();
+    }
+  });
+
   canvas.addEventListener("pointerdown", e => { e.preventDefault(); if(adActive) return; if(state===STATE.PLAYING) thrustStart(); else if(state===STATE.MENU) startGameWithNick(); else if(state===STATE.DYING) { state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } else if(state===STATE.DEAD && !restartPending) { restartPending=true; goPanel.classList.remove("show"); setTimeout(()=>{ goOverlay.classList.remove("active"); startGame(); }, 200); } });
   // Global tap handler for DYING skip (catches taps even if canvas doesn't get them)
   document.addEventListener("pointerdown", e => { if(state===STATE.DYING && !adActive) { e.preventDefault(); state=STATE.DEAD; timeScaleTarget=1; chromAb=0; showGameOver(); } });
@@ -2559,12 +2573,29 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   const settingsPanel=document.getElementById('settings-panel');
   const settingsContent=document.getElementById('settings-content');
   function openSettings() {
+    const volPct = Math.round(volume * 100);
     settingsContent.innerHTML=`
       <div class="setting-row"><span class="setting-label">🔊 Sound</span><button class="toggle-btn${muted?'':' on'}" id="stg-sound"></button></div>
+      <div class="setting-row" style="flex-direction:column;align-items:stretch;gap:4px">
+        <span class="setting-label">🎵 Volume</span>
+        <div class="stg-vol-row">
+          <input type="range" class="stg-vol-slider" id="stg-vol" min="0" max="100" value="${volPct}">
+          <span class="stg-vol-pct" id="stg-vol-pct">${volPct}%</span>
+        </div>
+      </div>
       <div class="setting-row"><span class="setting-label">📳 Vibration</span><button class="toggle-btn${vibrationEnabled?' on':''}" id="stg-vibration"></button></div>
       <div class="setting-row"><span class="setting-label" style="color:#ff4466">🗑 Reset Progress</span><button class="btn btn-small" id="stg-reset" style="font-size:11px;padding:4px 10px">Reset</button></div>
     `;
-    document.getElementById('stg-sound').addEventListener('click',function(){toggleMute();this.classList.toggle('on',!muted);});
+    document.getElementById('stg-sound').addEventListener('click',function(){toggleMute();this.classList.toggle('on',!muted);document.getElementById('stg-vol-pct').textContent=Math.round(volume*100)+'%';});
+    document.getElementById('stg-vol').addEventListener('input',function(e){
+      e.stopPropagation();
+      const v = parseInt(this.value) / 100;
+      setVolume(v);
+      document.getElementById('stg-vol-pct').textContent = this.value + '%';
+      if (muted && v > 0) { muted = false; STORAGE.set('muted', muted); document.getElementById('stg-sound').classList.add('on'); }
+      if (!muted && !musicPlaying) { initAudio(); startMusic(); }
+    });
+    document.getElementById('stg-vol').addEventListener('pointerdown', e => e.stopPropagation());
     document.getElementById('stg-vibration').addEventListener('click',function(){vibrationEnabled=!vibrationEnabled;STORAGE.set('vibration',vibrationEnabled);this.classList.toggle('on',vibrationEnabled);});
     document.getElementById('stg-reset').addEventListener('click',()=>{
       if(confirm('Reset all progress? This cannot be undone!')){
