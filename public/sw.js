@@ -1,4 +1,4 @@
-const CACHE_NAME = "neon-drift-v49";
+const CACHE_NAME = "neon-drift-v50";
 const ASSETS = [
   "/",
   "/index.html",

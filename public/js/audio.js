@@ -1,8 +1,8 @@
 // =============================================
-//  AUDIO — Web Audio synth engine + ambient music
+//  AUDIO — Web Audio synth engine + dynamic music
 // =============================================
 import { S } from './state.js';
-import { MUSIC_VOL, CHORDS, BASS_NOTES, ARP_NOTES } from './config.js';
+import { MUSIC_ZONES, ZONES } from './config.js';
 
 let audioCtx;
 
@@ -103,161 +103,227 @@ export function playSound(type) {
 }
 
 // =============================================
-//  SPACE AMBIENT MUSIC
+//  DYNAMIC MUSIC — zone-aware + intensity scaling
 // =============================================
 
-export function startMusic() {
-  if (S.musicPlaying || !audioCtx) return;
+const MUSIC_VOL_BASE = 0.055;
+
+function getMusicVolGain() {
+  return MUSIC_VOL_BASE * (S.musicVolume / 100);
+}
+
+function getMusicIntensity() {
+  const zi = S.musicCurrentZoneIdx;
+  const zoneStart = ZONES[zi].from;
+  const zoneEnd = (zi < ZONES.length - 1) ? ZONES[zi + 1].from : zoneStart + 50;
+  const progress = Math.min(1, Math.max(0, (S.score - zoneStart) / (zoneEnd - zoneStart)));
+  return 0.7 + progress * 0.3;
+}
+
+export function startMusic(zoneIdx) {
+  if (!audioCtx) return;
+  if (S.musicPlaying) stopMusic();
   S.musicPlaying = true;
+  S.musicCurrentZoneIdx = zoneIdx || 0;
+  const mz = MUSIC_ZONES[S.musicCurrentZoneIdx] || MUSIC_ZONES[0];
+
   const master = audioCtx.createGain();
-  master.gain.value = MUSIC_VOL;
+  master.gain.setValueAtTime(0, audioCtx.currentTime);
+  master.gain.linearRampToValueAtTime(getMusicVolGain(), audioCtx.currentTime + 1.5);
+  S.musicMasterGain = master;
   const limiter = audioCtx.createDynamicsCompressor();
-  limiter.threshold.value = -6; limiter.knee.value = 12;
-  limiter.ratio.value = 8; limiter.attack.value = 0.002; limiter.release.value = 0.15;
+  limiter.threshold.value = -6; limiter.knee.value = 10;
+  limiter.ratio.value = 6; limiter.attack.value = 0.003; limiter.release.value = 0.15;
   master.connect(limiter); limiter.connect(audioCtx.destination);
   S.musicNodes.push(master, limiter);
 
-  const BPM = 90, beatLen = 60/BPM, barLen = beatLen*4;
-  const loopLen = barLen*4;
-  let nextPad = 0, nextBass = 0, nextPing = 0, nextTex = 0;
+  const BPM = mz.bpm, beatLen = 60/BPM, barLen = beatLen*4;
+  const loopLen = barLen * 4;
+  let nextLoop = audioCtx.currentTime + 0.05;
 
-  function playPad() {
+  const noiseBufLen = audioCtx.sampleRate * 2;
+  const _noiseBuf = audioCtx.createBuffer(1, noiseBufLen, audioCtx.sampleRate);
+  const _nd = _noiseBuf.getChannelData(0);
+  for (let i = 0; i < noiseBufLen; i++) _nd[i] = (Math.random() * 2 - 1);
+  const tickBufLen = Math.ceil(audioCtx.sampleRate * 0.015);
+  const _tickBuf = audioCtx.createBuffer(1, tickBufLen, audioCtx.sampleRate);
+  const _td = _tickBuf.getChannelData(0);
+  for (let i = 0; i < tickBufLen; i++) _td[i] = (Math.random() * 2 - 1) * Math.exp(-i / (tickBufLen * 0.2));
+
+  function scheduleLoop() {
     if (!S.musicPlaying) return;
-    const now = audioCtx.currentTime;
-    const start = Math.max(now + 0.05, nextPad);
+    const intensity = getMusicIntensity();
+    const start = nextLoop;
+
     for (let bar = 0; bar < 4; bar++) {
-      const chord = CHORDS[bar];
       const t = start + bar * barLen;
+      const chord = mz.chords[bar];
+
       for (const freq of chord) {
-        const osc1 = audioCtx.createOscillator();
+        const o1 = audioCtx.createOscillator();
         const g1 = audioCtx.createGain();
-        osc1.type = 'sine'; osc1.frequency.value = freq;
-        osc1.connect(g1); g1.connect(master);
+        o1.type = mz.padWave; o1.frequency.value = freq;
+        o1.connect(g1); g1.connect(master);
+        const pv = mz.padVol * intensity;
         g1.gain.setValueAtTime(0, t);
-        g1.gain.linearRampToValueAtTime(0.09, t + barLen * 0.35);
-        g1.gain.setValueAtTime(0.09, t + barLen * 0.65);
-        g1.gain.linearRampToValueAtTime(0, t + barLen);
-        osc1.start(t); osc1.stop(t + barLen + 0.05);
-        const osc2 = audioCtx.createOscillator();
+        g1.gain.linearRampToValueAtTime(pv, t + barLen * 0.3);
+        g1.gain.setValueAtTime(pv, t + barLen * 0.7);
+        g1.gain.linearRampToValueAtTime(0, t + barLen + 0.5);
+        o1.start(t); o1.stop(t + barLen + 0.6);
+
+        const o2 = audioCtx.createOscillator();
         const g2 = audioCtx.createGain();
-        const filt = audioCtx.createBiquadFilter();
-        osc2.type = 'triangle'; osc2.frequency.value = freq * 1.002;
-        filt.type = 'lowpass'; filt.frequency.value = 600; filt.Q.value = 0.5;
-        osc2.connect(filt); filt.connect(g2); g2.connect(master);
-        g2.gain.setValueAtTime(0, t);
-        g2.gain.linearRampToValueAtTime(0.05, t + barLen * 0.4);
-        g2.gain.linearRampToValueAtTime(0, t + barLen);
-        osc2.start(t); osc2.stop(t + barLen + 0.05);
+        const f2 = audioCtx.createBiquadFilter();
+        o2.type = 'triangle'; o2.frequency.value = freq * 1.002;
+        f2.type = 'lowpass'; f2.frequency.value = mz.filterFreq; f2.Q.value = 0.5;
+        o2.connect(f2); f2.connect(g2); g2.connect(master);
+        g2.gain.setValueAtTime(0, t + 0.1);
+        g2.gain.linearRampToValueAtTime(0.07 * intensity, t + barLen * 0.4);
+        g2.gain.linearRampToValueAtTime(0, t + barLen + 0.3);
+        o2.start(t); o2.stop(t + barLen + 0.4);
+
+        const o3 = audioCtx.createOscillator();
+        const g3 = audioCtx.createGain();
+        o3.type = 'sine'; o3.frequency.value = freq * 0.5;
+        o3.connect(g3); g3.connect(master);
+        g3.gain.setValueAtTime(0, t);
+        g3.gain.linearRampToValueAtTime(0.04 * intensity, t + barLen * 0.5);
+        g3.gain.linearRampToValueAtTime(0, t + barLen);
+        o3.start(t); o3.stop(t + barLen + 0.1);
       }
-    }
-    nextPad = start + loopLen;
-    setTimeout(playPad, (nextPad - audioCtx.currentTime - 0.3) * 1000);
-  }
 
-  function playBass() {
-    if (!S.musicPlaying) return;
-    const now = audioCtx.currentTime;
-    const start = Math.max(now + 0.05, nextBass);
-    for (let bar = 0; bar < 4; bar++) {
-      const freq = BASS_NOTES[bar];
-      const t = start + bar * barLen;
-      const osc = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      osc.type = 'sine'; osc.frequency.value = freq;
-      osc.connect(g); g.connect(master);
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(0.28, t + beatLen * 0.8);
-      g.gain.setValueAtTime(0.28, t + barLen - beatLen * 0.8);
-      g.gain.linearRampToValueAtTime(0, t + barLen);
-      osc.start(t); osc.stop(t + barLen + 0.05);
-    }
-    nextBass = start + loopLen;
-    setTimeout(playBass, (nextBass - audioCtx.currentTime - 0.3) * 1000);
-  }
+      const bfreq = mz.bass[bar];
+      const bo = audioCtx.createOscillator();
+      const bg = audioCtx.createGain();
+      bo.type = mz.bassWave; bo.frequency.value = bfreq;
+      bo.connect(bg); bg.connect(master);
+      const bv = mz.bassVol * intensity;
+      bg.gain.setValueAtTime(0, t);
+      bg.gain.linearRampToValueAtTime(bv, t + beatLen);
+      bg.gain.setValueAtTime(bv, t + barLen - beatLen);
+      bg.gain.linearRampToValueAtTime(0, t + barLen);
+      bo.start(t); bo.stop(t + barLen + 0.05);
 
-  function playPings() {
-    if (!S.musicPlaying) return;
-    const now = audioCtx.currentTime;
-    const start = Math.max(now + 0.05, nextPing);
-    for (let bar = 0; bar < 4; bar++) {
-      const notes = ARP_NOTES[bar];
-      const t = start + bar * barLen;
+      const b2 = audioCtx.createOscillator();
+      const bg2 = audioCtx.createGain();
+      const bf = audioCtx.createBiquadFilter();
+      b2.type = 'triangle'; b2.frequency.value = bfreq * 2;
+      bf.type = 'lowpass'; bf.frequency.value = 200;
+      b2.connect(bf); bf.connect(bg2); bg2.connect(master);
+      const pt = t + beatLen * 2;
+      bg2.gain.setValueAtTime(0.15 * intensity, pt);
+      bg2.gain.exponentialRampToValueAtTime(0.01, pt + beatLen * 0.8);
+      b2.start(pt); b2.stop(pt + beatLen);
+
+      const notes = mz.arps[bar];
       const hits = [0, 1.3, 2.5, 3.2];
       for (let i = 0; i < hits.length; i++) {
         const nt = t + hits[i] * beatLen;
         const freq = notes[i % notes.length] * 2;
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'sine'; osc.frequency.value = freq;
-        osc.connect(g); g.connect(master);
-        g.gain.setValueAtTime(0.10, nt);
-        g.gain.linearRampToValueAtTime(0, nt + beatLen * 1.8);
-        osc.start(nt); osc.stop(nt + beatLen * 1.9);
-        const osc2 = audioCtx.createOscillator();
-        const g2 = audioCtx.createGain();
-        osc2.type = 'triangle'; osc2.frequency.value = freq * 1.003;
-        osc2.connect(g2); g2.connect(master);
-        const echo = beatLen * 0.6;
-        g2.gain.setValueAtTime(0, nt + echo);
-        g2.gain.linearRampToValueAtTime(0.03, nt + echo + 0.03);
-        g2.gain.linearRampToValueAtTime(0, nt + echo + beatLen * 1.2);
-        osc2.start(nt + echo); osc2.stop(nt + echo + beatLen * 1.3);
+        const po = audioCtx.createOscillator();
+        const pg = audioCtx.createGain();
+        po.type = mz.arpWave; po.frequency.value = freq;
+        po.connect(pg); pg.connect(master);
+        pg.gain.setValueAtTime(mz.arpVol * intensity, nt);
+        pg.gain.exponentialRampToValueAtTime(0.01, nt + beatLen * 2);
+        po.start(nt); po.stop(nt + beatLen * 2.1);
+
+        const so = audioCtx.createOscillator();
+        const sg = audioCtx.createGain();
+        const sf = audioCtx.createBiquadFilter();
+        so.type = 'triangle'; so.frequency.value = freq * 1.005;
+        sf.type = 'lowpass'; sf.frequency.value = 2000;
+        so.connect(sf); sf.connect(sg); sg.connect(master);
+        sg.gain.setValueAtTime(0.06 * intensity, nt + 0.05);
+        sg.gain.exponentialRampToValueAtTime(0.01, nt + beatLen * 3);
+        so.start(nt + 0.05); so.stop(nt + beatLen * 3.1);
+
+        const eo = audioCtx.createOscillator();
+        const eg = audioCtx.createGain();
+        eo.type = 'sine'; eo.frequency.value = freq * 0.999;
+        eo.connect(eg); eg.connect(master);
+        const echo = beatLen * 0.75;
+        eg.gain.setValueAtTime(0, nt + echo);
+        eg.gain.linearRampToValueAtTime(0.04 * intensity, nt + echo + 0.02);
+        eg.gain.exponentialRampToValueAtTime(0.01, nt + echo + beatLen * 1.5);
+        eo.start(nt + echo); eo.stop(nt + echo + beatLen * 1.6);
+      }
+
+      const ws = audioCtx.createBufferSource();
+      const wg = audioCtx.createGain();
+      const wf = audioCtx.createBiquadFilter();
+      ws.buffer = _noiseBuf; ws.loop = true;
+      wf.type = 'bandpass'; wf.Q.value = mz.noiseQ;
+      wf.frequency.setValueAtTime(200 + bar * 150, t);
+      wf.frequency.linearRampToValueAtTime(600 + bar * 150, t + barLen * 0.5);
+      wf.frequency.linearRampToValueAtTime(300 + bar * 50, t + barLen);
+      ws.connect(wf); wf.connect(wg); wg.connect(master);
+      const tv = mz.texVol * intensity;
+      wg.gain.setValueAtTime(0, t);
+      wg.gain.linearRampToValueAtTime(tv, t + barLen * 0.3);
+      wg.gain.setValueAtTime(tv, t + barLen * 0.7);
+      wg.gain.linearRampToValueAtTime(0, t + barLen);
+      ws.start(t); ws.stop(t + barLen + 0.01);
+
+      for (let ti = 0; ti < 2; ti++) {
+        const tt = t + ti * beatLen * 2 + (Math.random() - 0.5) * beatLen * 0.3;
+        const ts = audioCtx.createBufferSource();
+        const tg = audioCtx.createGain();
+        const thp = audioCtx.createBiquadFilter();
+        ts.buffer = _tickBuf;
+        thp.type = 'highpass'; thp.frequency.value = 6000 + Math.random() * 4000;
+        ts.connect(thp); thp.connect(tg); tg.connect(master);
+        tg.gain.setValueAtTime((0.06 + Math.random() * 0.06) * intensity, tt);
+        tg.gain.exponentialRampToValueAtTime(0.01, tt + 0.03);
+        ts.start(tt); ts.stop(tt + 0.04);
       }
     }
-    nextPing = start + loopLen;
-    setTimeout(playPings, (nextPing - audioCtx.currentTime - 0.3) * 1000);
+
+    nextLoop = start + loopLen;
+    const ahead = (nextLoop - audioCtx.currentTime) * 1000 - 800;
+    S.musicTimer = setTimeout(scheduleLoop, Math.max(ahead, 100));
   }
 
-  function playTexture() {
-    if (!S.musicPlaying) return;
-    const now = audioCtx.currentTime;
-    const start = Math.max(now + 0.05, nextTex);
-    const noiseBufLen = audioCtx.sampleRate * 2;
-    const noiseBuf = audioCtx.createBuffer(1, noiseBufLen, audioCtx.sampleRate);
-    const nd = noiseBuf.getChannelData(0);
-    for (let i = 0; i < noiseBufLen; i++) nd[i] = (Math.random() * 2 - 1);
-    const src = audioCtx.createBufferSource();
-    const ng = audioCtx.createGain();
-    const bp = audioCtx.createBiquadFilter();
-    src.buffer = noiseBuf; src.loop = true;
-    bp.type = 'bandpass'; bp.frequency.value = 400; bp.Q.value = 6;
-    bp.frequency.setValueAtTime(250, start);
-    bp.frequency.linearRampToValueAtTime(700, start + loopLen * 0.5);
-    bp.frequency.linearRampToValueAtTime(300, start + loopLen);
-    src.connect(bp); bp.connect(ng); ng.connect(master);
-    ng.gain.setValueAtTime(0, start);
-    ng.gain.linearRampToValueAtTime(0.025, start + loopLen * 0.15);
-    ng.gain.setValueAtTime(0.025, start + loopLen * 0.85);
-    ng.gain.linearRampToValueAtTime(0, start + loopLen);
-    src.start(start); src.stop(start + loopLen + 0.05);
-    const tickBufLen = audioCtx.sampleRate * 0.012;
-    const tickBuf = audioCtx.createBuffer(1, tickBufLen, audioCtx.sampleRate);
-    const td = tickBuf.getChannelData(0);
-    for (let i = 0; i < tickBufLen; i++) td[i] = (Math.random() * 2 - 1) * Math.exp(-i / (tickBufLen * 0.15));
-    for (let i = 0; i < 6; i++) {
-      const tt = start + (i * beatLen * 2.5) + Math.random() * beatLen * 0.2;
-      if (tt >= start + loopLen) continue;
-      const tsrc = audioCtx.createBufferSource();
-      const tg = audioCtx.createGain();
-      const thp = audioCtx.createBiquadFilter();
-      tsrc.buffer = tickBuf;
-      thp.type = 'highpass'; thp.frequency.value = 7000 + Math.random() * 3000;
-      tsrc.connect(thp); thp.connect(tg); tg.connect(master);
-      tg.gain.setValueAtTime(0.04 + Math.random() * 0.03, tt);
-      tg.gain.linearRampToValueAtTime(0, tt + 0.025);
-      tsrc.start(tt); tsrc.stop(tt + 0.03);
-    }
-    nextTex = start + loopLen;
-    setTimeout(playTexture, (nextTex - audioCtx.currentTime - 0.3) * 1000);
-  }
-
-  playPad(); playBass(); playPings(); playTexture();
+  scheduleLoop();
+  scheduleLoop();
 }
 
 export function stopMusic() {
   S.musicPlaying = false;
-  for (const n of S.musicNodes) { try { n.disconnect(); } catch(e) {} }
+  clearTimeout(S.musicTimer);
+  if (S.musicMasterGain && audioCtx) {
+    try {
+      const now = audioCtx.currentTime;
+      S.musicMasterGain.gain.cancelScheduledValues(now);
+      S.musicMasterGain.gain.setValueAtTime(S.musicMasterGain.gain.value, now);
+      S.musicMasterGain.gain.linearRampToValueAtTime(0, now + 0.5);
+    } catch(e) {}
+  }
+  const nodesToDisconnect = [...S.musicNodes];
+  setTimeout(() => {
+    for (const n of nodesToDisconnect) { try { n.disconnect(); } catch(e) {} }
+  }, 600);
   S.musicNodes = [];
+  S.musicMasterGain = null;
+}
+
+export function updateMusicZone(newZoneIdx) {
+  if (!S.musicPlaying || !audioCtx) return;
+  if (newZoneIdx === S.musicCurrentZoneIdx) return;
+  stopMusic();
+  setTimeout(() => {
+    if (!S.muted) startMusic(newZoneIdx);
+  }, 600);
+}
+
+export function setMusicVolume(vol) {
+  S.musicVolume = Math.max(0, Math.min(100, vol));
+  if (S.musicMasterGain && audioCtx) {
+    const now = audioCtx.currentTime;
+    S.musicMasterGain.gain.cancelScheduledValues(now);
+    S.musicMasterGain.gain.setValueAtTime(S.musicMasterGain.gain.value, now);
+    S.musicMasterGain.gain.linearRampToValueAtTime(getMusicVolGain(), now + 0.1);
+  }
 }
 
 export function suspendAudio() {
