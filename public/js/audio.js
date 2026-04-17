@@ -308,12 +308,35 @@ export function stopMusic() {
 }
 
 export function updateMusicZone(newZoneIdx) {
-  if (!S.musicPlaying || !audioCtx) return;
-  if (newZoneIdx === S.musicCurrentZoneIdx) return;
-  stopMusic();
+  if (!audioCtx) return;
+  if (newZoneIdx === S.musicCurrentZoneIdx) { if (!S.musicPlaying && !S.muted) startMusic(newZoneIdx); return; }
+  if (!S.musicPlaying) { if (!S.muted) startMusic(newZoneIdx); return; }
+  // Save old music references
+  const oldMaster = S.musicMasterGain;
+  const oldNodes = [...S.musicNodes];
+  const oldTimer = S.musicTimer;
+  // Stop old scheduling loop (don't disconnect yet)
+  S.musicPlaying = false;
+  clearTimeout(oldTimer);
+  // Fade out old master over 1.5s
+  if (oldMaster) {
+    try {
+      const now = audioCtx.currentTime;
+      oldMaster.gain.cancelScheduledValues(now);
+      oldMaster.gain.setValueAtTime(oldMaster.gain.value, now);
+      oldMaster.gain.linearRampToValueAtTime(0, now + 1.5);
+    } catch(e) {}
+  }
+  // Disconnect old nodes after fade completes
   setTimeout(() => {
-    if (!S.muted) startMusic(newZoneIdx);
-  }, 600);
+    for (const n of oldNodes) { try { n.disconnect(); } catch(e) {} }
+  }, 1700);
+  // Reset state for new music
+  S.musicNodes = [];
+  S.musicMasterGain = null;
+  S.musicTimer = 0;
+  // Start new zone music (fades in over 1.5s via startMusic)
+  startMusic(newZoneIdx);
 }
 
 export function setMusicVolume(vol) {

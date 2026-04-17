@@ -2426,15 +2426,37 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     musicMasterGain = null;
   }
 
-  // Transition music when zone changes
+  // Transition music when zone changes — true crossfade (no gap)
   function updateMusicZone(newZoneIdx) {
-    if(!musicPlaying || !audioCtx) return;
-    if(newZoneIdx === musicCurrentZoneIdx) return;
-    // Crossfade: stop old (with fade), start new (with fade-in)
-    stopMusic();
+    if(!audioCtx) return;
+    if(newZoneIdx === musicCurrentZoneIdx) { if(!musicPlaying && !muted) startMusic(newZoneIdx); return; }
+    if(!musicPlaying) { if(!muted) startMusic(newZoneIdx); return; }
+    // Save old music references
+    const oldMaster = musicMasterGain;
+    const oldNodes = [...musicNodes];
+    const oldTimer = musicTimer;
+    // Stop old scheduling loop (don't disconnect yet)
+    musicPlaying = false;
+    clearTimeout(oldTimer);
+    // Fade out old master over 1.5s
+    if(oldMaster) {
+      try {
+        const now = audioCtx.currentTime;
+        oldMaster.gain.cancelScheduledValues(now);
+        oldMaster.gain.setValueAtTime(oldMaster.gain.value, now);
+        oldMaster.gain.linearRampToValueAtTime(0, now + 1.5);
+      } catch(e) {}
+    }
+    // Disconnect old nodes after fade completes
     setTimeout(() => {
-      if(!muted) startMusic(newZoneIdx);
-    }, 600);
+      for(const n of oldNodes) { try { n.disconnect(); } catch(e){} }
+    }, 1700);
+    // Reset state for new music
+    musicNodes = [];
+    musicMasterGain = null;
+    musicTimer = 0;
+    // Start new zone music (fades in over 1.5s via startMusic)
+    startMusic(newZoneIdx);
   }
 
   // Update master gain when volume slider changes
