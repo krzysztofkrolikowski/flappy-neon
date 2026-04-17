@@ -85,6 +85,10 @@ export const S = {
   // Shop
   shopAnimFrame: 0,
 
+  // Bird speech bubbles
+  speechBubble: null,  // { text, timer, opacity, floatY }
+  speechBubbleCooldown: 0,
+
   // Dying
   dyingTimer: 0,
 

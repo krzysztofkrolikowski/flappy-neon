@@ -112,6 +112,20 @@ export function hasPerk(perkId, equippedSkin) {
   return false;
 }
 
+// Bird speech bubble messages — triggered by in-game events
+export const BIRD_BUBBLES = {
+  drift: ['ZA BLISKO! 💀','YOLO! 🔥','Nie patrzcie! 😰','DRIFT KING! 🏎️','Powiało grobem! ⚰️','Łiii! ✈️'],
+  combo5: ['JESTEM BOGIEM! 👑','Nikt mnie nie zatrzyma! 🚀','GIGACHAD! 💪','Legenda! 🏆'],
+  combo10: ['TO JUŻ ABSURD! 🤯','MATKO! 😱','Wyłączcie kalkulator! 🧮','BOSS MODE! 👾'],
+  score0death: ['BRUH 💀','Skill issue 😂','Uninstall 🗑️','Mamo, odbierz mnie 📞','Tutorial? 📖','F 🪦'],
+  lowscore_death: ['Oops... 🫠','Następnym razem! 🤞','Nie moja wina! 😤','LAG! 🌐','Rury się ruszyły! 😠'],
+  powerup: ['POWA! ⚡','Mniam! 🍪','Doładowanie! 🔋','SUPER SAIYAN! 💥'],
+  milestone: ['SZYBCIEJ! 🏋️','Level up! 🆙','Nie zatrzymam się! 🚂','🔥🔥🔥'],
+  shield_save: ['AUĆ! ale mam tarczę 🛡️','Ha! Prawie! 😏','Nice try, ruro! 😤','Żyję! 🎉'],
+  start: ['No to jedziemy! 🏁','LECIMY! 🚀','Hop hop! 🐦','Kto tu rządzi?! 👊'],
+  random_flight: ['Weee! 🎢','Szybciej! 🏎️','Tralala~ 🎵','Jestem ptakiem! 🐤','Wheeee! 🎠','Lecę! ✨'],
+};
+
 export const CHORDS = [
   [164.81, 246.94, 369.99],
   [130.81, 196.00, 329.63],
