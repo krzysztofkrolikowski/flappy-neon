@@ -521,7 +521,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
 
 <!-- MENU -->
 <div id="menu-overlay" class="overlay active">
-  <div class="menu-title">NEON DRIFT</div>
+  <div class="menu-title" id="menu-title-tap">NEON DRIFT</div>
   <div class="menu-sub" data-t="menuSub">Hold ▲ Release ▼</div>
   <div class="menu-buttons">
     <button class="btn btn-primary" id="btn-play" data-t="play">▶ PLAY</button>
@@ -783,6 +783,11 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
   let deathFreezeFrames = 0; // freeze before slow-mo
   let dyingTimer = 0; // ticks since death started
   let envDebris = []; // flying debris particles
+  let confetti = []; // party confetti
+  let partyMode = false;
+  let partyTimer = 0;
+  const CONFETTI_COLORS = ['#ff00e6','#00f0ff','#ffee00','#ff4466','#00ff88','#ff8844','#bb44ff','#44ff44','#ffd700','#ff0066'];
+  const PARTY_MESSAGES = ['🎉 IMPREZKA!!!','🕺 DISCO NEON!','🥳 BIBA TIME!','🎊 KONFETTI WSZĘDZIE!','💃 TAŃCZ ROBACZKU!','🪩 TRYB DYSKOTEKA!','🎶 CAŁY KOSMOS TAŃCZY!','🦄 MAGICZNY MOMENT!'];
   const streakMilestones = [5,10,15,20,25,30,40,50,75,100];
 
   // === LASER SHOT (Banshee perk) ===
@@ -1113,6 +1118,34 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     } else if (type === "overdrive_tick") {
       // Subtle rhythmic pulse during overdrive — keeps energy feeling alive
       synth('sine', 220, 180, 0.06, 0.012, 400);
+
+    } else if (type === "party") {
+      // Ascending chiptune fanfare for party mode
+      const notes = [261.63, 329.63, 392.00, 523.25, 659.26, 783.99];
+      notes.forEach((freq, i) => {
+        const d = i * 0.08;
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        const f = audioCtx.createBiquadFilter();
+        o.type = i % 2 === 0 ? 'square' : 'triangle';
+        o.frequency.setValueAtTime(freq, t + d);
+        f.type = 'lowpass'; f.frequency.setValueAtTime(1200, t + d); f.Q.setValueAtTime(2, t);
+        g.gain.setValueAtTime(0, t + d);
+        g.gain.linearRampToValueAtTime(0.04, t + d + 0.02);
+        g.gain.linearRampToValueAtTime(0, t + d + 0.18);
+        o.connect(f); f.connect(g); g.connect(dest);
+        o.start(t + d); o.stop(t + d + 0.2);
+      });
+      [523.25, 659.26, 783.99].forEach(freq => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(freq, t + 0.5);
+        g.gain.setValueAtTime(0, t + 0.5);
+        g.gain.linearRampToValueAtTime(0.03, t + 0.55);
+        g.gain.linearRampToValueAtTime(0, t + 1.2);
+        o.connect(g); g.connect(dest);
+        o.start(t + 0.5); o.stop(t + 1.3);
+      });
     }
   }
 
@@ -2411,6 +2444,42 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     if(e.code==="Space"||e.code==="ArrowUp"||e.code==="Enter") thrustStop();
   });
 
+  // =============================================
+  //  KONAMI CODE EASTER EGG (↑↑↓↓←→←→BA)
+  // =============================================
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','KeyB','KeyA'];
+  let konamiIdx = 0;
+  document.addEventListener('keydown', e => {
+    if (e.code === KONAMI[konamiIdx]) {
+      konamiIdx++;
+      if (konamiIdx === KONAMI.length) {
+        konamiIdx = 0;
+        initAudio();
+        activatePartyMode();
+      }
+    } else {
+      konamiIdx = e.code === KONAMI[0] ? 1 : 0;
+    }
+  });
+
+  // Mobile Easter egg: tap game title 7 times fast to trigger party mode
+  let titleTaps = 0, titleTapTimer = 0;
+  const menuTitle = document.getElementById('menu-title-tap');
+  if (menuTitle) {
+    menuTitle.addEventListener('click', e => {
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - titleTapTimer > 3000) titleTaps = 0;
+      titleTapTimer = now;
+      titleTaps++;
+      if (titleTaps >= 7) {
+        titleTaps = 0;
+        initAudio();
+        activatePartyMode();
+      }
+    });
+  }
+
   // === LASER SHOT CONTROLS ===
   function fireLaser() {
     if(!hasPerk('laser_shot') || !laserReady || state!==STATE.PLAYING) return;
@@ -2951,6 +3020,62 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
       if(sl.life<=0||sl.x+sl.len<0){speedLines[i]=speedLines[speedLines.length-1];speedLines.pop();}
     }
     checkAchievements();
+    // Party mode confetti update
+    if(partyMode) {
+      partyTimer--;
+      if(partyTimer > 0 && partyTimer % 3 === 0) spawnConfetti(3);
+      if(partyTimer <= 0) partyMode = false;
+    }
+    for(let i=confetti.length-1;i>=0;i--) {
+      const c=confetti[i];
+      c.x += c.vx; c.y += c.vy; c.vy += 0.04; c.vx *= 0.99;
+      c.rot += c.rotV; c.life -= 0.008;
+      c.wobble += c.wobbleSpeed;
+      c.x += Math.sin(c.wobble) * 0.5;
+      if(c.life <= 0 || c.y > H + 20) { confetti[i]=confetti[confetti.length-1]; confetti.pop(); }
+    }
+  }
+
+  function spawnConfetti(count) {
+    for(let i = 0; i < count; i++) {
+      confetti.push({
+        x: Math.random() * W, y: -10 - Math.random() * 40,
+        vx: (Math.random() - 0.5) * 4, vy: Math.random() * 2 + 1,
+        rot: Math.random() * Math.PI * 2, rotV: (Math.random() - 0.5) * 0.15,
+        w: 4 + Math.random() * 6, h: 3 + Math.random() * 4,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        life: 1, wobble: Math.random() * Math.PI * 2, wobbleSpeed: 0.03 + Math.random() * 0.04,
+      });
+    }
+  }
+
+  function activatePartyMode() {
+    partyMode = true;
+    partyTimer = 360;
+    playSound('party');
+    const msg = PARTY_MESSAGES[Math.floor(Math.random() * PARTY_MESSAGES.length)];
+    showStreak(msg);
+    // Big confetti burst from center
+    for(let i = 0; i < 60; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 5 + 2;
+      confetti.push({
+        x: W / 2 + (Math.random() - 0.5) * 100,
+        y: H / 2 + (Math.random() - 0.5) * 80,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 3,
+        rot: Math.random() * Math.PI * 2, rotV: (Math.random() - 0.5) * 0.2,
+        w: 5 + Math.random() * 8, h: 3 + Math.random() * 5,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+        life: 1, wobble: Math.random() * Math.PI * 2, wobbleSpeed: 0.03 + Math.random() * 0.05,
+      });
+    }
+    addCoins(100);
+    haptic();
+    triggerBassPulse('combo');
+    chromAb = 6; screenPulse = 1;
+    burst(W / 2, H / 2, '#ff00e6', 30);
+    burst(W / 2, H / 2, '#ffee00', 20);
+    burst(W / 2, H / 2, '#00f0ff', 20);
   }
 
   // =============================================
@@ -4913,6 +5038,37 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     ctx.globalAlpha=1;
   }
 
+  function drawConfetti() {
+    for(const c of confetti) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      ctx.globalAlpha = c.life;
+      ctx.fillStyle = c.color;
+      ctx.shadowColor = c.color;
+      ctx.shadowBlur = 4;
+      ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+      ctx.globalAlpha = c.life * 0.4;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(-c.w / 2, -c.h / 4, c.w, c.h / 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    if(partyMode && partyTimer > 0) {
+      const hue = (Date.now() / 5) % 360;
+      const alpha = Math.min(0.35, partyTimer / 360 * 0.35);
+      ctx.save();
+      ctx.strokeStyle = `hsla(${hue},100%,60%,${alpha})`;
+      ctx.lineWidth = 6;
+      ctx.shadowColor = `hsl(${hue},100%,50%)`;
+      ctx.shadowBlur = 20;
+      ctx.strokeRect(3, 3, W - 6, H - 6);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+
   // === POST-PROCESSING: Chromatic Aberration ===
   function postProcess() {
     if(chromAb<0.5 && timeScale>0.9) { fxCanvas.classList.remove('active'); return; }
@@ -4970,7 +5126,7 @@ if (!window.location.hostname.includes('poki.com') && !document.referrer.include
     drawSpeedLines();
     for(const p of pipes) drawPipe(p);
     drawFloatingCoins(); drawPowerUpOrbs();
-    drawGround(); drawBird(); drawOverdriveAura(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawLaser(); drawFlash();
+    drawGround(); drawBird(); drawOverdriveAura(); drawShieldBubble(); drawEnvDebris(); drawParticles(); drawConfetti(); drawLaser(); drawFlash();
     if(state===STATE.DYING){
       const hAlpha=0.4+Math.sin(_now*0.008)*0.3;
       ctx.globalAlpha=hAlpha;

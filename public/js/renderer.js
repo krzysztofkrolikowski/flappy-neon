@@ -2013,6 +2013,37 @@ export function drawEnvDebris() {
     ctx.globalAlpha=1;
   }
 
+export function drawConfetti() {
+    for(const c of S.confetti) {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      ctx.globalAlpha = c.life;
+      ctx.fillStyle = c.color;
+      ctx.shadowColor = c.color;
+      ctx.shadowBlur = 4;
+      ctx.fillRect(-c.w / 2, -c.h / 2, c.w, c.h);
+      ctx.globalAlpha = c.life * 0.4;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(-c.w / 2, -c.h / 4, c.w, c.h / 2);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    if(S.partyMode && S.partyTimer > 0) {
+      const hue = (Date.now() / 5) % 360;
+      const alpha = Math.min(0.35, S.partyTimer / 360 * 0.35);
+      ctx.save();
+      ctx.strokeStyle = `hsla(${hue},100%,60%,${alpha})`;
+      ctx.lineWidth = 6;
+      ctx.shadowColor = `hsl(${hue},100%,50%)`;
+      ctx.shadowBlur = 20;
+      ctx.strokeRect(3, 3, W - 6, H - 6);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+
 export function postProcess() {
     if(S.chromAb<0.3 && S.timeScale>0.9) { fxCanvas.classList.remove('active'); return; }
     fxCanvas.classList.add('active');

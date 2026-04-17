@@ -77,6 +77,17 @@ export const TAUNTS = [
   ['CO?! Legenda!','Niemożliwe!','Jesteś bogiem?!'],
 ];
 
+export const PARTY_MESSAGES = [
+  '🎉 IMPREZKA!!!',
+  '🕺 DISCO NEON!',
+  '🥳 BIBA TIME!',
+  '🎊 KONFETTI WSZĘDZIE!',
+  '💃 TAŃCZ ROBACZKU!',
+  '🪩 TRYB DYSKOTEKA!',
+  '🎶 CAŁY KOSMOS TAŃCZY!',
+  '🦄 MAGICZNY MOMENT!',
+];
+
 export function getTaunt(s) {
   const tier = s >= 50 ? 3 : s >= 25 ? 2 : s >= 10 ? 1 : 0;
   const arr = TAUNTS[tier];

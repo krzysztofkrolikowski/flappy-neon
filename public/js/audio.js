@@ -99,6 +99,34 @@ export function playSound(type) {
     synth('sawtooth', 120, 220, 0.2, 0.025, 400);
   } else if (type === "shield") {
     synth('triangle', 350, 180, 0.08, 0.03, 700);
+  } else if (type === "party") {
+    // Ascending chiptune fanfare
+    const notes = [261.63, 329.63, 392.00, 523.25, 659.26, 783.99];
+    notes.forEach((freq, i) => {
+      const d = i * 0.08;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const f = audioCtx.createBiquadFilter();
+      o.type = i % 2 === 0 ? 'square' : 'triangle';
+      o.frequency.setValueAtTime(freq, t + d);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(1200, t + d); f.Q.setValueAtTime(2, t);
+      g.gain.setValueAtTime(0, t + d);
+      g.gain.linearRampToValueAtTime(0.04, t + d + 0.02);
+      g.gain.linearRampToValueAtTime(0, t + d + 0.18);
+      o.connect(f); f.connect(g); g.connect(dest);
+      o.start(t + d); o.stop(t + d + 0.2);
+    });
+    // Final chord
+    [523.25, 659.26, 783.99].forEach(freq => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.setValueAtTime(freq, t + 0.5);
+      g.gain.setValueAtTime(0, t + 0.5);
+      g.gain.linearRampToValueAtTime(0.03, t + 0.55);
+      g.gain.linearRampToValueAtTime(0, t + 1.2);
+      o.connect(g); g.connect(dest);
+      o.start(t + 0.5); o.stop(t + 1.3);
+    });
   }
 }
 
