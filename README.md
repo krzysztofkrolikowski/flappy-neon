@@ -1,3 +1,7 @@
+![CI](https://github.com/krzysztofkrolikowski/flappy-neon-strt-9/actions/workflows/ci.yml/badge.svg)
+
+> **Status:** [![CI](https://github.com/krzysztofkrolikowski/flappy-neon-strt-9/actions/workflows/ci.yml/badge.svg)](https://github.com/krzysztofkrolikowski/flappy-neon-strt-9/actions/workflows/ci.yml)
+
 # Flappy Neon
 
 Uzależniająca neonowa gra mobilna w stylu Flappy Bird.
